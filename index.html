@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0a0a0c">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>WILD TUSK BRAWL</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root { 
+            --bg: #0a0a0c; 
+            --accent: #ff3e3e; 
+            --gold: #ffcc00; 
+            --text: #ffffff;
+            --card: rgba(18, 18, 20, 0.95);
+            --radius: 28px;
+            --win: #4cd964;
+            --lose: #ff3e3e;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --safe-top: env(safe-area-inset-top, 20px);
+            --safe-bottom: env(safe-area-inset-bottom, 34px);
+            --safe-left: env(safe-area-inset-left, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+        }
+        
+        body { 
+            margin: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            touch-action: manipulation;
+            /* Учитываем нижний отступ для iPhone/Android жестов в самом body, но контент внутри тоже должен адаптироваться */
+            padding-bottom: 0; 
+            height: 100dvh; /* Dynamic viewport height */
+            width: 100vw;
+        }
+
+        /* Фоновые изображения */
+        .game-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-size: cover;
+            background-position: center;
+            z-index: -2;
+            transition: filter 0.5s ease, transform 0.5s ease;
+        }
+
+        #bg-main { background-image: url('assets/main_menu.png'); background-color: #1a1a1a; }
+        #bg-fight { background-image: url('assets/fight_field.png'); background-color: #000; display: none; }
+
+        .bg-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+            backdrop-filter: blur(0px);
+        }
+        
+        body.dimmed .bg-overlay { opacity: 1; backdrop-filter: blur(8px); pointer-events: auto; }
+        body.dimmed .game-bg { filter: brightness(0.5); transform: scale(1.05); }
+
+        .screen { 
+            display: none; 
+            width: 100%; 
+            height: 100%;
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            padding: 24px; 
+            padding-top: calc(20px + var(--safe-top));
+            padding-bottom: calc(20px + var(--safe-bottom));
+            box-sizing: border-box;
+            position: absolute;
+            top: 0; left: 0;
+            overflow-y: auto; /* Разрешаем скролл внутри скринов, если контент не влезает */
+        }
+        
+        .active { 
+            display: flex; 
+            animation: screenIn 0.4s forwards;
+        }
+        
+        @keyframes screenIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
+        #balance-header { 
+            position: fixed; 
+            top: calc(12px + var(--safe-top)); 
+            left: calc(16px + var(--safe-left));
+            background: rgba(0, 0, 0, 0.6); 
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            padding: 10px 20px; 
+            border-radius: 100px; 
+            font-weight: 800; 
+            color: var(--gold); 
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        #profile-trigger {
+            position: fixed;
+            bottom: calc(20px + var(--safe-bottom));
+            right: calc(16px + var(--safe-right));
+            width: 68px;
+            height: 68px;
+            background: rgba(30,30,34,0.92);
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 3000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        body.show-profile-btn #profile-trigger {
+            display: flex;
+        }
+
+        #profile-trigger:active { transform: scale(0.92); }
+
+        #profile-trigger img { 
+            width: 80%; 
+            height: 80%; 
+            border-radius: 50%; 
+            object-fit: cover; 
+        }
+
+        .menu-buttons {
+            width: 100%;
+            max-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: var(--safe-bottom); /* Чтобы не прилипало к низу на длинных экранах */
+        }
+
+        .btn-wood {
+            background: #252528;
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #fff;
+            padding: 18px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+            box-shadow: 0 4px 0px #151517;
+            position: relative;
+            top: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-wood:active { 
+            top: 2px;
+            box-shadow: 0 1px 0px #151517;
+            background: #2a2a2d; 
+        }
+        .btn-play { 
+            background: var(--gold); 
+            color: #000; 
+            border: none; 
+            box-shadow: 0 4px 0px #cca300;
+        }
+        .btn-play:active { background: #e6b800; box-shadow: 0 1px 0px #cca300; }
+
+        .card { 
+            background: var(--card); 
+            padding: 32px 24px; 
+            border-radius: var(--radius); 
+            border: 1px solid rgba(255,255,255,0.12); 
+            width: 100%; 
+            max-width: 340px;
+            backdrop-filter: blur(25px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.7);
+            transform-origin: center bottom;
+            animation: cardPop 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            position: relative; /* Для позиционирования крестика */
+        }
+
+        @keyframes cardPop {
+            from { opacity: 0; transform: scale(0.9) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 24px 0; }
+        .stat-item { 
+            background: rgba(255,255,255,0.04); 
+            padding: 16px; 
+            border-radius: 20px; 
+            text-align: center; 
+            border: 1px solid rgba(255,255,255,0.05); 
+        }
+        .stat-val { font-size: 1.2rem; font-weight: 900; display: block; margin-bottom: 4px; }
+        .stat-lbl { font-size: 0.7rem; opacity: 0.4; text-transform: uppercase; font-weight: 700; }
+
+        input {
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+            color: #fff; padding: 20px; border-radius: 18px; width: 100%; box-sizing: border-box;
+            font-size: 1.2rem; text-align: center; margin-bottom: 16px; font-weight: 700;
+            outline: none; transition: border-color 0.2s;
+        }
+        input:focus { border-color: var(--gold); }
+
+        /* БОЙ */
+        .arena { 
+            position: absolute;
+            bottom: 25%;
+            width: 100%;
+            display: flex; 
+            justify-content: space-around; 
+            align-items: flex-end; 
+            perspective: 1000px;
+            padding-bottom: var(--safe-bottom);
+        }
+
+        .boar-container {
+            width: 38%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+        }
+
+        .boar-container.hit { animation: flashRed 0.25s ease-out; }
+        @keyframes flashRed {
+            0% { filter: brightness(1); }
+            50% { filter: brightness(1.8) sepia(0.3) saturate(2); transform: scale(1.1) rotate(2deg); }
+            100% { filter: brightness(1); }
+        }
+
+        .dmg-popup {
+            position: absolute;
+            top: -40px;
+            color: #ff3e3e;
+            font-size: 2.2rem;
+            font-weight: 900;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.9);
+            pointer-events: none;
+            animation: flyUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            z-index: 100;
+        }
+        @keyframes flyUp {
+            0% { opacity: 0; transform: translateY(0) scale(0.5); }
+            30% { opacity: 1; transform: translateY(-20px) scale(1.3); }
+            100% { opacity: 0; transform: translateY(-90px) scale(1); }
+        }
+
+        .hp-bar-box { width: 100%; max-width: 130px; }
+        .hp-bar { 
+            width: 100%; 
+            background: rgba(255,255,255,0.1); 
+            height: 8px; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .hp-fill { 
+            height: 100%; 
+            background: linear-gradient(90deg, #4cd964, #a0ffaf); 
+            transition: width 0.4s cubic-bezier(0.33, 1, 0.68, 1); 
+            width: 100%;
+        }
+        .hp-txt { 
+            color: #fff; 
+            font-size: 1.2rem; 
+            font-weight: 900; 
+            text-align: center; 
+            margin-bottom: 8px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        .boar-unit { width: 100%; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.6)); }
+        .boar-unit img { width: 100%; height: auto; display: block; }
+        #boar1-img { transform: scaleX(-1); }
+
+        #fight-log { 
+            position: absolute; 
+            bottom: calc(15% + var(--safe-bottom)); 
+            background: rgba(0,0,0,0.7); 
+            backdrop-filter: blur(12px);
+            padding: 12px 28px; 
+            border-radius: 100px; 
+            font-weight: 700; 
+            font-size: 0.9rem;
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.15);
+            z-index: 20;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 80%;
+            text-align: center;
+        }
+
+        /* УВЕДОМЛЕНИЯ / RESULT OVERLAY */
+        #result-overlay {
+            position: fixed; 
+            inset: 0; /* Вместо top/left/w/h для лучшей поддержки */
+            background: rgba(0,0,0,0.8); 
+            z-index: 5000;
+            display: none; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            backdrop-filter: blur(12px);
+            padding: 24px;
+            /* Важно: добавляем отступы безопасности, чтобы контент не прилипал к краям */
+            padding-top: calc(24px + var(--safe-top));
+            padding-bottom: calc(24px + var(--safe-bottom));
+            padding-left: calc(24px + var(--safe-left));
+            padding-right: calc(24px + var(--safe-right));
+            box-sizing: border-box;
+            overflow-y: auto; /* Позволяем скролл, если экран маленький */
+        }
+
+        #result-card {
+            background: var(--card);
+            width: 100%;
+            max-width: 320px;
+            border-radius: 40px;
+            padding: 40px 24px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transform: translateY(60px) scale(0.9);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            box-shadow: 0 40px 80px rgba(0,0,0,0.9);
+            position: relative;
+            margin: auto; /* Центрирование при скролле */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #result-card.active { transform: translateY(0) scale(1); opacity: 1; }
+
+        .res-icon { font-size: 5rem; margin-bottom: 20px; display: block; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3)); }
+        .res-title { font-size: 2.2rem; font-weight: 900; text-transform: uppercase; margin: 0 0 12px 0; word-break: break-word; line-height: 1; }
+        .res-sum { font-size: 1.6rem; font-weight: 800; opacity: 0.9; margin-bottom: 30px; }
+        
+        .res-btn {
+            background: #fff; color: #000; border: none; padding: 18px 0;
+            width: 100%;
+            border-radius: 20px; font-weight: 900; font-size: 1.1rem;
+            text-transform: uppercase; cursor: pointer;
+            box-shadow: 0 10px 30px rgba(255,255,255,0.15);
+            transition: transform 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .res-btn:active { transform: scale(0.96); }
+
+        /* Кнопка закрытия (крестик) */
+        .close-x {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            font-size: 24px;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .close-x:active { background: rgba(255,255,255,0.2); }
+
+        .rank-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 18px; background: rgba(255,255,255,0.04); border-radius: 20px; 
+            margin-bottom: 12px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05);
+            transition: background 0.2s;
+        }
+        .rank-item:active { transform: scale(0.97); background: rgba(255,255,255,0.08); }
+
+        #user-modal {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.4); z-index: 4000;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            padding: 24px; box-sizing: border-box;
+            backdrop-filter: blur(15px);
+            padding-bottom: calc(24px + var(--safe-bottom));
+        }
+
+        /* Адаптив под очень узкие экраны */
+        @media (max-width: 360px) {
+            #profile-trigger {
+                width: 60px;
+                height: 60px;
+                right: 12px;
+                bottom: calc(16px + var(--safe-bottom));
+            }
+            .card { padding: 24px 16px; }
+            .menu-buttons { max-width: 280px; }
+            .res-title { font-size: 1.8rem; }
+            .res-icon { font-size: 4rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="bg-main" class="game-bg"></div>
+    <div id="bg-fight" class="game-bg"></div>
+    <div class="bg-overlay"></div>
+
+    <div id="balance-header">
+        <span id="bal-val">0</span> 💰
+    </div>
+
+    <div id="profile-trigger" onclick="nav('scr-profile')">
+        <img src="assets/boar.png" onerror="this.src='https://api.dicebear.com/7.x/pixel-art/svg?seed=porker'">
+    </div>
+
+    <!-- Загрузка -->
+    <div id="scr-load" class="screen active">
+        <div style="width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;"></div>
+    </div>
+    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+
+    <!-- Результат боя -->
+    <div id="result-overlay">
+        <div id="result-card">
+            <!-- Добавили явный крестик для закрытия -->
+            <button class="close-x" onclick="closeResult()">&times;</button>
+            
+            <span class="res-icon" id="res-icon">🏆</span>
+            <h2 class="res-title" id="res-title">ПОБЕДА</h2>
+            <div class="res-sum" id="res-sum">+500 💰</div>
+            <button class="res-btn" onclick="closeResult()">ПРОДОЛЖИТЬ</button>
+        </div>
+    </div>
+
+    <!-- Модалка игрока -->
+    <div id="user-modal" onclick="if(event.target==this) closeModal()">
+        <div class="card">
+            <button class="close-x" onclick="closeModal()" style="top:12px; right:12px;">&times;</button>
+            <h3 id="modal-user-name" style="margin-top:0; font-size: 1.5rem; padding-right: 30px;">ИГРОК</h3>
+            <div class="stat-grid">
+                <div class="stat-item"><span class="stat-val" id="modal-games">0</span><span class="stat-lbl">Боев</span></div>
+                <div class="stat-item"><span class="stat-val" id="modal-wins" style="color: var(--win);">0</span><span class="stat-lbl">Побед</span></div>
+                <div class="stat-item"><span class="stat-val" id="modal-lose" style="color: var(--lose);">0</span><span class="stat-lbl">Пораж.</span></div>
+                <div class="stat-item"><span class="stat-val" id="modal-bal">0</span><span class="stat-lbl">Баланс</span></div>
+            </div>
+            <button class="btn-wood" style="width: 100%; background: #0088cc; border:none; box-shadow: 0 4px 0 #006699;" id="modal-write-btn">НАПИСАТЬ</button>
+            <!-- Дублирующая кнопка закрыть снизу -->
+            <button class="btn-wood" style="width: 100%; margin-top: 14px; opacity: 0.6;" onclick="closeModal()">ЗАКРЫТЬ</button>
+        </div>
+    </div>
+
+    <div id="scr-main" class="screen">
+        <div class="menu-buttons">
+            <button class="btn-wood btn-play" onclick="nav('scr-bet')">В БОЙ</button>
+            <button class="btn-wood" onclick="nav('scr-farm')">МОЯ ФЕРМА</button>
+            <button class="btn-wood" onclick="nav('scr-rank')">РЕЙТИНГ</button>
+        </div>
+    </div>
+
+    <div id="scr-bet" class="screen">
+        <div class="card">
+            <h3 style="margin-top:0; text-align: center; font-size: 1.4rem;">ВАША СТАВКА</h3>
+            <input type="number" id="bet-amt" value="100" min="10" inputmode="numeric">
+            <div style="display: flex; gap: 14px;">
+                <button class="btn-wood" style="flex:1; background: #3498db; border:none; box-shadow: 0 4px 0 #2573a7;" onclick="preStart(1)">ЛЕВЫЙ</button>
+                <button class="btn-wood" style="flex:1; background: #9b59b6; border:none; box-shadow: 0 4px 0 #7d4594;" onclick="preStart(2)">ПРАВЫЙ</button>
+            </div>
+            <button class="btn-wood" style="margin-top: 18px; width: 100%; opacity: 0.6;" onclick="nav('scr-main')">ОТМЕНА</button>
+        </div>
+    </div>
+
+    <div id="scr-farm" class="screen">
+        <div class="card" style="text-align: center;">
+            <h2 style="margin-top:0;">ФЕРМА</h2>
+            <p style="opacity:0.5; font-size: 0.95rem;">Раздел находится в разработке</p>
+            <div style="font-size: 6rem; margin: 30px 0;">🌽</div>
+            <button class="btn-wood" style="width: 100%;" onclick="nav('scr-main')">НАЗАД</button>
+        </div>
+    </div>
+
+    <div id="scr-profile" class="screen">
+        <div class="card">
+            <h3 style="margin-top:0;">ВАШ ХРЯК</h3>
+            <input type="text" id="edit-name" placeholder="Имя хряка">
+            <div class="stat-grid">
+                <div class="stat-item"><span class="stat-val" id="st-games">0</span><span class="stat-lbl">Боев</span></div>
+                <div class="stat-item"><span class="stat-val" id="st-wins" style="color: var(--win);">0</span><span class="stat-lbl">Побед</span></div>
+                <div class="stat-item"><span class="stat-val" id="st-lose" style="color: var(--lose);">0</span><span class="stat-lbl">Пораж.</span></div>
+                <div class="stat-item"><span class="stat-val" id="st-wr">0%</span><span class="stat-lbl">Winrate</span></div>
+            </div>
+            <button class="btn-wood" style="width:100%; background: #fff; color: #000; box-shadow: 0 4px 0 #ccc;" onclick="updateName()">СОХРАНИТЬ</button>
+            <button class="btn-wood" style="width:100%; margin-top: 14px; opacity: 0.6;" onclick="nav('scr-main')">НАЗАД</button>
+        </div>
+    </div>
+
+    <div id="scr-rank" class="screen">
+        <div class="card" style="max-height: 85vh; display: flex; flex-direction: column;">
+            <h3 style="margin-top:0;">ТОП БОЙЦОВ</h3>
+            <div id="rank-list" style="overflow-y: auto; flex: 1; padding-right: 5px;"></div>
+            <button class="btn-wood" style="width:100%; margin-top: 20px;" onclick="nav('scr-main')">НАЗАД</button>
+        </div>
+    </div>
+
+    <div id="scr-fight" class="screen">
+        <div class="arena">
+            <div id="cont-1" class="boar-container">
+                <div class="hp-bar-box">
+                    <div class="hp-txt" id="hp1-txt">100</div>
+                    <div class="hp-bar"><div id="hp1-f" class="hp-fill"></div></div>
+                </div>
+                <div class="boar-unit">
+                    <img id="boar1-img" src="assets/boar.png" onerror="this.src='https://api.dicebear.com/7.x/pixel-art/svg?seed=boar1'">
+                </div>
+            </div>
+
+            <div id="cont-2" class="boar-container">
+                <div class="hp-bar-box">
+                    <div class="hp-txt" id="hp2-txt">100</div>
+                    <div class="hp-bar"><div id="hp2-f" class="hp-fill"></div></div>
+                </div>
+                <div class="boar-unit">
+                    <img id="boar2-img" src="assets/boar.png" onerror="this.src='https://api.dicebear.com/7.x/pixel-art/svg?seed=boar2'">
+                </div>
+            </div>
+        </div>
+        <div id="fight-log">ПОДГОТОВКА...</div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let user = null;
+        let selectedSide = 0;
+
+        async function apiFetch(endpoint, options = {}) {
+            try {
+                const res = await fetch(endpoint, {
+                    ...options,
+                    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+                });
+                return await res.json();
+            } catch (e) { return null; }
+        }
+
+        async function auth() {
+            const tgUser = tg.initDataUnsafe?.user || { id: "dev_user", username: "kaban", first_name: "Хряк" };
+            user = await apiFetch('/api/auth', {
+                method: 'POST',
+                body: JSON.stringify({ tg_id: tgUser.id, username: tgUser.username, first_name: tgUser.first_name })
+            });
+            if (user) {
+                updateUI();
+                nav('scr-main');
+            }
+        }
+
+        function updateUI() {
+            if (!user) return;
+            document.getElementById('bal-val').innerText = user.balance.toLocaleString();
+            document.getElementById('edit-name').value = user.display_name || user.username || "";
+            document.getElementById('st-games').innerText = user.total_games || 0;
+            document.getElementById('st-wins').innerText = user.wins || 0;
+            document.getElementById('st-lose').innerText = user.lose || 0;
+            const wr = user.total_games > 0 ? Math.round((user.wins / user.total_games) * 100) : 0;
+            document.getElementById('st-wr').innerText = wr + "%";
+        }
+
+        function nav(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+
+            const isFight = id === 'scr-fight';
+            document.getElementById('bg-main').style.display = isFight ? 'none' : 'block';
+            document.getElementById('bg-fight').style.display = isFight ? 'block' : 'none';
+
+            const isCardScreen = ['scr-bet', 'scr-farm', 'scr-profile', 'scr-rank', 'scr-load'].includes(id);
+            document.body.classList.toggle('dimmed', isCardScreen);
+
+            document.body.classList.toggle('show-profile-btn', id === 'scr-main');
+
+            if (id === 'scr-rank') loadRank();
+            
+            tg.HapticFeedback.impactOccurred('light');
+        }
+
+        async function loadRank() {
+            const data = await apiFetch('/api/leaderboard');
+            const list = document.getElementById('rank-list');
+            list.innerHTML = "";
+            if (data) {
+                data.slice(0, 15).forEach((u, i) => {
+                    const item = document.createElement('div');
+                    item.className = 'rank-item';
+                    item.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <span style="opacity:0.3; font-weight:900; width:24px; font-size: 0.8rem;">${i+1}</span>
+                            <span style="font-weight:700;">${u.display_name || u.username}</span>
+                        </div>
+                        <span style="color: var(--gold); font-weight:900;">${u.balance.toLocaleString()}</span>
+                    `;
+                    item.onclick = () => showUserDetail(u);
+                    list.appendChild(item);
+                });
+            }
+        }
+
+        function showUserDetail(u) {
+            tg.HapticFeedback.selectionChanged();
+            document.getElementById('modal-user-name').innerText = u.display_name || u.username;
+            document.getElementById('modal-games').innerText = u.total_games || 0;
+            document.getElementById('modal-wins').innerText = u.wins || 0;
+            document.getElementById('modal-lose').innerText = u.lose || 0;
+            document.getElementById('modal-bal').innerText = u.balance.toLocaleString();
+            
+            const btn = document.getElementById('modal-write-btn');
+            if (u.username) {
+                btn.style.display = 'block';
+                btn.onclick = () => tg.openTelegramLink(`https://t.me/${u.username}`);
+            } else {
+                btn.style.display = 'none';
+            }
+            document.getElementById('user-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('user-modal').style.display = 'none';
+        }
+
+        async function updateName() {
+            const name = document.getElementById('edit-name').value;
+            if(!name) return;
+            await apiFetch('/api/user/update-name', {
+                method: 'POST',
+                body: JSON.stringify({ tg_id: user.tg_id, display_name: name })
+            });
+            user.display_name = name;
+            tg.HapticFeedback.notificationOccurred('success');
+            nav('scr-main');
+        }
+
+        function preStart(side) {
+            const input = document.getElementById('bet-amt');
+            const amt = parseInt(input.value);
+            if (isNaN(amt) || amt < 10) {
+                return;
+            }
+            if (amt > user.balance) {
+                tg.HapticFeedback.notificationOccurred('error');
+                showResult("ОШИБКА", "МАЛО ЗОЛОТА", false);
+                return;
+            }
+            selectedSide = side;
+            startFight(amt);
+        }
+
+        function showResult(title, sum, isWin) {
+            const overlay = document.getElementById('result-overlay');
+            const card = document.getElementById('result-card');
+            const t = document.getElementById('res-title');
+            const s = document.getElementById('res-sum');
+            const icon = document.getElementById('res-icon');
+
+            t.innerText = title;
+            s.innerText = sum;
+            icon.innerText = isWin ? "🏆" : "💀";
+            
+            overlay.style.display = 'flex';
+            // Небольшая задержка перед анимацией
+            setTimeout(() => card.classList.add('active'), 50);
+        }
+
+        function closeResult() {
+            const card = document.getElementById('result-card');
+            card.classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('result-overlay').style.display = 'none';
+                auth();
+            }, 300);
+        }
+
+        function spawnDmg(container, val) {
+            const p = document.createElement('div');
+            p.className = 'dmg-popup';
+            p.innerText = `-${val}`;
+            p.style.left = Math.random() * 40 + 30 + "%";
+            container.appendChild(p);
+            setTimeout(() => p.remove(), 700);
+        }
+
+        function startFight(bet) {
+            nav('scr-fight');
+            let h1 = 100, h2 = 100;
+            const log = document.getElementById('fight-log');
+            
+            document.getElementById('hp1-f').style.width = "100%";
+            document.getElementById('hp2-f').style.width = "100%";
+            document.getElementById('hp1-txt').innerText = "100";
+            document.getElementById('hp2-txt').innerText = "100";
+            log.innerText = "БОЙ НАЧАЛСЯ!";
+
+            const interval = setInterval(async () => {
+                const dmg = Math.floor(Math.random() * 12) + 6;
+                const target = Math.random() > 0.5 ? 1 : 2;
+                
+                const cont = document.getElementById(`cont-${target}`);
+                cont.classList.add('hit');
+                spawnDmg(cont, dmg);
+                setTimeout(() => cont.classList.remove('hit'), 250);
+
+                if(target === 1) {
+                    h1 = Math.max(0, h1 - dmg);
+                    document.getElementById('hp1-f').style.width = h1 + "%";
+                    document.getElementById('hp1-txt').innerText = h1;
+                } else {
+                    h2 = Math.max(0, h2 - dmg);
+                    document.getElementById('hp2-f').style.width = h2 + "%";
+                    document.getElementById('hp2-txt').innerText = h2;
+                }
+
+                tg.HapticFeedback.impactOccurred('medium');
+
+                if(h1 <= 0 || h2 <= 0) {
+                    clearInterval(interval);
+                    const isWin = (h1 > 0 && selectedSide === 1) || (h2 > 0 && selectedSide === 2);
+                    
+                    await apiFetch('/api/battle/result', {
+                        method: 'POST',
+                        body: JSON.stringify({ tg_id: user.tg_id, is_win: isWin, bet_amount: bet })
+                    });
+
+                    setTimeout(() => {
+                        if (isWin) {
+                            tg.HapticFeedback.notificationOccurred('success');
+                            showResult("ПОБЕДА", `+${bet} 💰`, true);
+                        } else {
+                            tg.HapticFeedback.notificationOccurred('error');
+                            showResult("ПОРАЖЕНИЕ", `-${bet} 💰`, false);
+                        }
+                    }, 1000);
+                }
+            }, 700);
+        }
+
+        auth();
+    </script>
+</body>
+</html>
