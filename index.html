@@ -32,9 +32,8 @@
             overflow: hidden;
             -webkit-font-smoothing: antialiased;
             touch-action: manipulation;
-            /* Учитываем нижний отступ для iPhone/Android жестов в самом body, но контент внутри тоже должен адаптироваться */
             padding-bottom: 0; 
-            height: 100dvh; /* Dynamic viewport height */
+            height: 100dvh; 
             width: 100vw;
         }
 
@@ -78,7 +77,7 @@
             box-sizing: border-box;
             position: absolute;
             top: 0; left: 0;
-            overflow-y: auto; /* Разрешаем скролл внутри скринов, если контент не влезает */
+            overflow-y: auto;
         }
         
         .active { 
@@ -112,7 +111,7 @@
         /* --- ИЗМЕНЁННЫЙ СТИЛЬ: Уведомление --- */
         .notification-toast {
             position: fixed;
-            top: calc(12px + var(--safe-top)); /* Совпадает с #balance-header */
+            top: calc(12px + var(--safe-top));
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.85);
@@ -123,7 +122,7 @@
             color: white;
             font-weight: 700;
             font-size: 0.9rem;
-            z-index: 6000; /* Выше, чем #result-overlay (5000) и #user-modal (4000) */
+            z-index: 6000;
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
@@ -132,24 +131,24 @@
             max-width: 80%;
             width: fit-content;
         }
-
         .notification-toast.show {
             opacity: 1;
             visibility: visible;
-            transform: translateX(-50%) translateY(40px); /* Смещение вниз от начальной точки */
+            transform: translateX(-50%) translateY(40px);
         }
         /* --- КОНЕЦ ИЗМЕНЁННОГО СТИЛЯ --- */
 
+        /* --- НОВАЯ СТИЛИЗАЦИЯ ДЛЯ КНОПОК --- */
+        #rank-trigger,
         #profile-trigger {
             position: fixed;
             bottom: calc(20px + var(--safe-bottom));
-            right: calc(16px + var(--safe-right));
             width: 68px;
             height: 68px;
-            background: rgba(30,30,34,0.92);
-            border: 1px solid rgba(255,255,255,0.14);
+            background: rgba(30, 30, 34, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.14);
             border-radius: 50%;
-            display: none;
+            display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
@@ -158,19 +157,39 @@
             backdrop-filter: blur(10px);
             transition: transform 0.2s, opacity 0.2s;
         }
+        #rank-trigger:active,
+        #profile-trigger:active {
+            transform: scale(0.92);
+        }
+        #rank-trigger span { font-size: 1.8rem; }
+        #profile-trigger img {
+            width: 80%;
+            height: 80%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
 
-        body.show-profile-btn #profile-trigger {
+        /* Позиционирование: профиль — справа, рейтинг — слева от него */
+        #profile-trigger {
+            right: calc(16px + var(--safe-right));
+        }
+        #rank-trigger {
+            /* Сдвигаем влево на ширину кнопки + отступ */
+            right: calc(16px + 68px + 16px + var(--safe-right)); /* 16px (отступ профиля) + 68px (ширина профиля) + 16px (отступ между кнопками) */
+        }
+
+        /* Скрываем обе кнопки, когда активен любой экран, кроме главного */
+        body:not(.show-main-screen) #rank-trigger,
+        body:not(.show-main-screen) #profile-trigger {
+            display: none;
+        }
+        /* Убедимся, что на главном экране они видны */
+        body.show-main-screen #rank-trigger,
+        body.show-main-screen #profile-trigger {
             display: flex;
         }
+        /* --- КОНЕЦ НОВОЙ СТИЛИЗАЦИИ --- */
 
-        #profile-trigger:active { transform: scale(0.92); }
-
-        #profile-trigger img { 
-            width: 80%; 
-            height: 80%; 
-            border-radius: 50%; 
-            object-fit: cover; 
-        }
 
         .menu-buttons {
             width: 100%;
@@ -178,7 +197,7 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
-            margin-bottom: var(--safe-bottom); /* Чтобы не прилипало к низу на длинных экранах */
+            margin-bottom: var(--safe-bottom);
         }
 
         .btn-wood {
@@ -200,45 +219,44 @@
             user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
-        .btn-wood:active { 
+        .btn-wood:active {
             top: 2px;
             box-shadow: 0 1px 0px #151517;
-            background: #2a2a2d; 
+            background: #2a2a2d;
         }
-        .btn-play { 
-            background: var(--gold); 
-            color: #000; 
-            border: none; 
+        .btn-play {
+            background: var(--gold);
+            color: #000;
+            border: none;
             box-shadow: 0 4px 0px #cca300;
         }
         .btn-play:active { background: #e6b800; box-shadow: 0 1px 0px #cca300; }
 
-        .card { 
-            background: var(--card); 
-            padding: 32px 24px; 
-            border-radius: var(--radius); 
-            border: 1px solid rgba(255,255,255,0.12); 
-            width: 100%; 
+        .card {
+            background: var(--card);
+            padding: 32px 24px;
+            border-radius: var(--radius);
+            border: 1px solid rgba(255,255,255,0.12);
+            width: 100%;
             max-width: 340px;
             backdrop-filter: blur(25px);
             box-shadow: 0 25px 50px rgba(0,0,0,0.7);
             transform-origin: center bottom;
             animation: cardPop 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-            position: relative; /* Для позиционирования крестика */
+            position: relative;
         }
-
         @keyframes cardPop {
             from { opacity: 0; transform: scale(0.9) translateY(20px); }
             to { opacity: 1; transform: scale(1) translateY(0); }
         }
 
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 24px 0; }
-        .stat-item { 
-            background: rgba(255,255,255,0.04); 
-            padding: 16px; 
-            border-radius: 20px; 
-            text-align: center; 
-            border: 1px solid rgba(255,255,255,0.05); 
+        .stat-item {
+            background: rgba(255,255,255,0.04);
+            padding: 16px;
+            border-radius: 20px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.05);
         }
         .stat-val { font-size: 1.2rem; font-weight: 900; display: block; margin-bottom: 4px; }
         .stat-lbl { font-size: 0.7rem; opacity: 0.4; text-transform: uppercase; font-weight: 700; }
@@ -252,17 +270,16 @@
         input:focus { border-color: var(--gold); }
 
         /* БОЙ */
-        .arena { 
+        .arena {
             position: absolute;
             bottom: 25%;
             width: 100%;
-            display: flex; 
-            justify-content: space-around; 
-            align-items: flex-end; 
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
             perspective: 1000px;
             padding-bottom: var(--safe-bottom);
         }
-
         .boar-container {
             width: 38%;
             display: flex;
@@ -271,14 +288,12 @@
             gap: 20px;
             position: relative;
         }
-
         .boar-container.hit { animation: flashRed 0.25s ease-out; }
         @keyframes flashRed {
             0% { filter: brightness(1); }
             50% { filter: brightness(1.8) sepia(0.3) saturate(2); transform: scale(1.1) rotate(2deg); }
             100% { filter: brightness(1); }
         }
-
         .dmg-popup {
             position: absolute;
             top: -40px;
@@ -295,44 +310,42 @@
             30% { opacity: 1; transform: translateY(-20px) scale(1.3); }
             100% { opacity: 0; transform: translateY(-90px) scale(1); }
         }
-
         .hp-bar-box { width: 100%; max-width: 130px; }
-        .hp-bar { 
-            width: 100%; 
-            background: rgba(255,255,255,0.1); 
-            height: 8px; 
-            border-radius: 12px; 
-            overflow: hidden; 
+        .hp-bar {
+            width: 100%;
+            background: rgba(255,255,255,0.1);
+            height: 8px;
+            border-radius: 12px;
+            overflow: hidden;
             position: relative;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
         }
-        .hp-fill { 
-            height: 100%; 
-            background: linear-gradient(90deg, #4cd964, #a0ffaf); 
-            transition: width 0.4s cubic-bezier(0.33, 1, 0.68, 1); 
+        .hp-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4cd964, #a0ffaf);
+            transition: width 0.4s cubic-bezier(0.33, 1, 0.68, 1);
             width: 100%;
         }
-        .hp-txt { 
-            color: #fff; 
-            font-size: 1.2rem; 
-            font-weight: 900; 
-            text-align: center; 
+        .hp-txt {
+            color: #fff;
+            font-size: 1.2rem;
+            font-weight: 900;
+            text-align: center;
             margin-bottom: 8px;
             text-shadow: 0 2px 8px rgba(0,0,0,0.5);
         }
-
         .boar-unit { width: 100%; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.6)); }
         .boar-unit img { width: 100%; height: auto; display: block; }
         #boar1-img { transform: scaleX(-1); }
 
-        #fight-log { 
-            position: absolute; 
-            bottom: calc(15% + var(--safe-bottom)); 
-            background: rgba(0,0,0,0.7); 
+        #fight-log {
+            position: absolute;
+            bottom: calc(15% + var(--safe-bottom));
+            background: rgba(0,0,0,0.7);
             backdrop-filter: blur(12px);
-            padding: 12px 28px; 
-            border-radius: 100px; 
-            font-weight: 700; 
+            padding: 12px 28px;
+            border-radius: 100px;
+            font-weight: 700;
             font-size: 0.9rem;
             color: #fff;
             border: 1px solid rgba(255,255,255,0.15);
@@ -344,25 +357,23 @@
 
         /* УВЕДОМЛЕНИЯ / RESULT OVERLAY */
         #result-overlay {
-            position: fixed; 
-            inset: 0; /* Вместо top/left/w/h для лучшей поддержки */
-            background: rgba(0,0,0,0.8); 
-            z-index: 5000; /* Понижен z-index, но уведомление выше */
-            display: none; 
-            flex-direction: column; 
-            align-items: center; 
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 5000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
             justify-content: center;
             backdrop-filter: blur(12px);
             padding: 24px;
-            /* Важно: добавляем отступы безопасности, чтобы контент не прилипал к краям */
             padding-top: calc(24px + var(--safe-top));
             padding-bottom: calc(24px + var(--safe-bottom));
             padding-left: calc(24px + var(--safe-left));
             padding-right: calc(24px + var(--safe-right));
             box-sizing: border-box;
-            overflow-y: auto; /* Позволяем скролл, если экран маленький */
+            overflow-y: auto;
         }
-
         #result-card {
             background: var(--card);
             width: 100%;
@@ -376,17 +387,15 @@
             transition: all 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
             box-shadow: 0 40px 80px rgba(0,0,0,0.9);
             position: relative;
-            margin: auto; /* Центрирование при скролле */
+            margin: auto;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
         #result-card.active { transform: translateY(0) scale(1); opacity: 1; }
-
         .res-icon { font-size: 5rem; margin-bottom: 20px; display: block; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3)); }
         .res-title { font-size: 2.2rem; font-weight: 900; text-transform: uppercase; margin: 0 0 12px 0; word-break: break-word; line-height: 1; }
         .res-sum { font-size: 1.6rem; font-weight: 800; opacity: 0.9; margin-bottom: 30px; }
-        
         .res-btn {
             background: #fff; color: #000; border: none; padding: 18px 0;
             width: 100%;
@@ -421,15 +430,33 @@
 
         .rank-item {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 18px; background: rgba(255,255,255,0.04); border-radius: 20px; 
+            padding: 18px; background: rgba(255,255,255,0.04); border-radius: 20px;
             margin-bottom: 12px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05);
             transition: background 0.2s;
         }
         .rank-item:active { transform: scale(0.97); background: rgba(255,255,255,0.08); }
 
+        /* --- НОВЫЙ СТИЛЬ: Выделение текущего пользователя (только outline) --- */
+        .rank-item.current-user-highlight {
+            outline: 2px solid var(--gold); /* Только тонкая рамка */
+            outline-offset: -2px; /* Чтобы рамка не выходила за границы элемента */
+            /* background-color: rgba(255, 204, 0, 0.1); */ /* Удалено */
+        }
+        /* --- КОНЕЦ НОВОГО СТИЛЯ --- */
+
+        /* --- НОВЫЙ ЭЛЕМЕНТ: Текст "Твое место" --- */
+        #your-rank {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-bottom: 16px;
+            text-align: center;
+            font-weight: 700;
+        }
+        /* --- КОНЕЦ НОВОГО ЭЛЕМЕНТА --- */
+
         #user-modal {
             position: fixed; inset: 0;
-            background: rgba(0,0,0,0.4); z-index: 4000; /* Ниже уведомления */
+            background: rgba(0,0,0,0.4); z-index: 4000;
             display: none; flex-direction: column; align-items: center; justify-content: center;
             padding: 24px; box-sizing: border-box;
             backdrop-filter: blur(15px);
@@ -443,13 +470,11 @@
             width: 60px;
             height: 34px;
         }
-
         .toggle-switch input {
             opacity: 0;
             width: 0;
             height: 0;
         }
-
         .slider {
             position: absolute;
             cursor: pointer;
@@ -461,7 +486,6 @@
             transition: .4s;
             border-radius: 34px;
         }
-
         .slider:before {
             position: absolute;
             content: "";
@@ -473,18 +497,16 @@
             transition: .4s;
             border-radius: 50%;
         }
-
         input:checked + .slider {
             background-color: #2196F3;
         }
-
         input:checked + .slider:before {
             transform: translateX(26px);
         }
 
         /* Адаптив под очень узкие экраны */
         @media (max-width: 360px) {
-            #profile-trigger {
+            #profile-trigger, #rank-trigger {
                 width: 60px;
                 height: 60px;
                 right: 12px;
@@ -498,7 +520,6 @@
     </style>
 </head>
 <body>
-
     <div id="bg-main" class="game-bg"></div>
     <div id="bg-fight" class="game-bg"></div>
     <div class="bg-overlay"></div>
@@ -507,11 +528,17 @@
         <span id="bal-val">0</span> 💰
     </div>
 
-    <!-- --- НОВЫЙ ЭЛЕМЕНТ: Уведомление (перемещён в конец body) --- -->
+    <!-- --- НОВЫЙ ЭЛЕМЕНТ: Уведомление --- -->
     <div id="notification-toast" class="notification-toast">
         Это пользователь запретил ему писать
     </div>
     <!-- --- КОНЕЦ НОВОГО ЭЛЕМЕНТА --- -->
+
+    <!-- --- НОВАЯ КНОПКА РЕЙТИНГА (🏆) --- -->
+    <div id="rank-trigger" onclick="nav('scr-rank')">
+        <span>🏆</span>
+    </div>
+    <!-- --- КОНЕЦ НОВОЙ КНОПКИ --- -->
 
     <div id="profile-trigger" onclick="nav('scr-profile')">
         <img src="assets/boar.png" onerror="this.src='https://api.dicebear.com/7.x/pixel-art/svg?seed=porker'">
@@ -526,9 +553,7 @@
     <!-- Результат боя -->
     <div id="result-overlay">
         <div id="result-card">
-            <!-- Добавили явный крестик для закрытия -->
             <button class="close-x" onclick="closeResult()">&times;</button>
-            
             <span class="res-icon" id="res-icon">🏆</span>
             <h2 class="res-title" id="res-title">ПОБЕДА</h2>
             <div class="res-sum" id="res-sum">+500 💰</div>
@@ -548,7 +573,6 @@
                 <div class="stat-item"><span class="stat-val" id="modal-bal">0</span><span class="stat-lbl">Баланс</span></div>
             </div>
             <button class="btn-wood" style="width: 100%; background: #0088cc; border:none; box-shadow: 0 4px 0 #006699;" id="modal-write-btn">НАПИСАТЬ</button>
-            <!-- Дублирующая кнопка закрыть снизу -->
             <button class="btn-wood" style="width: 100%; margin-top: 14px; opacity: 0.6;" onclick="closeModal()">ЗАКРЫТЬ</button>
         </div>
     </div>
@@ -557,7 +581,7 @@
         <div class="menu-buttons">
             <button class="btn-wood btn-play" onclick="nav('scr-bet')">В БОЙ</button>
             <button class="btn-wood" onclick="nav('scr-farm')">МОЯ ФЕРМА</button>
-            <button class="btn-wood" onclick="nav('scr-rank')">РЕЙТИНГ</button>
+            <!-- Кнопка "РЕЙТИНГ" удалена из меню -->
         </div>
     </div>
 
@@ -569,9 +593,7 @@
                 <button class="btn-wood" style="flex:1; background: #3498db; border:none; box-shadow: 0 4px 0 #2573a7;" onclick="preStart(1)">ЛЕВЫЙ</button>
                 <button class="btn-wood" style="flex:1; background: #9b59b6; border:none; box-shadow: 0 4px 0 #7d4594;" onclick="preStart(2)">ПРАВЫЙ</button>
             </div>
-            <!-- --- ИЗМЕНЁННАЯ КНОПКА: Посмотреть бой --- -->
             <button class="btn-wood" style="background: #7f8c8d; border:none; box-shadow: 0 4px 0 #566573; margin: 8px auto; width: 80%; display: block;" onclick="watchBattle()">ПОСМОТРЕТЬ БОЙ (+1)</button>
-            <!-- --- КОНЕЦ ИЗМЕНЁННОЙ КНОПКИ --- -->
             <button class="btn-wood" style="margin-top: 8px; width: 100%; opacity: 0.6;" onclick="nav('scr-main')">ОТМЕНА</button>
         </div>
     </div>
@@ -595,7 +617,6 @@
                 <div class="stat-item"><span class="stat-val" id="st-lose" style="color: var(--lose);">0</span><span class="stat-lbl">Пораж.</span></div>
                 <div class="stat-item"><span class="stat-val" id="st-wr">0%</span><span class="stat-lbl">Winrate</span></div>
             </div>
-            <!-- --- НОВЫЙ КОНТЕЙНЕР ДЛЯ ТУМБЛЕРА --- -->
             <div style="display: flex; align-items: center; justify-content: space-between; margin: 20px 0;">
                 <span>Запретить мне писать</span>
                 <label class="toggle-switch">
@@ -603,7 +624,6 @@
                     <span class="slider"></span>
                 </label>
             </div>
-            <!-- --- КОНЕЦ КОНТЕЙНЕРА --- -->
             <button class="btn-wood" style="width:100%; background: #fff; color: #000; box-shadow: 0 4px 0 #ccc;" onclick="updateName()">СОХРАНИТЬ</button>
             <button class="btn-wood" style="width:100%; margin-top: 14px; opacity: 0.6;" onclick="nav('scr-main')">НАЗАД</button>
         </div>
@@ -611,15 +631,17 @@
 
     <div id="scr-rank" class="screen">
         <div class="card" style="max-height: 85vh; display: flex; flex-direction: column;">
-            <h3 style="margin-top:0;">ТОП БОЙЦОВ</h3>
-            <!-- --- НОВЫЙ ЭЛЕМЕНТ: Индикатор загрузки --- -->
+            <h3 style="margin-top:0; text-align: center;">ТОП БОЙЦОВ</h3>
+            <!-- --- НОВЫЙ ЭЛЕМЕНТ: Текст "Твое место" --- -->
+            <div id="your-rank">Твое место — ?</div>
+            <!-- --- КОНЕЦ НОВОГО ЭЛЕМЕНТА --- -->
             <div id="rank-loading" style="display: none; flex: 1; align-items: center; justify-content: center; flex-direction: column;">
                 <div style="width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite; margin-bottom: 10px;"></div>
                 <span>Загрузка...</span>
             </div>
-            <!-- --- КОНЕЦ НОВОГО ЭЛЕМЕНТА --- -->
             <div id="rank-list" style="overflow-y: auto; flex: 1; padding-right: 5px;"></div>
-            <button class="btn-wood" style="width:100%; margin-top: 20px;" onclick="nav('scr-main')">НАЗАД</button>
+            <button id="toggle-full-leaderboard" class="btn-wood" style="width:100%; margin-top: 10px; display: none;" onclick="toggleFullLeaderboard()">Развернуть</button>
+            <button class="btn-wood" style="width:100%; margin-top: 10px;" onclick="nav('scr-main')">НАЗАД</button>
         </div>
     </div>
 
@@ -634,7 +656,6 @@
                     <img id="boar1-img" src="assets/boar.png" onerror="this.src='https://api.dicebear.com/7.x/pixel-art/svg?seed=boar1'">
                 </div>
             </div>
-
             <div id="cont-2" class="boar-container">
                 <div class="hp-bar-box">
                     <div class="hp-txt" id="hp2-txt">100</div>
@@ -654,7 +675,10 @@
 
         let user = null;
         let selectedSide = 0;
-        let isWatchingMode = false; // Переменная для отслеживания режима просмотра
+        let isWatchingMode = false;
+        let fullLeaderboardLoaded = false;
+        let fullLeaderboardData = [];
+        let userRank = '?'; // Для хранения позиции
 
         async function apiFetch(endpoint, options = {}) {
             try {
@@ -672,6 +696,7 @@
                 method: 'POST',
                 body: JSON.stringify({ tg_id: tgUser.id, username: tgUser.username, first_name: tgUser.first_name })
             });
+
             if (user) {
                 updateUI();
                 nav('scr-main');
@@ -680,19 +705,20 @@
 
         function updateUI() {
             if (!user) return;
+
+            // --- ИСПРАВЛЕНИЕ 2: Обновление баланса в интерфейсе ---
             document.getElementById('bal-val').innerText = user.balance.toLocaleString();
+            // --- КОНЕЦ ИСПРАВЛЕНИЯ 2 ---
+
             document.getElementById('edit-name').value = user.display_name || user.username || "";
             document.getElementById('st-games').innerText = user.total_games || 0;
             document.getElementById('st-wins').innerText = user.wins || 0;
             document.getElementById('st-lose').innerText = user.lose || 0;
             const wr = user.total_games > 0 ? Math.round((user.wins / user.total_games) * 100) : 0;
             document.getElementById('st-wr').innerText = wr + "%";
-            // --- Загрузка состояния тумблера ---
+
             const toggle = document.getElementById('private-profile-toggle');
-            if (toggle) {
-                toggle.checked = !!user.private_profile; // Устанавливаем состояние из user объекта
-            }
-            // -------------------------------
+            if (toggle) toggle.checked = !!user.private_profile;
         }
 
         function nav(id) {
@@ -706,26 +732,77 @@
             const isCardScreen = ['scr-bet', 'scr-farm', 'scr-profile', 'scr-rank', 'scr-load'].includes(id);
             document.body.classList.toggle('dimmed', isCardScreen);
 
-            document.body.classList.toggle('show-profile-btn', id === 'scr-main');
+            // --- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Устанавливаем класс для главного экрана ---
+            document.body.classList.toggle('show-main-screen', id === 'scr-main');
+            // ---------------------------------------------------------------
 
-            if (id === 'scr-rank') loadRank();
-            
+            // Показываем кнопку профиля только на главном экране (это дублирует CSS, но надёжнее)
+            if (id === 'scr-main') {
+                document.body.classList.add('show-profile-btn');
+            } else {
+                document.body.classList.remove('show-profile-btn');
+            }
+
+            // Загрузка рейтинга
+            if (id === 'scr-rank') loadRank(); // Загружаем рейтинг при открытии экрана
+
             tg.HapticFeedback.impactOccurred('light');
         }
 
+        // --- НОВАЯ ФУНКЦИЯ: Определение позиции пользователя ---
+        function findUserRank(data) {
+            for (let i = 0; i < data.length; i++) {
+                if (data[i].tg_id === user.tg_id) {
+                    return i + 1; // Позиция начинается с 1
+                }
+            }
+            return '?';
+        }
+
+        // --- ИСПРАВЛЕНИЕ 1: Изменение функции loadRank ---
         async function loadRank() {
-            // --- Показываем индикатор загрузки ---
+            fullLeaderboardLoaded = false;
+            fullLeaderboardData = [];
+            document.getElementById('toggle-full-leaderboard').style.display = 'none';
+            document.getElementById('your-rank').textContent = 'Твое место — ?';
             document.getElementById('rank-loading').style.display = 'flex';
-            document.getElementById('rank-list').style.display = 'none'; // Скроем старый список на время загрузки
-            // -------------------------------------
+            document.getElementById('rank-list').style.display = 'none';
+
+            // Загружаем полный список для определения позиции
+            const fullData = await apiFetch('/api/leaderboard/full');
+            if (fullData) {
+                fullLeaderboardData = fullData;
+                userRank = findUserRank(fullData);
+                document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
+            }
+
+            // Загружаем топ-10 для отображения
             const data = await apiFetch('/api/leaderboard');
             const list = document.getElementById('rank-list');
-            list.innerHTML = ""; // Очищаем старый список
+            list.innerHTML = "";
 
             if (data) {
-                data.slice(0, 15).forEach((u, i) => {
+                // Определяем позицию текущего пользователя в топ-10 (если он там)
+                // userRank уже определён из fullData выше, используем его для текста
+                // Но при отображении топ-10 покажем позицию в топ-10 или '?' если не в топ-10
+                const userRankInTop10 = findUserRank(data);
+
+                // Если пользователь не в топ-10, отображаем его место из полного списка
+                // Иначе отображаем его место в топ-10
+                 if (userRankInTop10 === '?') {
+                    // Пользователь не в топ-10, используем его полное место (уже установлено выше)
+                    // Текст "Твое место" уже установлен на основе fullData
+                 } else {
+                    // Пользователь в топ-10, обновим текст на его место в топ-10
+                    document.getElementById('your-rank').textContent = `Твое место — ${userRankInTop10}`;
+                 }
+
+                data.forEach((u, i) => {
                     const item = document.createElement('div');
                     item.className = 'rank-item';
+                    if (user && u.tg_id === user.tg_id) {
+                        item.classList.add('current-user-highlight');
+                    }
                     item.innerHTML = `
                         <div style="display:flex; align-items:center; gap:12px;">
                             <span style="opacity:0.3; font-weight:900; width:24px; font-size: 0.8rem;">${i+1}</span>
@@ -737,11 +814,60 @@
                     list.appendChild(item);
                 });
             }
-
-            // --- Скрываем индикатор загрузки ---
             document.getElementById('rank-loading').style.display = 'none';
-            document.getElementById('rank-list').style.display = 'block'; // Снова покажем список
-            // --------------------------------------
+            document.getElementById('rank-list').style.display = 'block';
+            document.getElementById('toggle-full-leaderboard').style.display = 'block';
+            document.getElementById('toggle-full-leaderboard').textContent = 'Развернуть';
+        }
+        // --- КОНЕЦ ИСПРАВЛЕНИЯ 1 ---
+
+        // --- ИСПРАВЛЕНИЕ 1: Изменение функции toggleFullLeaderboard ---
+        async function toggleFullLeaderboard() {
+            const button = document.getElementById('toggle-full-leaderboard');
+            const list = document.getElementById('rank-list');
+            if (!fullLeaderboardLoaded) {
+                button.textContent = 'Загрузка...';
+                button.disabled = true;
+                const data = await apiFetch('/api/leaderboard/full');
+                if (data) {
+                    fullLeaderboardData = data;
+                    fullLeaderboardLoaded = true;
+                    // Обновляем текст "Твое место" для полного списка
+                    userRank = findUserRank(data);
+                    document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
+                    renderLeaderboard(fullLeaderboardData, true);
+                    button.textContent = 'Свернуть';
+                } else {
+                    button.textContent = 'Ошибка';
+                    setTimeout(() => button.textContent = 'Развернуть', 2000);
+                }
+                button.disabled = false;
+            } else {
+                fullLeaderboardLoaded = false;
+                loadRank(); // Перезагружаем топ-10 (и обновим "Твое место" для топ-10)
+            }
+        }
+        // --- КОНЕЦ ИСПРАВЛЕНИЯ 1 ---
+
+        function renderLeaderboard(data, isFullList = false) {
+            const list = document.getElementById('rank-list');
+            list.innerHTML = "";
+            data.forEach((u, i) => {
+                const item = document.createElement('div');
+                item.className = 'rank-item';
+                if (user && u.tg_id === user.tg_id) {
+                    item.classList.add('current-user-highlight');
+                }
+                item.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <span style="opacity:0.3; font-weight:900; width:24px; font-size: 0.8rem;">${i+1}</span>
+                        <span style="font-weight:700;">${u.display_name || u.username}</span>
+                    </div>
+                    <span style="color: var(--gold); font-weight:900;">${u.balance.toLocaleString()}</span>
+                `;
+                item.onclick = () => showUserDetail(u);
+                list.appendChild(item);
+            });
         }
 
         function showUserDetail(u) {
@@ -751,25 +877,20 @@
             document.getElementById('modal-wins').innerText = u.wins || 0;
             document.getElementById('modal-lose').innerText = u.lose || 0;
             document.getElementById('modal-bal').innerText = u.balance.toLocaleString();
-            
+
             const btn = document.getElementById('modal-write-btn');
-            // --- Изменение: проверка private_profile ---
             if (u.username) {
                 btn.style.display = 'block';
                 btn.textContent = 'НАПИСАТЬ';
                 if (u.private_profile) {
-                    // Пользователь приватный
-                    btn.style.background = '#7f8c8d'; // Серый цвет
+                    btn.style.background = '#7f8c8d';
                     btn.style.boxShadow = '0 4px 0 #566573';
-                    // Убираем действие и добавляем показ уведомления
                     btn.onclick = () => {
                         showToast("Этот пользователь запретил ему писать");
-                        // Дополнительно можно добавить вибрацию
                         tg.HapticFeedback.notificationOccurred('error');
                     };
                 } else {
-                    // Пользователь публичный
-                    btn.style.background = '#0088cc'; // Синий цвет
+                    btn.style.background = '#0088cc';
                     btn.style.boxShadow = '0 4px 0 #006699';
                     btn.onclick = () => tg.openTelegramLink(`https://t.me/${u.username}`);
                 }
@@ -777,7 +898,6 @@
                 btn.style.display = 'none';
                 btn.onclick = null;
             }
-            // ---------------------------------------
             document.getElementById('user-modal').style.display = 'flex';
         }
 
@@ -785,49 +905,34 @@
             document.getElementById('user-modal').style.display = 'none';
         }
 
-        // --- НОВАЯ ФУНКЦИЯ ДЛЯ ПЕРЕКЛЮЧЕНИЯ ТУМБЛЕРА ---
         async function togglePrivateProfile() {
             const toggle = document.getElementById('private-profile-toggle');
             const isChecked = toggle.checked;
-
             const response = await apiFetch('/api/user/set-private', {
                 method: 'POST',
                 body: JSON.stringify({ tg_id: user.tg_id, is_private: isChecked })
             });
-
             if (response && response.success) {
-                user.private_profile = isChecked; // Обновляем локальный объект пользователя
+                user.private_profile = isChecked;
                 console.log("Профиль стал", isChecked ? "приватным." : "публичным.");
             } else {
                 console.error("Ошибка обновления статуса приватности:", response?.error || "Неизвестная ошибка");
-                // Откатить переключатель в случае ошибки
                 toggle.checked = !isChecked;
             }
         }
-        // ------------------------------------------
 
-        // --- НОВАЯ ФУНКЦИЯ ДЛЯ ПОКАЗА УВЕДОМЛЕНИЯ ---
         function showToast(message) {
             const toast = document.getElementById('notification-toast');
-            toast.textContent = message; // Устанавливаем текст
-            toast.classList.add('show'); // Показываем
-
-            // Автоматически скрываем через 2.5 секунды
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 2500);
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
         }
-        // ------------------------------------------
 
-        // --- НОВАЯ ФУНКЦИЯ: Просмотр боя ---
         async function watchBattle() {
-            // Проверка на случай, если уже в процессе боя
             if (document.getElementById('scr-fight').classList.contains('active')) return;
-
             isWatchingMode = true;
-            startFight(0); // 0 ставка для просмотра
+            startFight(0);
         }
-        // --- КОНЕЦ НОВОЙ ФУНКЦИИ ---
 
         async function updateName() {
             const name = document.getElementById('edit-name').value;
@@ -844,16 +949,14 @@
         function preStart(side) {
             const input = document.getElementById('bet-amt');
             const amt = parseInt(input.value);
-            if (isNaN(amt) || amt < 10) {
-                return;
-            }
+            if (isNaN(amt) || amt < 10) return;
             if (amt > user.balance) {
                 tg.HapticFeedback.notificationOccurred('error');
                 showResult("ОШИБКА", "МАЛО ЗОЛОТА", false);
                 return;
             }
             selectedSide = side;
-            isWatchingMode = false; // Убедимся, что режим просмотра выключен
+            isWatchingMode = false;
             startFight(amt);
         }
 
@@ -863,32 +966,22 @@
             const t = document.getElementById('res-title');
             const s = document.getElementById('res-sum');
             const icon = document.getElementById('res-icon');
-
             t.innerText = title;
             s.innerText = sum;
             icon.innerText = isWin ? "🏆" : "💀";
-            
             overlay.style.display = 'flex';
-            // Небольшая задержка перед анимацией
             setTimeout(() => card.classList.add('active'), 50);
         }
 
-        // --- ИЗМЕНЁННАЯ ФУНКЦИЯ: Закрытие результата ---
         function closeResult() {
             const card = document.getElementById('result-card');
             card.classList.remove('active');
             setTimeout(() => {
                 document.getElementById('result-overlay').style.display = 'none';
-                if (!isWatchingMode) {
-                    // Перезагрузка данных пользователя только после боя со ставкой
-                    auth();
-                } else {
-                    // Возврат на главный экран после просмотра
-                    nav('scr-main');
-                }
+                if (!isWatchingMode) auth(); // Обновляем данные после боя
+                else nav('scr-main');
             }, 300);
         }
-        // --- КОНЕЦ ИЗМЕНЁННОЙ ФУНКЦИИ ---
 
         function spawnDmg(container, val) {
             const p = document.createElement('div');
@@ -899,12 +992,10 @@
             setTimeout(() => p.remove(), 700);
         }
 
-        // --- ИЗМЕНЁННАЯ ФУНКЦИЯ: Начало боя ---
         function startFight(bet) {
             nav('scr-fight');
             let h1 = 100, h2 = 100;
             const log = document.getElementById('fight-log');
-            
             document.getElementById('hp1-f').style.width = "100%";
             document.getElementById('hp2-f').style.width = "100%";
             document.getElementById('hp1-txt').innerText = "100";
@@ -914,7 +1005,6 @@
             const interval = setInterval(async () => {
                 const dmg = Math.floor(Math.random() * 12) + 6;
                 const target = Math.random() > 0.5 ? 1 : 2;
-                
                 const cont = document.getElementById(`cont-${target}`);
                 cont.classList.add('hit');
                 spawnDmg(cont, dmg);
@@ -929,54 +1019,53 @@
                     document.getElementById('hp2-f').style.width = h2 + "%";
                     document.getElementById('hp2-txt').innerText = h2;
                 }
-
                 tg.HapticFeedback.impactOccurred('medium');
 
                 if(h1 <= 0 || h2 <= 0) {
                     clearInterval(interval);
                     const isWin = (h1 > 0 && selectedSide === 1) || (h2 > 0 && selectedSide === 2);
-                    
                     let resultPromise;
                     if (isWatchingMode) {
-                        // Режим просмотра: всегда победа, всегда +1
                         resultPromise = apiFetch('/api/battle/watch', {
                             method: 'POST',
                             body: JSON.stringify({ tg_id: user.tg_id })
                         });
                     } else {
-                        // Обычный режим боя
                         resultPromise = apiFetch('/api/battle/result', {
                             method: 'POST',
                             body: JSON.stringify({ tg_id: user.tg_id, is_win: isWin, bet_amount: bet })
                         });
                     }
-
-                    // Ждём завершения API-вызова
                     const result = await resultPromise;
-
+                    // --- ИСПРАВЛЕНИЕ 2: Обновление баланса после боя ---
+                    if (result && (result.new_balance !== undefined || result.reward !== undefined)) {
+                        // Для просмотра боя и результата боя сервер возвращает new_balance
+                        // Для просмотра также возвращается reward
+                        if (result.new_balance !== undefined) {
+                            user.balance = result.new_balance; // Обновляем баланс в локальном объекте
+                            document.getElementById('bal-val').innerText = user.balance.toLocaleString(); // Обновляем интерфейс
+                        }
+                    }
+                    // --- КОНЕЦ ИСПРАВЛЕНИЯ 2 ---
                     setTimeout(() => {
                         if (isWatchingMode) {
-                             // Показываем результат просмотра
-                             tg.HapticFeedback.notificationOccurred('success');
-                             showResult("ПОБЕДА", "+" + (result.reward || 1) + " 💰", true); 
-                         } else {
-                             // Показываем результат обычного боя
-                             if (isWin) {
-                                 tg.HapticFeedback.notificationOccurred('success');
-                                 showResult("ПОБЕДА", `+${bet} 💰`, true);
-                             } else {
-                                 tg.HapticFeedback.notificationOccurred('error');
-                                 showResult("ПОРАЖЕНИЕ", `-${bet} 💰`, false);
-                             }
-                         }
-                     }, 1000);
+                            tg.HapticFeedback.notificationOccurred('success');
+                            showResult("ПОБЕДА", "+" + (result.reward || 1) + " 💰", true);
+                        } else {
+                            if (isWin) {
+                                tg.HapticFeedback.notificationOccurred('success');
+                                showResult("ПОБЕДА", `+${bet} 💰`, true);
+                            } else {
+                                tg.HapticFeedback.notificationOccurred('error');
+                                showResult("ПОРАЖЕНИЕ", `-${bet} 💰`, false);
+                            }
+                        }
+                    }, 1000);
                 }
             }, 700);
         }
-        // --- КОНЕЦ ИЗМЕНЁННОЙ ФУНКЦИИ ---
 
         auth();
     </script>
-
 </body>
 </html>
