@@ -349,6 +349,7 @@ def battle_result():
         return jsonify({'error': 'User not found'}), 404
 
 # 7. Рейтинг (Топ 10)
+# 7. Рейтинг (Топ 10) — УБРАТЬ WHERE private_profile = 0
 @app.route('/api/leaderboard', methods=['GET'])
 def leaderboard():
     conn = get_db_connection()
@@ -356,7 +357,6 @@ def leaderboard():
     cursor.execute('''
         SELECT tg_id, username, display_name, balance, total_games, wins, lose, private_profile
         FROM users
-        WHERE private_profile = 0
         ORDER BY balance DESC
         LIMIT 10
     ''')
@@ -376,7 +376,7 @@ def leaderboard():
 
     return jsonify(result)
 
-# 8. Полный рейтинг
+# 8. Полный рейтинг — УБРАТЬ WHERE private_profile = 0
 @app.route('/api/leaderboard/full', methods=['GET'])
 def full_leaderboard():
     conn = get_db_connection()
@@ -384,7 +384,6 @@ def full_leaderboard():
     cursor.execute('''
         SELECT tg_id, username, display_name, balance, total_games, wins, lose, private_profile
         FROM users
-        WHERE private_profile = 0
         ORDER BY balance DESC
     ''')
     players = cursor.fetchall()

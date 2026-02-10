@@ -49,6 +49,8 @@
 
         #bg-main { background-image: url('assets/main_menu.png'); background-color: #1a1a1a; }
         #bg-fight { background-image: url('assets/fight_field.png'); background-color: #000; display: none; }
+        #bg-inventory { background-image: url('assets/inventory.png'); background-color: #0a0a0c; display: none; }
+        #bg-shop { background-image: url('assets/shop.png'); background-color: #0a0a0c; display: none; }
 
         .bg-overlay {
             position: fixed;
@@ -522,6 +524,8 @@
 <body>
     <div id="bg-main" class="game-bg"></div>
     <div id="bg-fight" class="game-bg"></div>
+    <div id="bg-inventory" class="game-bg"></div>
+    <div id="bg-shop" class="game-bg"></div>
     <div class="bg-overlay"></div>
 
     <div id="balance-header">
@@ -580,8 +584,8 @@
     <div id="scr-main" class="screen">
         <div class="menu-buttons">
             <button class="btn-wood btn-play" onclick="nav('scr-bet')">В БОЙ</button>
-            <button class="btn-wood" onclick="nav('scr-farm')">МОЯ ФЕРМА</button>
-            <!-- Кнопка "РЕЙТИНГ" удалена из меню -->
+            <button class="btn-wood" onclick="nav('scr-inventory')">ИНВЕНТАРЬ</button>
+            <button class="btn-wood" onclick="nav('scr-shop')">МАГАЗИН</button>
         </div>
     </div>
 
@@ -598,11 +602,20 @@
         </div>
     </div>
 
-    <div id="scr-farm" class="screen">
+    <div id="scr-inventory" class="screen">
         <div class="card" style="text-align: center;">
-            <h2 style="margin-top:0;">ФЕРМА</h2>
+            <h2 style="margin-top:0;">ИНВЕНТАРЬ</h2>
             <p style="opacity:0.5; font-size: 0.95rem;">Раздел находится в разработке</p>
-            <div style="font-size: 6rem; margin: 30px 0;">🌽</div>
+            <div style="font-size: 6rem; margin: 30px 0;">🎒</div>
+            <button class="btn-wood" style="width: 100%;" onclick="nav('scr-main')">НАЗАД</button>
+        </div>
+    </div>
+
+    <div id="scr-shop" class="screen">
+        <div class="card" style="text-align: center;">
+            <h2 style="margin-top:0;">МАГАЗИН</h2>
+            <p style="opacity:0.5; font-size: 0.95rem;">Раздел находится в разработке</p>
+            <div style="font-size: 6rem; margin: 30px 0;">🛒</div>
             <button class="btn-wood" style="width: 100%;" onclick="nav('scr-main')">НАЗАД</button>
         </div>
     </div>
@@ -725,11 +738,24 @@
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(id).classList.add('active');
 
-            const isFight = id === 'scr-fight';
-            document.getElementById('bg-main').style.display = isFight ? 'none' : 'block';
-            document.getElementById('bg-fight').style.display = isFight ? 'block' : 'none';
+            // Обновляем фон
+            document.getElementById('bg-main').style.display = 'block';
+            document.getElementById('bg-fight').style.display = 'none';
+            document.getElementById('bg-inventory').style.display = 'none';
+            document.getElementById('bg-shop').style.display = 'none';
 
-            const isCardScreen = ['scr-bet', 'scr-farm', 'scr-profile', 'scr-rank', 'scr-load'].includes(id);
+            if (id === 'scr-fight') {
+                document.getElementById('bg-main').style.display = 'none';
+                document.getElementById('bg-fight').style.display = 'block';
+            } else if (id === 'scr-inventory') {
+                document.getElementById('bg-main').style.display = 'none';
+                document.getElementById('bg-inventory').style.display = 'block';
+            } else if (id === 'scr-shop') {
+                document.getElementById('bg-main').style.display = 'none';
+                document.getElementById('bg-shop').style.display = 'block';
+            }
+
+            const isCardScreen = ['scr-bet', 'scr-inventory', 'scr-shop', 'scr-profile', 'scr-rank', 'scr-load'].includes(id);
             document.body.classList.toggle('dimmed', isCardScreen);
 
             // --- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Устанавливаем класс для главного экрана ---
@@ -768,39 +794,19 @@
             document.getElementById('rank-loading').style.display = 'flex';
             document.getElementById('rank-list').style.display = 'none';
 
-            // Загружаем полный список для определения позиции
-            const fullData = await apiFetch('/api/leaderboard/full');
-            if (fullData) {
-                fullLeaderboardData = fullData;
-                userRank = findUserRank(fullData);
-                document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
-            }
-
-            // Загружаем топ-10 для отображения
             const data = await apiFetch('/api/leaderboard');
             const list = document.getElementById('rank-list');
             list.innerHTML = "";
 
             if (data) {
-                // Определяем позицию текущего пользователя в топ-10 (если он там)
-                // userRank уже определён из fullData выше, используем его для текста
-                // Но при отображении топ-10 покажем позицию в топ-10 или '?' если не в топ-10
-                const userRankInTop10 = findUserRank(data);
-
-                // Если пользователь не в топ-10, отображаем его место из полного списка
-                // Иначе отображаем его место в топ-10
-                 if (userRankInTop10 === '?') {
-                    // Пользователь не в топ-10, используем его полное место (уже установлено выше)
-                    // Текст "Твое место" уже установлен на основе fullData
-                 } else {
-                    // Пользователь в топ-10, обновим текст на его место в топ-10
-                    document.getElementById('your-rank').textContent = `Твое место — ${userRankInTop10}`;
-                 }
+                userRank = findUserRank(data);
+                document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
 
                 data.forEach((u, i) => {
                     const item = document.createElement('div');
                     item.className = 'rank-item';
-                    if (user && u.tg_id === user.tg_id) {
+                    // Выделяем только если не приватный и это текущий пользователь
+                    if (user && u.tg_id === user.tg_id && !u.private_profile) {
                         item.classList.add('current-user-highlight');
                     }
                     item.innerHTML = `
@@ -855,7 +861,7 @@
             data.forEach((u, i) => {
                 const item = document.createElement('div');
                 item.className = 'rank-item';
-                if (user && u.tg_id === user.tg_id) {
+                if (user && u.tg_id === user.tg_id && !u.private_profile) {
                     item.classList.add('current-user-highlight');
                 }
                 item.innerHTML = `
@@ -870,8 +876,11 @@
             });
         }
 
+        // --- ИЗМЕНЕНАЯ ФУНКЦИЯ: Отображение деталей пользователя ---
         function showUserDetail(u) {
             tg.HapticFeedback.selectionChanged();
+
+            // Заполняем данные пользователя
             document.getElementById('modal-user-name').innerText = u.display_name || u.username;
             document.getElementById('modal-games').innerText = u.total_games || 0;
             document.getElementById('modal-wins').innerText = u.wins || 0;
@@ -883,23 +892,28 @@
                 btn.style.display = 'block';
                 btn.textContent = 'НАПИСАТЬ';
                 if (u.private_profile) {
-                    btn.style.background = '#7f8c8d';
-                    btn.style.boxShadow = '0 4px 0 #566573';
+                    // Если пользователь приватный
+                    btn.style.background = '#7f8c8d'; // Серый цвет
+                    btn.style.boxShadow = '0 4px 0 #566573'; // Серая тень
                     btn.onclick = () => {
-                        showToast("Этот пользователь запретил ему писать");
-                        tg.HapticFeedback.notificationOccurred('error');
+                        showToast("Этот пользователь запретил ему писать"); // Показываем уведомление
+                        tg.HapticFeedback.notificationOccurred('error'); // Вибрация об ошибке
                     };
                 } else {
-                    btn.style.background = '#0088cc';
-                    btn.style.boxShadow = '0 4px 0 #006699';
-                    btn.onclick = () => tg.openTelegramLink(`https://t.me/${u.username}`);
+                    // Если пользователь публичный
+                    btn.style.background = '#0088cc'; // Синий цвет
+                    btn.style.boxShadow = '0 4px 0 #006699'; // Синяя тень
+                    btn.onclick = () => tg.openTelegramLink(`https://t.me/${u.username}`); // Открываем Telegram
                 }
             } else {
+                // Если у пользователя нет username
                 btn.style.display = 'none';
                 btn.onclick = null;
             }
+            // Показываем модальное окно
             document.getElementById('user-modal').style.display = 'flex';
         }
+        // --- КОНЕЦ ИЗМЕНЁННОЙ ФУНКЦИИ ---
 
         function closeModal() {
             document.getElementById('user-modal').style.display = 'none';
