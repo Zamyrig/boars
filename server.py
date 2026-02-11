@@ -4,6 +4,7 @@ import sqlite3
 from datetime import datetime
 # Включение CORS
 from flask_cors import CORS
+import json
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
@@ -105,7 +106,7 @@ def init_db():
     cursor = conn.cursor()
 
     # --- СОЗДАНИЕ ТАБЛИЦЫ USERS ---
-    # Сразу создаём таблицу с актуальной структурой, включая private_profile
+    # Создаём таблицу с минимальной структурой (без acorns и plant_acorns), если её нет
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             tg_id TEXT PRIMARY KEY,
@@ -115,21 +116,21 @@ def init_db():
             total_games INTEGER DEFAULT 0,
             wins INTEGER DEFAULT 0,
             lose INTEGER DEFAULT 0,
-            private_profile BOOLEAN DEFAULT 0, -- Добавлено сразу
+            private_profile BOOLEAN DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 
-    # --- ПРОВЕРКА И ДОБАВЛЕНИЕ СТОЛБЦА private_profile (если он отсутствует) ---
-    # Это может быть полезно, если таблица была создана вручную или старой версией скрипта
+    # --- ПРОВЕРКА И ДОБАВЛЕНИЕ СТОЛБЦОВ acorns и plant_acorns ---
     cursor.execute("PRAGMA table_info(users)")
     columns = [column[1] for column in cursor.fetchall()]
-    if 'private_profile' not in columns:
-        cursor.execute('ALTER TABLE users ADD COLUMN private_profile BOOLEAN DEFAULT 0')
-        print("Столбец 'private_profile' добавлен в таблицу 'users'.")
-    else:
-        print("Столбец 'private_profile' уже существует в таблице 'users'.")
+    if 'acorns' not in columns:
+        cursor.execute('ALTER TABLE users ADD COLUMN acorns INTEGER DEFAULT 0')
+        print("Столбец 'acorns' добавлен в таблицу 'users'.")
+    if 'plant_acorns' not in columns:
+        cursor.execute('ALTER TABLE users ADD COLUMN plant_acorns INTEGER DEFAULT 0')
+        print("Столбец 'plant_acorns' добавлен в таблицу 'users'.")
 
     # --- СОЗДАНИЕ ТАБЛИЦЫ battle_history ---
     cursor.execute('''
@@ -188,8 +189,8 @@ def auth():
     if user is None:
         display_name = first_name or username or 'Аноним'
         cursor.execute('''
-            INSERT INTO users (tg_id, username, display_name, balance, total_games, wins, lose)
-            VALUES (?, ?, ?, 1000, 0, 0, 0)
+            INSERT INTO users (tg_id, username, display_name, balance, total_games, wins, lose, private_profile, acorns, plant_acorns)
+            VALUES (?, ?, ?, 1000, 0, 0, 0, 0, 0, 0)
         ''', (tg_id, username or '', display_name))
         conn.commit()
         cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
@@ -214,7 +215,9 @@ def auth():
         'total_games': user['total_games'],
         'wins': user['wins'],
         'lose': user['lose'],
-        'private_profile': bool(user['private_profile'])
+        'private_profile': bool(user['private_profile']),
+        'acorns': user['acorns'],
+        'plant_acorns': user['plant_acorns']
     })
 
 # 4. Обновление имени
@@ -291,10 +294,16 @@ def watch_battle():
         ''', (tg_id, f"Оппонент_{datetime.now().strftime('%S')}"))
         conn.commit()
         # Возвращаем обновленный баланс
-        cursor.execute('SELECT balance FROM users WHERE tg_id = ?', (tg_id,))
+        cursor.execute('SELECT balance, acorns, plant_acorns FROM users WHERE tg_id = ?', (tg_id,))
         updated_user = cursor.fetchone()
         conn.close()
-        return jsonify({'success': True, 'new_balance': updated_user['balance'], 'reward': reward})
+        return jsonify({
+            'success': True,
+            'new_balance': updated_user['balance'],
+            'acorns': updated_user['acorns'],
+            'plant_acorns': updated_user['plant_acorns'],
+            'reward': reward
+        })
     else:
         conn.close()
         return jsonify({'error': 'User not found'}), 404
@@ -339,23 +348,27 @@ def battle_result():
         ''', (tg_id, f"Оппонент_{datetime.now().strftime('%S')}", bet, int(is_win)))
 
         conn.commit()
-        # ВАЖНО: Возвращаем обновленный баланс
-        cursor.execute('SELECT balance FROM users WHERE tg_id = ?', (tg_id,))
+        # ВАЖНО: Возвращаем обновленный баланс и инвентарь
+        cursor.execute('SELECT balance, acorns, plant_acorns FROM users WHERE tg_id = ?', (tg_id,))
         updated_user = cursor.fetchone()
         conn.close()
-        return jsonify({'success': True, 'new_balance': updated_user['balance']}) # Отправляем новый баланс
+        return jsonify({
+            'success': True,
+            'new_balance': updated_user['balance'],
+            'acorns': updated_user['acorns'],
+            'plant_acorns': updated_user['plant_acorns']
+        })
     else:
         conn.close()
         return jsonify({'error': 'User not found'}), 404
 
 # 7. Рейтинг (Топ 10)
-# 7. Рейтинг (Топ 10) — УБРАТЬ WHERE private_profile = 0
 @app.route('/api/leaderboard', methods=['GET'])
 def leaderboard():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT tg_id, username, display_name, balance, total_games, wins, lose, private_profile
+        SELECT tg_id, username, display_name, balance, total_games, wins, lose, private_profile, acorns, plant_acorns
         FROM users
         ORDER BY balance DESC
         LIMIT 10
@@ -371,18 +384,20 @@ def leaderboard():
         'total_games': row['total_games'],
         'wins': row['wins'],
         'lose': row['lose'],
-        'private_profile': bool(row['private_profile'])
+        'private_profile': bool(row['private_profile']),
+        'acorns': row['acorns'],
+        'plant_acorns': row['plant_acorns']
     } for row in players]
 
     return jsonify(result)
 
-# 8. Полный рейтинг — УБРАТЬ WHERE private_profile = 0
+# 8. Полный рейтинг
 @app.route('/api/leaderboard/full', methods=['GET'])
 def full_leaderboard():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT tg_id, username, display_name, balance, total_games, wins, lose, private_profile
+        SELECT tg_id, username, display_name, balance, total_games, wins, lose, private_profile, acorns, plant_acorns
         FROM users
         ORDER BY balance DESC
     ''')
@@ -397,7 +412,9 @@ def full_leaderboard():
         'total_games': row['total_games'],
         'wins': row['wins'],
         'lose': row['lose'],
-        'private_profile': bool(row['private_profile'])
+        'private_profile': bool(row['private_profile']),
+        'acorns': row['acorns'],
+        'plant_acorns': row['plant_acorns']
     } for row in players]
 
     return jsonify(result)
@@ -421,6 +438,8 @@ def get_user(tg_id):
             'wins': user['wins'],
             'lose': user['lose'],
             'private_profile': bool(user['private_profile']),
+            'acorns': user['acorns'],
+            'plant_acorns': user['plant_acorns'],
             'created_at': user['created_at'],
             'updated_at': user['updated_at']
         })
@@ -435,6 +454,219 @@ def migrate_from_json():
         return jsonify(result)
     else:
         return jsonify(result), 500
+
+# === НОВЫЕ ЭНДПОИНТЫ ДЛЯ МАГАЗИНА ===
+
+# 11. Получение списка предметов магазина
+@app.route('/api/shop/items', methods=['GET'])
+def shop_items():
+    # Загружаем цены из файла prices.json
+    try:
+        with open('prices.json', 'r', encoding='utf-8') as f:
+            prices = json.load(f)
+    except FileNotFoundError:
+        print("Файл prices.json не найден. Используем цены по умолчанию.")
+        prices = {
+            "plant_acorn": {"buy": 1000, "sell": 800},
+            "acorn": {"buy": 200, "sell": 150}
+        }
+    except json.JSONDecodeError:
+        print("Ошибка чтения prices.json. Используем цены по умолчанию.")
+        prices = {
+            "plant_acorn": {"buy": 1000, "sell": 800},
+            "acorn": {"buy": 200, "sell": 150}
+        }
+
+    items = [
+        {
+            "id": "acorn",
+            "name": "Желудь",
+            "icon": "acorn.png",
+            "price": prices.get("acorn", {}).get("buy", 200),
+            "sell_price": prices.get("acorn", {}).get("sell", 150),
+            "description": "Основной ресурс для выращивания."
+        },
+        {
+            "id": "plant_acorn",
+            "name": "Росток",
+            "icon": "plant_acorn.png",
+            "price": prices.get("plant_acorn", {}).get("buy", 1000),
+            "sell_price": prices.get("plant_acorn", {}).get("sell", 800),
+            "description": "Готовый к посадке росток."
+        }
+    ]
+    return jsonify(items)
+
+# 12. Получение инвентаря пользователя
+@app.route('/api/user/inventory', methods=['GET'])
+def user_inventory():
+    tg_id = request.args.get('tg_id')
+    if not tg_id:
+        return jsonify({'error': 'tg_id required'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT acorns, plant_acorns FROM users WHERE tg_id = ?', (tg_id,))
+    user = cursor.fetchone()
+    conn.close()
+
+    if user:
+        return jsonify({
+            'acorns': user['acorns'],
+            'plant_acorns': user['plant_acorns']
+        })
+    else:
+        return jsonify({'error': 'User not found'}), 404
+
+# 13. Покупка предмета
+@app.route('/api/shop/buy', methods=['POST'])
+def shop_buy():
+    data = request.get_json()
+    tg_id = str(data.get('tg_id'))
+    item_id = data.get('item_id')
+    quantity = int(data.get('quantity', 1))
+
+    if quantity <= 0:
+        return jsonify({'error': 'Quantity must be > 0'}), 400
+
+    # Загружаем цены из файла prices.json
+    try:
+        with open('prices.json', 'r', encoding='utf-8') as f:
+            prices = json.load(f)
+    except FileNotFoundError:
+        print("Файл prices.json не найден. Используем цены по умолчанию.")
+        prices = {
+            "plant_acorn": {"buy": 1000, "sell": 800},
+            "acorn": {"buy": 200, "sell": 150}
+        }
+    except json.JSONDecodeError:
+        print("Ошибка чтения prices.json. Используем цены по умолчанию.")
+        prices = {
+            "plant_acorn": {"buy": 1000, "sell": 800},
+            "acorn": {"buy": 200, "sell": 150}
+        }
+
+    # Определяем цену
+    price_per_unit = prices.get(item_id, {}).get("buy", 0)
+    if price_per_unit == 0:
+        return jsonify({'error': 'Invalid item_id or no buy price defined'}), 400
+
+    total_cost = price_per_unit * quantity
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT balance, acorns, plant_acorns FROM users WHERE tg_id = ?', (tg_id,))
+    user = cursor.fetchone()
+
+    if not user:
+        conn.close()
+        return jsonify({'error': 'User not found'}), 404
+
+    if user['balance'] < total_cost:
+        conn.close()
+        return jsonify({'error': 'Not enough gold'}), 400
+
+    # Обновляем баланс и инвентарь
+    new_balance = user['balance'] - total_cost
+    if item_id == 'acorn':
+        new_acorns = user['acorns'] + quantity
+        cursor.execute('''
+            UPDATE users SET balance = ?, acorns = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE tg_id = ?
+        ''', (new_balance, new_acorns, tg_id))
+    elif item_id == 'plant_acorn':
+        new_plant_acorns = user['plant_acorns'] + quantity
+        cursor.execute('''
+            UPDATE users SET balance = ?, plant_acorns = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE tg_id = ?
+        ''', (new_balance, new_plant_acorns, tg_id))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({
+        'success': True,
+        'new_balance': new_balance,
+        'new_acorns': new_acorns if item_id == 'acorn' else user['acorns'],
+        'new_plant_acorns': new_plant_acorns if item_id == 'plant_acorn' else user['plant_acorns']
+    })
+
+# 14. Продажа предмета
+@app.route('/api/shop/sell', methods=['POST'])
+def shop_sell():
+    data = request.get_json()
+    tg_id = str(data.get('tg_id'))
+    item_id = data.get('item_id')
+    quantity = int(data.get('quantity', 1))
+
+    if quantity <= 0:
+        return jsonify({'error': 'Quantity must be > 0'}), 400
+
+    # Загружаем цены из файла prices.json
+    try:
+        with open('prices.json', 'r', encoding='utf-8') as f:
+            prices = json.load(f)
+    except FileNotFoundError:
+        print("Файл prices.json не найден. Используем цены по умолчанию.")
+        prices = {
+            "plant_acorn": {"buy": 1000, "sell": 800},
+            "acorn": {"buy": 200, "sell": 150}
+        }
+    except json.JSONDecodeError:
+        print("Ошибка чтения prices.json. Используем цены по умолчанию.")
+        prices = {
+            "plant_acorn": {"buy": 1000, "sell": 800},
+            "acorn": {"buy": 200, "sell": 150}
+        }
+
+    # Определяем цену продажи
+    sell_price_per_unit = prices.get(item_id, {}).get("sell", 0)
+    if sell_price_per_unit == 0:
+        return jsonify({'error': 'Invalid item_id or no sell price defined'}), 400
+
+    total_reward = sell_price_per_unit * quantity
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT balance, acorns, plant_acorns FROM users WHERE tg_id = ?', (tg_id,))
+    user = cursor.fetchone()
+
+    if not user:
+        conn.close()
+        return jsonify({'error': 'User not found'}), 404
+
+    # Проверяем наличие предметов
+    if item_id == 'acorn' and user['acorns'] < quantity:
+        conn.close()
+        return jsonify({'error': 'Not enough acorns'}), 400
+    if item_id == 'plant_acorn' and user['plant_acorns'] < quantity:
+        conn.close()
+        return jsonify({'error': 'Not enough plant_acorns'}), 400
+
+    # Обновляем баланс и инвентарь
+    new_balance = user['balance'] + total_reward
+    if item_id == 'acorn':
+        new_acorns = user['acorns'] - quantity
+        cursor.execute('''
+            UPDATE users SET balance = ?, acorns = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE tg_id = ?
+        ''', (new_balance, new_acorns, tg_id))
+    elif item_id == 'plant_acorn':
+        new_plant_acorns = user['plant_acorns'] - quantity
+        cursor.execute('''
+            UPDATE users SET balance = ?, plant_acorns = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE tg_id = ?
+        ''', (new_balance, new_plant_acorns, tg_id))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({
+        'success': True,
+        'new_balance': new_balance,
+        'new_acorns': new_acorns if item_id == 'acorn' else user['acorns'],
+        'new_plant_acorns': new_plant_acorns if item_id == 'plant_acorn' else user['plant_acorns']
+    })
 
 # --- ИНИЦИАЛИЗАЦИЯ И ЗАПУСК ПРИЛОЖЕНИЯ ---
 if __name__ == '__main__':

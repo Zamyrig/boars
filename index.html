@@ -1,1085 +1,1548 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0a0a0c">
-    <meta name="mobile-web-app-capable" content="yes">
-    <title>WILD TUSK BRAWL</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        :root { 
-            --bg: #0a0a0c; 
-            --accent: #ff3e3e; 
-            --gold: #ffcc00; 
-            --text: #ffffff;
-            --card: rgba(18, 18, 20, 0.95);
-            --radius: 28px;
-            --win: #4cd964;
-            --lose: #ff3e3e;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            --safe-top: env(safe-area-inset-top, 20px);
-            --safe-bottom: env(safe-area-inset-bottom, 34px);
-            --safe-left: env(safe-area-inset-left, 0px);
-            --safe-right: env(safe-area-inset-right, 0px);
-        }
-        
-        body { 
-            margin: 0; 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background: var(--bg); 
-            color: var(--text); 
-            overflow: hidden;
-            -webkit-font-smoothing: antialiased;
-            touch-action: manipulation;
-            padding-bottom: 0; 
-            height: 100dvh; 
-            width: 100vw;
-        }
-
-        /* Фоновые изображения */
-        .game-bg {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-size: cover;
-            background-position: center;
-            z-index: -2;
-            transition: filter 0.5s ease, transform 0.5s ease;
-        }
-
-        #bg-main { background-image: url('assets/main_menu.png'); background-color: #1a1a1a; }
-        #bg-fight { background-image: url('assets/fight_field.png'); background-color: #000; display: none; }
-        #bg-inventory { background-image: url('assets/inventory.png'); background-color: #0a0a0c; display: none; }
-        #bg-shop { background-image: url('assets/shop.png'); background-color: #0a0a0c; display: none; }
-
-        .bg-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.75);
-            z-index: -1;
-            opacity: 0;
-            transition: opacity 0.4s ease;
-            pointer-events: none;
-            backdrop-filter: blur(0px);
-        }
-        
-        body.dimmed .bg-overlay { opacity: 1; backdrop-filter: blur(8px); pointer-events: auto; }
-        body.dimmed .game-bg { filter: brightness(0.5); transform: scale(1.05); }
-
-        .screen { 
-            display: none; 
-            width: 100%; 
-            height: 100%;
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center;
-            padding: 24px; 
-            padding-top: calc(20px + var(--safe-top));
-            padding-bottom: calc(20px + var(--safe-bottom));
-            box-sizing: border-box;
-            position: absolute;
-            top: 0; left: 0;
-            overflow-y: auto;
-        }
-        
-        .active { 
-            display: flex; 
-            animation: screenIn 0.4s forwards;
-        }
-        
-        @keyframes screenIn { 
-            from { opacity: 0; transform: translateY(10px); } 
-            to { opacity: 1; transform: translateY(0); } 
-        }
-
-        #balance-header { 
-            position: fixed; 
-            top: calc(12px + var(--safe-top)); 
-            left: calc(16px + var(--safe-left));
-            background: rgba(0, 0, 0, 0.6); 
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1); 
-            padding: 10px 20px; 
-            border-radius: 100px; 
-            font-weight: 800; 
-            color: var(--gold); 
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-
-        /* --- ИЗМЕНЁННЫЙ СТИЛЬ: Уведомление --- */
-        .notification-toast {
-            position: fixed;
-            top: calc(12px + var(--safe-top));
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 12px 24px;
-            border-radius: 20px;
-            color: white;
-            font-weight: 700;
-            font-size: 0.9rem;
-            z-index: 6000;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-            text-align: center;
-            max-width: 80%;
-            width: fit-content;
-        }
-        .notification-toast.show {
-            opacity: 1;
-            visibility: visible;
-            transform: translateX(-50%) translateY(40px);
-        }
-        /* --- КОНЕЦ ИЗМЕНЁННОГО СТИЛЯ --- */
-
-        /* --- НОВАЯ СТИЛИЗАЦИЯ ДЛЯ КНОПОК --- */
-        #rank-trigger,
-        #profile-trigger {
-            position: fixed;
-            bottom: calc(20px + var(--safe-bottom));
-            width: 68px;
-            height: 68px;
-            background: rgba(30, 30, 34, 0.92);
-            border: 1px solid rgba(255, 255, 255, 0.14);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 3000;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-            backdrop-filter: blur(10px);
-            transition: transform 0.2s, opacity 0.2s;
-        }
-        #rank-trigger:active,
-        #profile-trigger:active {
-            transform: scale(0.92);
-        }
-        #rank-trigger span { font-size: 1.8rem; }
-        #profile-trigger img {
-            width: 80%;
-            height: 80%;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        /* Позиционирование: профиль — справа, рейтинг — слева от него */
-        #profile-trigger {
-            right: calc(16px + var(--safe-right));
-        }
-        #rank-trigger {
-            /* Сдвигаем влево на ширину кнопки + отступ */
-            right: calc(16px + 68px + 16px + var(--safe-right)); /* 16px (отступ профиля) + 68px (ширина профиля) + 16px (отступ между кнопками) */
-        }
-
-        /* Скрываем обе кнопки, когда активен любой экран, кроме главного */
-        body:not(.show-main-screen) #rank-trigger,
-        body:not(.show-main-screen) #profile-trigger {
-            display: none;
-        }
-        /* Убедимся, что на главном экране они видны */
-        body.show-main-screen #rank-trigger,
-        body.show-main-screen #profile-trigger {
-            display: flex;
-        }
-        /* --- КОНЕЦ НОВОЙ СТИЛИЗАЦИИ --- */
-
-
-        .menu-buttons {
-            width: 100%;
-            max-width: 300px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            margin-bottom: var(--safe-bottom);
-        }
-
-        .btn-wood {
-            background: #252528;
-            border: 1px solid rgba(255,255,255,0.08);
-            color: #fff;
-            padding: 18px;
-            border-radius: 20px;
-            font-weight: 800;
-            font-size: 0.95rem;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            cursor: pointer;
-            transition: var(--transition);
-            text-align: center;
-            box-shadow: 0 4px 0px #151517;
-            position: relative;
-            top: 0;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .btn-wood:active {
-            top: 2px;
-            box-shadow: 0 1px 0px #151517;
-            background: #2a2a2d;
-        }
-        .btn-play {
-            background: var(--gold);
-            color: #000;
-            border: none;
-            box-shadow: 0 4px 0px #cca300;
-        }
-        .btn-play:active { background: #e6b800; box-shadow: 0 1px 0px #cca300; }
-
-        .card {
-            background: var(--card);
-            padding: 32px 24px;
-            border-radius: var(--radius);
-            border: 1px solid rgba(255,255,255,0.12);
-            width: 100%;
-            max-width: 340px;
-            backdrop-filter: blur(25px);
-            box-shadow: 0 25px 50px rgba(0,0,0,0.7);
-            transform-origin: center bottom;
-            animation: cardPop 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-            position: relative;
-        }
-        @keyframes cardPop {
-            from { opacity: 0; transform: scale(0.9) translateY(20px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 24px 0; }
-        .stat-item {
-            background: rgba(255,255,255,0.04);
-            padding: 16px;
-            border-radius: 20px;
-            text-align: center;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-        .stat-val { font-size: 1.2rem; font-weight: 900; display: block; margin-bottom: 4px; }
-        .stat-lbl { font-size: 0.7rem; opacity: 0.4; text-transform: uppercase; font-weight: 700; }
-
-        input {
-            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-            color: #fff; padding: 20px; border-radius: 18px; width: 100%; box-sizing: border-box;
-            font-size: 1.2rem; text-align: center; margin-bottom: 16px; font-weight: 700;
-            outline: none; transition: border-color 0.2s;
-        }
-        input:focus { border-color: var(--gold); }
-
-        /* БОЙ */
-        .arena {
-            position: absolute;
-            bottom: 25%;
-            width: 100%;
-            display: flex;
-            justify-content: space-around;
-            align-items: flex-end;
-            perspective: 1000px;
-            padding-bottom: var(--safe-bottom);
-        }
-        .boar-container {
-            width: 38%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            position: relative;
-        }
-        .boar-container.hit { animation: flashRed 0.25s ease-out; }
-        @keyframes flashRed {
-            0% { filter: brightness(1); }
-            50% { filter: brightness(1.8) sepia(0.3) saturate(2); transform: scale(1.1) rotate(2deg); }
-            100% { filter: brightness(1); }
-        }
-        .dmg-popup {
-            position: absolute;
-            top: -40px;
-            color: #ff3e3e;
-            font-size: 2.2rem;
-            font-weight: 900;
-            text-shadow: 0 4px 12px rgba(0,0,0,0.9);
-            pointer-events: none;
-            animation: flyUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-            z-index: 100;
-        }
-        @keyframes flyUp {
-            0% { opacity: 0; transform: translateY(0) scale(0.5); }
-            30% { opacity: 1; transform: translateY(-20px) scale(1.3); }
-            100% { opacity: 0; transform: translateY(-90px) scale(1); }
-        }
-        .hp-bar-box { width: 100%; max-width: 130px; }
-        .hp-bar {
-            width: 100%;
-            background: rgba(255,255,255,0.1);
-            height: 8px;
-            border-radius: 12px;
-            overflow: hidden;
-            position: relative;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
-        }
-        .hp-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4cd964, #a0ffaf);
-            transition: width 0.4s cubic-bezier(0.33, 1, 0.68, 1);
-            width: 100%;
-        }
-        .hp-txt {
-            color: #fff;
-            font-size: 1.2rem;
-            font-weight: 900;
-            text-align: center;
-            margin-bottom: 8px;
-            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
-        }
-        .boar-unit { width: 100%; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.6)); }
-        .boar-unit img { width: 100%; height: auto; display: block; }
-        #boar1-img { transform: scaleX(-1); }
-
-        #fight-log {
-            position: absolute;
-            bottom: calc(15% + var(--safe-bottom));
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(12px);
-            padding: 12px 28px;
-            border-radius: 100px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.15);
-            z-index: 20;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            max-width: 80%;
-            text-align: center;
-        }
-
-        /* УВЕДОМЛЕНИЯ / RESULT OVERLAY */
-        #result-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.8);
-            z-index: 5000;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(12px);
-            padding: 24px;
-            padding-top: calc(24px + var(--safe-top));
-            padding-bottom: calc(24px + var(--safe-bottom));
-            padding-left: calc(24px + var(--safe-left));
-            padding-right: calc(24px + var(--safe-right));
-            box-sizing: border-box;
-            overflow-y: auto;
-        }
-        #result-card {
-            background: var(--card);
-            width: 100%;
-            max-width: 320px;
-            border-radius: 40px;
-            padding: 40px 24px;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            transform: translateY(60px) scale(0.9);
-            opacity: 0;
-            transition: all 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-            box-shadow: 0 40px 80px rgba(0,0,0,0.9);
-            position: relative;
-            margin: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        #result-card.active { transform: translateY(0) scale(1); opacity: 1; }
-        .res-icon { font-size: 5rem; margin-bottom: 20px; display: block; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3)); }
-        .res-title { font-size: 2.2rem; font-weight: 900; text-transform: uppercase; margin: 0 0 12px 0; word-break: break-word; line-height: 1; }
-        .res-sum { font-size: 1.6rem; font-weight: 800; opacity: 0.9; margin-bottom: 30px; }
-        .res-btn {
-            background: #fff; color: #000; border: none; padding: 18px 0;
-            width: 100%;
-            border-radius: 20px; font-weight: 900; font-size: 1.1rem;
-            text-transform: uppercase; cursor: pointer;
-            box-shadow: 0 10px 30px rgba(255,255,255,0.15);
-            transition: transform 0.2s;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .res-btn:active { transform: scale(0.96); }
-
-        /* Кнопка закрытия (крестик) */
-        .close-x {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            width: 36px;
-            height: 36px;
-            background: rgba(255,255,255,0.08);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: none;
-            color: rgba(255,255,255,0.6);
-            font-size: 24px;
-            line-height: 1;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .close-x:active { background: rgba(255,255,255,0.2); }
-
-        .rank-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 18px; background: rgba(255,255,255,0.04); border-radius: 20px;
-            margin-bottom: 12px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05);
-            transition: background 0.2s;
-        }
-        .rank-item:active { transform: scale(0.97); background: rgba(255,255,255,0.08); }
-
-        /* --- НОВЫЙ СТИЛЬ: Выделение текущего пользователя (только outline) --- */
-        .rank-item.current-user-highlight {
-            outline: 2px solid var(--gold); /* Только тонкая рамка */
-            outline-offset: -2px; /* Чтобы рамка не выходила за границы элемента */
-            /* background-color: rgba(255, 204, 0, 0.1); */ /* Удалено */
-        }
-        /* --- КОНЕЦ НОВОГО СТИЛЯ --- */
-
-        /* --- НОВЫЙ ЭЛЕМЕНТ: Текст "Твое место" --- */
-        #your-rank {
-            font-size: 0.9rem;
-            opacity: 0.7;
-            margin-bottom: 16px;
-            text-align: center;
-            font-weight: 700;
-        }
-        /* --- КОНЕЦ НОВОГО ЭЛЕМЕНТА --- */
-
-        #user-modal {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0.4); z-index: 4000;
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-            padding: 24px; box-sizing: border-box;
-            backdrop-filter: blur(15px);
-            padding-bottom: calc(24px + var(--safe-bottom));
-        }
-
-        /* Стили для тумблера */
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 34px;
-        }
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 34px;
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 26px;
-            width: 26px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-        input:checked + .slider {
-            background-color: #2196F3;
-        }
-        input:checked + .slider:before {
-            transform: translateX(26px);
-        }
-
-        /* Адаптив под очень узкие экраны */
-        @media (max-width: 360px) {
-            #profile-trigger, #rank-trigger {
-                width: 60px;
-                height: 60px;
-                right: 12px;
-                bottom: calc(16px + var(--safe-bottom));
-            }
-            .card { padding: 24px 16px; }
-            .menu-buttons { max-width: 280px; }
-            .res-title { font-size: 1.8rem; }
-            .res-icon { font-size: 4rem; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0, viewport-fit=cover, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0c">
+<meta name="mobile-web-app-capable" content="yes">
+<title>WILD TUSK BRAWL</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+--bg: #0a0a0c;
+--accent: #ff3e3e;
+--gold: #ffcc00;
+--text: #ffffff;
+--card: rgba(18, 18, 20, 0.95);
+--radius: 28px;
+--win: #4cd964;
+--lose: #ff3e3e;
+--transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+--safe-top: env(safe-area-inset-top, 20px);
+--safe-bottom: env(safe-area-inset-bottom, 34px);
+--safe-left: env(safe-area-inset-left, 0px);
+--safe-right: env(safe-area-inset-right, 0px);
+}
+body {
+margin: 0;
+font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+background: var(--bg);
+color: var(--text);
+overflow: hidden;
+-webkit-font-smoothing: antialiased;
+touch-action: manipulation;
+padding-bottom: 0;
+height: 100dvh;
+width: 100vw;
+}
+/* Фоновые изображения */
+.game-bg {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background-size: cover;
+background-position: center;
+z-index: -2;
+transition: filter 0.5s ease, transform 0.5s ease;
+}
+#bg-main {
+background-image: url('assets/main_menu.png');
+background-color: #1a1a1a;
+}
+#bg-fight {
+background-image: url('assets/fight_field.png');
+background-color: #000;
+display: none;
+}
+#bg-inventory {
+background-image: url('assets/inventory.png');
+background-color: #0a0a0c;
+display: none;
+}
+#bg-shop {
+background-image: url('assets/shop.png');
+background-color: #0a0a0c;
+display: none;
+}
+.bg-overlay {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(0, 0, 0, 0.75);
+z-index: -1;
+opacity: 0;
+transition: opacity 0.4s ease;
+pointer-events: none;
+backdrop-filter: blur(0px);
+}
+body.dimmed .bg-overlay {
+opacity: 1;
+backdrop-filter: blur(8px);
+pointer-events: auto;
+}
+body.dimmed .game-bg {
+filter: brightness(0.5);
+transform: scale(1.05);
+}
+.screen {
+display: none;
+width: 100%;
+height: 100%;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+padding: 24px;
+padding-top: calc(20px + var(--safe-top));
+padding-bottom: calc(20px + var(--safe-bottom));
+box-sizing: border-box;
+position: absolute;
+top: 0;
+left: 0;
+overflow-y: auto;
+}
+.active {
+display: flex;
+animation: screenIn 0.4s forwards;
+}
+@keyframes screenIn {
+from {
+opacity: 0;
+transform: translateY(10px);
+}
+to {
+opacity: 1;
+transform: translateY(0);
+}
+}
+#balance-header {
+position: fixed;
+top: calc(12px + var(--safe-top));
+left: calc(16px + var(--safe-left));
+background: rgba(0, 0, 0, 0.6);
+backdrop-filter: blur(15px);
+border: 1px solid rgba(255, 255, 255, 0.1);
+padding: 10px 20px;
+border-radius: 100px;
+font-weight: 800;
+color: var(--gold);
+z-index: 1000;
+display: flex;
+align-items: center;
+gap: 8px;
+box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+/* --- ИЗМЕНЁННЫЙ СТИЛЬ: Уведомление --- */
+.notification-toast {
+position: fixed;
+top: calc(12px + var(--safe-top));
+left: 50%;
+transform: translateX(-50%);
+background: rgba(0, 0, 0, 0.85);
+backdrop-filter: blur(15px);
+border: 1px solid rgba(255, 255, 255, 0.15);
+padding: 12px 24px;
+border-radius: 20px;
+color: white;
+font-weight: 700;
+font-size: 0.9rem;
+z-index: 6000;
+opacity: 0;
+visibility: hidden;
+transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+text-align: center;
+max-width: 80%;
+width: fit-content;
+}
+.notification-toast.show {
+opacity: 1;
+visibility: visible;
+transform: translateX(-50%) translateY(40px);
+}
+/* --- КОНЕЦ ИЗМЕНЁННОГО СТИЛЯ --- */
+/* --- НОВАЯ СТИЛИЗАЦИЯ ДЛЯ КНОПОК --- */
+#rank-trigger,
+#profile-trigger {
+position: fixed;
+bottom: calc(20px + var(--safe-bottom));
+width: 68px;
+height: 68px;
+background: rgba(30, 30, 34, 0.92);
+border: 1px solid rgba(255, 255, 255, 0.14);
+border-radius: 50%;
+display: flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+z-index: 3000;
+box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+backdrop-filter: blur(10px);
+transition: transform 0.2s, opacity 0.2s;
+}
+#rank-trigger:active,
+#profile-trigger:active {
+transform: scale(0.92);
+}
+#rank-trigger span {
+font-size: 1.8rem;
+}
+#profile-trigger img {
+width: 80%;
+height: 80%;
+border-radius: 50%;
+object-fit: cover;
+}
+/* Позиционирование: профиль — справа, рейтинг — слева от него */
+#profile-trigger {
+right: calc(16px + var(--safe-right));
+}
+#rank-trigger {
+/* Сдвигаем влево на ширину кнопки + отступ */
+right: calc(16px + 68px + 16px + var(--safe-right)); /* 16px (отступ профиля) + 68px (ширина профиля) + 16px (отступ между кнопками) */
+}
+/* Скрываем обе кнопки, когда активен любой экран, кроме главного */
+body:not(.show-main-screen) #rank-trigger,
+body:not(.show-main-screen) #profile-trigger {
+display: none;
+}
+/* Убедимся, что на главном экране они видны */
+body.show-main-screen #rank-trigger,
+body.show-main-screen #profile-trigger {
+display: flex;
+}
+/* --- КОНЕЦ НОВОЙ СТИЛИЗАЦИИ --- */
+.menu-buttons {
+width: 100%;
+max-width: 300px;
+display: flex;
+flex-direction: column;
+gap: 16px;
+margin-bottom: var(--safe-bottom);
+}
+.btn-wood {
+background: #252528;
+border: 1px solid rgba(255, 255, 255, 0.08);
+color: #fff;
+padding: 18px;
+border-radius: 20px;
+font-weight: 800;
+font-size: 0.95rem;
+text-transform: uppercase;
+letter-spacing: 1.2px;
+cursor: pointer;
+transition: var(--transition);
+text-align: center;
+box-shadow: 0 4px 0px #151517;
+position: relative;
+top: 0;
+user-select: none;
+-webkit-tap-highlight-color: transparent;
+}
+.btn-wood:active {
+top: 2px;
+box-shadow: 0 1px 0px #151517;
+background: #2a2a2d;
+}
+.btn-play {
+background: var(--gold);
+color: #000;
+border: none;
+box-shadow: 0 4px 0px #cca300;
+}
+.btn-play:active {
+background: #e6b800;
+box-shadow: 0 1px 0px #cca300;
+}
+.card {
+background: var(--card);
+padding: 32px 24px;
+border-radius: var(--radius);
+border: 1px solid rgba(255, 255, 255, 0.12);
+width: 100%;
+max-width: 340px;
+backdrop-filter: blur(25px);
+box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7);
+transform-origin: center bottom;
+animation: cardPop 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+position: relative;
+}
+@keyframes cardPop {
+from {
+opacity: 0;
+transform: scale(0.9) translateY(20px);
+}
+to {
+opacity: 1;
+transform: scale(1) translateY(0);
+}
+}
+.stat-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 14px;
+margin: 24px 0;
+}
+.stat-item {
+background: rgba(255, 255, 255, 0.04);
+padding: 16px;
+border-radius: 20px;
+text-align: center;
+border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.stat-val {
+font-size: 1.2rem;
+font-weight: 900;
+display: block;
+margin-bottom: 4px;
+}
+.stat-lbl {
+font-size: 0.7rem;
+opacity: 0.4;
+text-transform: uppercase;
+font-weight: 700;
+}
+input {
+background: rgba(255, 255, 255, 0.06);
+border: 1px solid rgba(255, 255, 255, 0.1);
+color: #fff;
+padding: 20px;
+border-radius: 18px;
+width: 100%;
+box-sizing: border-box;
+font-size: 1.2rem;
+text-align: center;
+margin-bottom: 16px;
+font-weight: 700;
+outline: none;
+transition: border-color 0.2s;
+}
+input:focus {
+border-color: var(--gold);
+}
+/* БОЙ */
+.arena {
+position: absolute;
+bottom: 25%;
+width: 100%;
+display: flex;
+justify-content: space-around;
+align-items: flex-end;
+perspective: 1000px;
+padding-bottom: var(--safe-bottom);
+}
+.boar-container {
+width: 38%;
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 20px;
+position: relative;
+}
+.boar-container.hit {
+animation: flashRed 0.25s ease-out;
+}
+@keyframes flashRed {
+0% {
+filter: brightness(1);
+}
+50% {
+filter: brightness(1.8) sepia(0.3) saturate(2);
+transform: scale(1.1) rotate(2deg);
+}
+100% {
+filter: brightness(1);
+}
+}
+.dmg-popup {
+position: absolute;
+top: -40px;
+color: #ff3e3e;
+font-size: 2.2rem;
+font-weight: 900;
+text-shadow: 0 4px 12px rgba(0, 0, 0, 0.9);
+pointer-events: none;
+animation: flyUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+z-index: 100;
+}
+@keyframes flyUp {
+0% {
+opacity: 0;
+transform: translateY(0) scale(0.5);
+}
+30% {
+opacity: 1;
+transform: translateY(-20px) scale(1.3);
+}
+100% {
+opacity: 0;
+transform: translateY(-90px) scale(1);
+}
+}
+.hp-bar-box {
+width: 100%;
+max-width: 130px;
+}
+.hp-bar {
+width: 100%;
+background: rgba(255, 255, 255, 0.1);
+height: 8px;
+border-radius: 12px;
+overflow: hidden;
+position: relative;
+box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+.hp-fill {
+height: 100%;
+background: linear-gradient(90deg, #4cd964, #a0ffaf);
+transition: width 0.4s cubic-bezier(0.33, 1, 0.68, 1);
+width: 100%;
+}
+.hp-txt {
+color: #fff;
+font-size: 1.2rem;
+font-weight: 900;
+text-align: center;
+margin-bottom: 8px;
+text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.boar-unit {
+width: 100%;
+filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.6));
+}
+.boar-unit img {
+width: 100%;
+height: auto;
+display: block;
+}
+#boar1-img {
+transform: scaleX(-1);
+}
+#fight-log {
+position: absolute;
+bottom: calc(15% + var(--safe-bottom));
+background: rgba(0, 0, 0, 0.7);
+backdrop-filter: blur(12px);
+padding: 12px 28px;
+border-radius: 100px;
+font-weight: 700;
+font-size: 0.9rem;
+color: #fff;
+border: 1px solid rgba(255, 255, 255, 0.15);
+z-index: 20;
+box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+max-width: 80%;
+text-align: center;
+}
+/* УВЕДОМЛЕНИЯ / RESULT OVERLAY */
+#result-overlay {
+position: fixed;
+inset: 0;
+background: rgba(0, 0, 0, 0.8);
+z-index: 5000;
+display: none;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+backdrop-filter: blur(12px);
+padding: 24px;
+padding-top: calc(24px + var(--safe-top));
+padding-bottom: calc(24px + var(--safe-bottom));
+padding-left: calc(24px + var(--safe-left));
+padding-right: calc(24px + var(--safe-right));
+box-sizing: border-box;
+overflow-y: auto;
+}
+#result-card {
+background: var(--card);
+width: 100%;
+max-width: 320px;
+border-radius: 40px;
+padding: 40px 24px;
+text-align: center;
+border: 1px solid rgba(255, 255, 255, 0.15);
+transform: translateY(60px) scale(0.9);
+opacity: 0;
+transition: all 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+box-shadow: 0 40px 80px rgba(0, 0, 0, 0.9);
+position: relative;
+margin: auto;
+display: flex;
+flex-direction: column;
+align-items: center;
+}
+#result-card.active {
+transform: translateY(0) scale(1);
+opacity: 1;
+}
+.res-icon {
+font-size: 5rem;
+margin-bottom: 20px;
+display: block;
+filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
+}
+.res-title {
+font-size: 2.2rem;
+font-weight: 900;
+text-transform: uppercase;
+margin: 0 0 12px 0;
+word-break: break-word;
+line-height: 1;
+}
+.res-sum {
+font-size: 1.6rem;
+font-weight: 800;
+opacity: 0.9;
+margin-bottom: 30px;
+}
+.res-btn {
+background: #fff;
+color: #000;
+border: none;
+padding: 18px 0;
+width: 100%;
+border-radius: 20px;
+font-weight: 900;
+font-size: 1.1rem;
+text-transform: uppercase;
+cursor: pointer;
+box-shadow: 0 10px 30px rgba(255, 255, 255, 0.15);
+transition: transform 0.2s;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+.res-btn:active {
+transform: scale(0.96);
+}
+/* Кнопка закрытия (крестик) */
+.close-x {
+position: absolute;
+top: 16px;
+right: 16px;
+width: 36px;
+height: 36px;
+background: rgba(255, 255, 255, 0.08);
+border-radius: 50%;
+display: flex;
+align-items: center;
+justify-content: center;
+border: none;
+color: rgba(255, 255, 255, 0.6);
+font-size: 24px;
+line-height: 1;
+cursor: pointer;
+transition: background 0.2s;
+}
+.close-x:active {
+background: rgba(255, 255, 255, 0.2);
+}
+.rank-item {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 18px;
+background: rgba(255, 255, 255, 0.04);
+border-radius: 20px;
+margin-bottom: 12px;
+cursor: pointer;
+border: 1px solid rgba(255, 255, 255, 0.05);
+transition: background 0.2s;
+}
+.rank-item:active {
+transform: scale(0.97);
+background: rgba(255, 255, 255, 0.08);
+}
+/* --- НОВЫЙ СТИЛЬ: Выделение текущего пользователя (только outline) --- */
+.rank-item.current-user-highlight {
+outline: 2px solid var(--gold); /* Только тонкая рамка */
+outline-offset: -2px; /* Чтобы рамка не выходила за границы элемента */
+/* background-color: rgba(255, 204, 0, 0.1); */ /* Удалено */
+}
+/* --- КОНЕЦ НОВОГО СТИЛЯ --- */
+/* --- НОВЫЙ ЭЛЕМЕНТ: Текст "Твое место" --- */
+#your-rank {
+font-size: 0.9rem;
+opacity: 0.7;
+margin-bottom: 16px;
+text-align: center;
+font-weight: 700;
+}
+/* --- КОНЕЦ НОВОГО ЭЛЕМЕНТА --- */
+#user-modal {
+position: fixed;
+inset: 0;
+background: rgba(0, 0, 0, 0.4);
+z-index: 4000;
+display: none;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+padding: 24px;
+box-sizing: border-box;
+backdrop-filter: blur(15px);
+padding-bottom: calc(24px + var(--safe-bottom));
+}
+/* Стили для тумблера */
+.toggle-switch {
+position: relative;
+display: inline-block;
+width: 120px;
+height: 40px;
+}
+.toggle-switch input {
+opacity: 0;
+width: 0;
+height: 0;
+}
+.slider {
+position: absolute;
+cursor: pointer;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background-color: var(--lose); /* по умолчанию красный (продажа) */
+transition: background-color 0.4s;
+border-radius: 20px;
+}
+.slider:before {
+position: absolute;
+content: "";
+height: 32px;
+width: 32px;
+left: 4px;
+bottom: 4px;
+background-color: #fff;
+transition: transform 0.4s;
+border-radius: 50%;
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+input:checked + .slider {
+background-color: var(--win); /* зелёный при покупке */
+}
+input:checked + .slider:before {
+transform: translateX(76px); /* 120 - 32 - 4*2 = 76 */
+}
+/* --- НОВЫЙ СТИЛЬ: Интерфейс магазина --- */
+.shop-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+gap: 12px;
+margin-top: 10px;
+max-height: 300px; /* Ограничиваем высоту для скролла */
+overflow-y: auto; /* Добавляем скролл */
+padding-right: 5px; /* Отступ для полосы */
+/* Стилизация скролла */
+scrollbar-width: thin;
+scrollbar-color: var(--gold) var(--card);
+}
+.shop-grid::-webkit-scrollbar {
+width: 6px;
+}
+.shop-grid::-webkit-scrollbar-track {
+background: var(--card);
+border-radius: 10px;
+}
+.shop-grid::-webkit-scrollbar-thumb {
+background-color: var(--gold);
+border-radius: 10px;
+border: 1px solid var(--card);
+}
+.shop-item {
+background: rgba(255, 255, 255, 0.06);
+border: 1px solid rgba(255, 255, 255, 0.1);
+border-radius: 20px;
+padding: 12px;
+text-align: center;
+cursor: pointer;
+transition: background 0.2s;
+}
+.shop-item:active {
+transform: scale(0.95);
+background: rgba(255, 255, 255, 0.1);
+}
+.shop-item.selected {
+background: rgba(255, 204, 0, 0.15);
+border-color: var(--gold);
+}
+.shop-item-icon {
+width: 40px;
+height: 40px;
+margin: 0 auto 8px;
+}
+.shop-item-name {
+font-size: 0.75rem;
+font-weight: 700;
+margin: 0 0 4px;
+}
+.shop-item-price {
+font-size: 0.7rem;
+opacity: 0.6;
+}
+.shop-detail-section {
+background: rgba(255, 255, 255, 0.04);
+border: 1px solid rgba(255, 255, 255, 0.05);
+border-radius: 20px;
+padding: 16px;
+margin-top: 16px;
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 12px;
+}
+.shop-detail-icon-big {
+width: 80px;
+height: 80px;
+object-fit: contain; /* Сохраняем пропорции */
+}
+.shop-quantity-controls {
+display: flex;
+align-items: center;
+gap: 10px;
+width: 100%;
+justify-content: center;
+}
+.qty-btn {
+width: 36px;
+height: 36px;
+border-radius: 50%;
+background: #252528;
+border: 1px solid rgba(255, 255, 255, 0.08);
+color: #fff;
+font-size: 1.2rem;
+display: flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+transition: background 0.2s;
+}
+.qty-btn:active {
+background: #333;
+}
+#qty-val {
+font-size: 1.2rem;
+font-weight: 700;
+min-width: 30px;
+text-align: center;
+}
+.shop-actions {
+display: flex;
+gap: 12px;
+width: 100%;
+margin-top: 10px;
+}
+.btn-trade {
+background: var(--win);
+color: #000;
+border: none;
+box-shadow: 0 4px 0 #2d9a4a;
+}
+.btn-trade.sell-mode {
+background: var(--lose);
+color: #fff;
+box-shadow: 0 4px 0 #cc2e27;
+}
+.btn-nav-back {
+background: #7f8c8d;
+color: #fff;
+border: none;
+box-shadow: 0 4px 0 #566573;
+}
+.btn-nav-back:active {
+background: #6c7b8b;
+box-shadow: 0 1px 0 #566573;
+}
+/* --- КОНЕЦ НОВОГО СТИЛЯ --- */
+/* Адаптив под очень узкие экраны */
+@media (max-width: 360px) {
+#profile-trigger, #rank-trigger {
+width: 60px;
+height: 60px;
+right: 12px;
+bottom: calc(16px + var(--safe-bottom));
+}
+.card {
+padding: 24px 16px;
+}
+.menu-buttons {
+max-width: 280px;
+}
+.res-title {
+font-size: 1.8rem;
+}
+.res-icon {
+font-size: 4rem;
+}
+}
+</style>
 </head>
 <body>
-    <div id="bg-main" class="game-bg"></div>
-    <div id="bg-fight" class="game-bg"></div>
-    <div id="bg-inventory" class="game-bg"></div>
-    <div id="bg-shop" class="game-bg"></div>
-    <div class="bg-overlay"></div>
+<div id="bg-main" class="game-bg"></div>
+<div id="bg-fight" class="game-bg"></div>
+<div id="bg-inventory" class="game-bg"></div>
+<div id="bg-shop" class="game-bg"></div>
+<div class="bg-overlay"></div>
+<div id="balance-header">
+<span id="bal-val">0</span> 💰
+<!-- --- НОВЫЙ ЭЛЕМЕНТ: Желуди --- -->
+<span id="acorns-val">0</span> 🌰
+<!-- --- КОНЕЦ НОВОГО ЭЛЕМЕНТА --- -->
+</div>
+<!-- --- НОВЫЙ ЭЛЕМЕНТ: Уведомление --- -->
+<div id="notification-toast" class="notification-toast">
+Это пользователь запретил ему писать
+</div>
+<!-- --- КОНЕЦ НОВОГО ЭЛЕМЕНТА --- -->
+<!-- --- НОВАЯ КНОПКА РЕЙТИНГА (🏆) --- -->
+<div id="rank-trigger" onclick="nav('scr-rank')">
+<span>🏆</span>
+</div>
+<!-- --- КОНЕЦ НОВОЙ КНОПКИ --- -->
+<div id="profile-trigger" onclick="nav('scr-profile')">
+<img src="assets/boar.png" onerror="this.src='https://api.dicebear.com/7.x/pixel-art/svg?seed=porker'">
+</div>
+<!-- Загрузка -->
+<div id="scr-load" class="screen active">
+<div style="width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;"></div>
+</div>
+<style>@keyframes spin {
+to {
+transform: rotate(360deg);
+}
+}</style>
+<!-- Результат боя -->
+<div id="result-overlay">
+<div id="result-card">
+<button class="close-x" onclick="closeResult()">&times;</button>
+<span class="res-icon" id="res-icon">🏆</span>
+<h2 class="res-title" id="res-title">ПОБЕДА</h2>
+<div class="res-sum" id="res-sum">+500 💰</div>
+<button class="res-btn" onclick="closeResult()">ПРОДОЛЖИТЬ</button>
+</div>
+</div>
+<!-- Модалка игрока -->
+<div id="user-modal" onclick="if(event.target==this) closeModal()">
+<div class="card">
+<button class="close-x" onclick="closeModal()" style="top:12px; right:12px;">&times;</button>
+<h3 id="modal-user-name" style="margin-top:0; font-size: 1.5rem; padding-right: 30px;">ИГРОК</h3>
+<div class="stat-grid">
+<div class="stat-item"><span class="stat-val" id="modal-games">0</span><span class="stat-lbl">Боев</span></div>
+<div class="stat-item"><span class="stat-val" id="modal-wins" style="color: var(--win);">0</span><span class="stat-lbl">Побед</span></div>
+<div class="stat-item"><span class="stat-val" id="modal-lose" style="color: var(--lose);">0</span><span class="stat-lbl">Пораж.</span></div>
+<div class="stat-item"><span class="stat-val" id="modal-bal">0</span><span class="stat-lbl">Баланс</span></div>
+</div>
+<button class="btn-wood" style="width: 100%; background: #0088cc; border:none; box-shadow: 0 4px 0 #006699;" id="modal-write-btn">НАПИСАТЬ</button>
+<button class="btn-wood" style="width: 100%; margin-top: 14px; opacity: 0.6;" onclick="closeModal()">ЗАКРЫТЬ</button>
+</div>
+</div>
+<div id="scr-main" class="screen">
+<div class="menu-buttons">
+<button class="btn-wood btn-play" onclick="nav('scr-bet')">В БОЙ</button>
+<button class="btn-wood" onclick="nav('scr-inventory')">ИНВЕНТАРЬ</button>
+<button class="btn-wood" onclick="nav('scr-shop')">МАГАЗИН</button>
+</div>
+</div>
+<div id="scr-bet" class="screen">
+<div class="card">
+<h3 style="margin-top:0; text-align: center; font-size: 1.4rem;">ВАША СТАВКА</h3>
+<input type="number" id="bet-amt" value="100" min="10" inputmode="numeric">
+<div style="display: flex; gap: 14px;">
+<button class="btn-wood" style="flex:1; background: #3498db; border:none; box-shadow: 0 4px 0 #2573a7;" onclick="preStart(1)">ЛЕВЫЙ</button>
+<button class="btn-wood" style="flex:1; background: #9b59b6; border:none; box-shadow: 0 4px 0 #7d4594;" onclick="preStart(2)">ПРАВЫЙ</button>
+</div>
+<button class="btn-wood" style="background: #7f8c8d; border:none; box-shadow: 0 4px 0 #566573; margin: 8px auto; width: 80%; display: block;" onclick="watchBattle()">ПОСМОТРЕТЬ БОЙ (+1)</button>
+<button class="btn-wood" style="margin-top: 8px; width: 100%; opacity: 0.6;" onclick="nav('scr-main')">ОТМЕНА</button>
+</div>
+</div>
+<div id="scr-inventory" class="screen">
+<div class="card" style="text-align: center;">
+<h2 style="margin-top:0;">ИНВЕНТАРЬ</h2>
+<p style="opacity:0.5; font-size: 0.95rem;">Раздел находится в разработке</p>
+<div style="font-size: 6rem; margin: 30px 0;">🎒</div>
+<button class="btn-wood" style="width: 100%;" onclick="nav('scr-main')">НАЗАД</button>
+</div>
+</div>
+<!-- --- НОВЫЙ ЭКРАН: МАГАЗИН --- -->
+<div id="scr-shop" class="screen">
+<div class="card" style="max-height: 85vh; display: flex; flex-direction: column;">
+<h3 style="margin-top:0; text-align: center;">МАГАЗИН</h3>
+<!-- --- ТУМБЛЕР КУПИТЬ / ПРОДАТЬ (надписи СНАРУЖИ) --- -->
+<div class="shop-actions" style="margin-top: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;">
+<span class="label-left" style="font-size: 0.8rem; font-weight: 700; opacity: 0.7; color: #fff;">КУПИТЬ</span>
+<label class="toggle-switch" style="width: 120px; height: 40px; position: relative; display: inline-flex; align-items: center;">
+<input type="checkbox" id="action-toggle" onchange="toggleAction()">
+<span class="slider" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--lose); border-radius: 20px; cursor: pointer;"></span>
+<span class="slider-thumb" style="position: absolute; top: 4px; left: 4px; width: 32px; height: 32px; background: #fff; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.4s;"></span>
+</label>
+<span class="label-right" style="font-size: 0.8rem; font-weight: 700; opacity: 0.7; color: #fff;">ПРОДАТЬ</span>
+</div>
+<!-- --- СЕТКА ПРЕДМЕТОВ --- -->
+<div id="shop-items-container" class="shop-grid" style="margin-top: 12px;">
+<!-- JS добавит элементы -->
+</div>
+<!-- --- ДЕТАЛИ ВЫБРАННОГО ПРЕДМЕТА --- -->
+<div class="shop-detail-section">
+<!-- Иконка: сначала placeholder, потом реальная -->
+<span id="detail-icon-placeholder" style="font-size: 4rem; opacity: 0.5;">📦</span>
+<img id="detail-icon-big" class="shop-detail-icon-big" src="" alt="Иконка предмета" style="display: none;">
+<div id="detail-name" style="font-size: 1.2rem; font-weight: 800;">Выберите предмет</div>
+<div id="detail-price" style="font-size: 0.9rem; opacity: 0.7;">Цена: -</div>
+<!-- --- ПОЛЕ ВВОДА КОЛИЧЕСТВА --- -->
+<input type="number" id="qty-input" value="1" min="1" inputmode="numeric"
+style="margin: 10px 0; width: 100%; padding: 16px; font-size: 1.4rem; text-align: center;
+border-radius: 20px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);"
+oninput="onQtyInput(this.value)">
+<!-- --- ИТОГОВАЯ СУММА — скрыта до выбора предмета --- -->
+<div id="total-cost" style="font-size: 1rem; font-weight: 700; color: var(--gold); text-align: center; margin-bottom: 12px; display: none;">
+- 💰 × - = - 💰
+</div>
+<!-- --- КНОПКА СДЕЛКИ (цвет зависит от действия) --- -->
+<button class="btn-wood btn-trade" onclick="performTransaction()" style="width: 100%; margin-top: 10px;">КУПИТЬ</button>
+<!-- --- КНОПКА НАЗАД --- -->
+<button class="btn-wood btn-nav-back" onclick="nav('scr-main')">НАЗАД</button>
+</div>
+</div>
+</div>
+<!-- --- КОНЕЦ НОВОГО ЭКРАНА --- -->
+<div id="scr-profile" class="screen">
+<div class="card">
+<h3 style="margin-top:0;">ВАШ ХРЯК</h3>
+<input type="text" id="edit-name" placeholder="Имя хряка">
+<div class="stat-grid">
+<div class="stat-item"><span class="stat-val" id="st-games">0</span><span class="stat-lbl">Боев</span></div>
+<div class="stat-item"><span class="stat-val" id="st-wins" style="color: var(--win);">0</span><span class="stat-lbl">Побед</span></div>
+<div class="stat-item"><span class="stat-val" id="st-lose" style="color: var(--lose);">0</span><span class="stat-lbl">Пораж.</span></div>
+<div class="stat-item"><span class="stat-val" id="st-wr">0%</span><span class="stat-lbl">Winrate</span></div>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; margin: 20px 0;">
+<span>Запретить мне писать</span>
+<label class="toggle-switch">
+<input type="checkbox" id="private-profile-toggle" onchange="togglePrivateProfile()">
+<span class="slider"></span>
+</label>
+</div>
+<button class="btn-wood" style="width:100%; background: #fff; color: #000; box-shadow: 0 4px 0 #ccc;" onclick="updateName()">СОХРАНИТЬ</button>
+<button class="btn-wood" style="width:100%; margin-top: 14px; opacity: 0.6;" onclick="nav('scr-main')">НАЗАД</button>
+</div>
+</div>
+<div id="scr-rank" class="screen">
+<div class="card" style="max-height: 85vh; display: flex; flex-direction: column;">
+<h3 style="margin-top:0; text-align: center;">ТОП БОЙЦОВ</h3>
+<!-- --- НОВЫЙ ЭЛЕМЕНТ: Текст "Твое место" --- -->
+<div id="your-rank">Твое место — ?</div>
+<!-- --- КОНЕЦ НОВОГО ЭЛЕМЕНТА --- -->
+<div id="rank-loading" style="display: none; flex: 1; align-items: center; justify-content: center; flex-direction: column;">
+<div style="width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite; margin-bottom: 10px;"></div>
+<span>Загрузка...</span>
+</div>
+<div id="rank-list" style="overflow-y: auto; flex: 1; padding-right: 5px;"></div>
+<button id="toggle-full-leaderboard" class="btn-wood" style="width:100%; margin-top: 10px; display: none;" onclick="toggleFullLeaderboard()">Развернуть</button>
+<button class="btn-wood" style="width:100%; margin-top: 10px;" onclick="nav('scr-main')">НАЗАД</button>
+</div>
+</div>
+<div id="scr-fight" class="screen">
+<div class="arena">
+<div id="cont-1" class="boar-container">
+<div class="hp-bar-box">
+<div class="hp-txt" id="hp1-txt">100</div>
+<div class="hp-bar"><div id="hp1-f" class="hp-fill"></div></div>
+</div>
+<div class="boar-unit">
+<img id="boar1-img" src="assets/boar.png" onerror="this.src='https://api.dicebear.com/7.x/pixel-art/svg?seed=boar1'">
+</div>
+</div>
+<div id="cont-2" class="boar-container">
+<div class="hp-bar-box">
+<div class="hp-txt" id="hp2-txt">100</div>
+<div class="hp-bar"><div id="hp2-f" class="hp-fill"></div></div>
+</div>
+<div class="boar-unit">
+<img id="boar2-img" src="assets/boar.png" onerror="this.src='https://api.dicebear.com/7.x/pixel-art/svg?seed=boar2'">
+</div>
+</div>
+</div>
+<div id="fight-log">ПОДГОТОВКА...</div>
+</div>
+<script>
+const tg = window.Telegram.WebApp;
+tg.expand();
+let user = null;
+let selectedSide = 0;
+let isWatchingMode = false;
+let fullLeaderboardLoaded = false;
+let fullLeaderboardData = [];
+let userRank = '?'; // Для хранения позиции
+let currentShopItem = null; // Для выбранного предмета в магазине
+let currentShopQuantity = 1; // Для количества в магазине
+let currentAction = 'buy'; // 'buy' или 'sell'
+let prices = {}; // Хранение цен из prices.json
 
-    <div id="balance-header">
-        <span id="bal-val">0</span> 💰
-    </div>
+async function apiFetch(endpoint, options = {}) {
+	try {
+		const res = await fetch(endpoint, {
+			...options,
+			headers: {'Content-Type': 'application/json', ...(options.headers || {})}
+		});
+		return await res.json();
+	} catch (e) {
+		return null;
+	}
+}
 
-    <!-- --- НОВЫЙ ЭЛЕМЕНТ: Уведомление --- -->
-    <div id="notification-toast" class="notification-toast">
-        Это пользователь запретил ему писать
-    </div>
-    <!-- --- КОНЕЦ НОВОГО ЭЛЕМЕНТА --- -->
+// --- НОВАЯ ФУНКЦИЯ: Загрузка цен из prices.json ---
+async function loadPrices() {
+	try {
+		const response = await fetch('prices.json');
+		if (!response.ok) {
+			throw new Error('Network response was not ok');
+		}
+		prices = await response.json();
+		console.log("Цены загружены:", prices);
+	} catch (error) {
+		console.error("Ошибка загрузки prices.json:", error);
+		// Устанавливаем цены по умолчанию в случае ошибки
+		prices = {
+			"plant_acorn": {"buy": 1000, "sell": 800},
+			"acorn": {"buy": 200, "sell": 150}
+		};
+	}
+}
 
-    <!-- --- НОВАЯ КНОПКА РЕЙТИНГА (🏆) --- -->
-    <div id="rank-trigger" onclick="nav('scr-rank')">
-        <span>🏆</span>
-    </div>
-    <!-- --- КОНЕЦ НОВОЙ КНОПКИ --- -->
+async function auth() {
+	const tgUser = tg.initDataUnsafe?.user || {id: "dev_user", username: "kaban", first_name: "Хряк"};
+	user = await apiFetch('/api/auth', {
+		method: 'POST',
+		body: JSON.stringify({tg_id: tgUser.id, username: tgUser.username, first_name: tgUser.first_name})
+	});
+	if (user) {
+		updateUI();
+		nav('scr-main');
+	}
+}
 
-    <div id="profile-trigger" onclick="nav('scr-profile')">
-        <img src="assets/boar.png" onerror="this.src='https://api.dicebear.com/7.x/pixel-art/svg?seed=porker'">
-    </div>
+function updateUI() {
+	if (!user) return;
+	// --- ИСПРАВЛЕНИЕ 2: Обновление баланса и желудей в интерфейсе ---
+	document.getElementById('bal-val').innerText = user.balance.toLocaleString();
+	document.getElementById('acorns-val').innerText = user.acorns.toLocaleString(); // Обновляем количество желудей
+	// --- КОНЕЦ ИСПРАВЛЕНИЯ 2 ---
+	document.getElementById('edit-name').value = user.display_name || user.username || "";
+	document.getElementById('st-games').innerText = user.total_games || 0;
+	document.getElementById('st-wins').innerText = user.wins || 0;
+	document.getElementById('st-lose').innerText = user.lose || 0;
+	const wr = user.total_games > 0 ? Math.round((user.wins / user.total_games) * 100) : 0;
+	document.getElementById('st-wr').innerText = wr + "%";
+	const toggle = document.getElementById('private-profile-toggle');
+	if (toggle) toggle.checked = !!user.private_profile;
+}
 
-    <!-- Загрузка -->
-    <div id="scr-load" class="screen active">
-        <div style="width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;"></div>
-    </div>
-    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+function nav(id) {
+	document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+	document.getElementById(id).classList.add('active');
+	// Обновляем фон
+	document.getElementById('bg-main').style.display = 'block';
+	document.getElementById('bg-fight').style.display = 'none';
+	document.getElementById('bg-inventory').style.display = 'none';
+	document.getElementById('bg-shop').style.display = 'none';
+	if (id === 'scr-fight') {
+		document.getElementById('bg-main').style.display = 'none';
+		document.getElementById('bg-fight').style.display = 'block';
+	} else if (id === 'scr-inventory') {
+		document.getElementById('bg-main').style.display = 'none';
+		document.getElementById('bg-inventory').style.display = 'block';
+	} else if (id === 'scr-shop') {
+		document.getElementById('bg-main').style.display = 'none';
+		document.getElementById('bg-shop').style.display = 'block';
+		// ✅ ИСПРАВЛЕНИЕ: Сброс состояния магазина при входе
+		resetShopState();
+		loadShopItems(); // Загружаем предметы при открытии магазина
+	}
+	const isCardScreen = ['scr-bet', 'scr-inventory', 'scr-shop', 'scr-profile', 'scr-rank', 'scr-load'].includes(id);
+	document.body.classList.toggle('dimmed', isCardScreen);
+	// --- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Устанавливаем класс для главного экрана ---
+	document.body.classList.toggle('show-main-screen', id === 'scr-main');
+	// ---------------------------------------------------------------
+	// Показываем кнопку профиля только на главном экране (это дублирует CSS, но надёжнее)
+	if (id === 'scr-main') {
+		document.body.classList.add('show-profile-btn');
+	} else {
+		document.body.classList.remove('show-profile-btn');
+	}
+	// Загрузка рейтинга
+	if (id === 'scr-rank') loadRank(); // Загружаем рейтинг при открытии экрана
+	tg.HapticFeedback.impactOccurred('light');
+}
 
-    <!-- Результат боя -->
-    <div id="result-overlay">
-        <div id="result-card">
-            <button class="close-x" onclick="closeResult()">&times;</button>
-            <span class="res-icon" id="res-icon">🏆</span>
-            <h2 class="res-title" id="res-title">ПОБЕДА</h2>
-            <div class="res-sum" id="res-sum">+500 💰</div>
-            <button class="res-btn" onclick="closeResult()">ПРОДОЛЖИТЬ</button>
-        </div>
-    </div>
+// ✅ НОВАЯ ФУНКЦИЯ: Сброс состояния магазина (вызов при входе и при нажатии НАЗАД)
+function resetShopState() {
+	currentShopItem = null;
+	currentShopQuantity = 1;
+	document.getElementById('qty-input').value = '1';
+	document.getElementById('detail-icon-placeholder').style.display = 'block';
+	document.getElementById('detail-icon-big').style.display = 'none';
+	document.getElementById('detail-name').innerText = 'Выберите предмет';
+	document.getElementById('detail-price').innerText = 'Цена: -';
+	document.getElementById('total-cost').style.display = 'none';
+	// Снять выделение со всех предметов
+	document.querySelectorAll('#shop-items-container .shop-item').forEach(el => el.classList.remove('selected'));
+	// Сбросить тумблер в режим "КУПИТЬ" и цвет в зелёный
+	const toggle = document.getElementById('action-toggle');
+	toggle.checked = false;
+	currentAction = 'buy';
+	document.querySelector('.slider').style.backgroundColor = 'var(--win)';
+	document.querySelector('.slider-thumb').style.transform = 'translateX(0)';
+	updateTradeButton();
+	updatePriceDisplay();
+}
 
-    <!-- Модалка игрока -->
-    <div id="user-modal" onclick="if(event.target==this) closeModal()">
-        <div class="card">
-            <button class="close-x" onclick="closeModal()" style="top:12px; right:12px;">&times;</button>
-            <h3 id="modal-user-name" style="margin-top:0; font-size: 1.5rem; padding-right: 30px;">ИГРОК</h3>
-            <div class="stat-grid">
-                <div class="stat-item"><span class="stat-val" id="modal-games">0</span><span class="stat-lbl">Боев</span></div>
-                <div class="stat-item"><span class="stat-val" id="modal-wins" style="color: var(--win);">0</span><span class="stat-lbl">Побед</span></div>
-                <div class="stat-item"><span class="stat-val" id="modal-lose" style="color: var(--lose);">0</span><span class="stat-lbl">Пораж.</span></div>
-                <div class="stat-item"><span class="stat-val" id="modal-bal">0</span><span class="stat-lbl">Баланс</span></div>
-            </div>
-            <button class="btn-wood" style="width: 100%; background: #0088cc; border:none; box-shadow: 0 4px 0 #006699;" id="modal-write-btn">НАПИСАТЬ</button>
-            <button class="btn-wood" style="width: 100%; margin-top: 14px; opacity: 0.6;" onclick="closeModal()">ЗАКРЫТЬ</button>
-        </div>
-    </div>
+// --- НОВАЯ ФУНКЦИЯ: Загрузка предметов магазина ---
+async function loadShopItems() {
+	// Сначала загружаем цены
+	await loadPrices();
+	const container = document.getElementById('shop-items-container');
+	container.innerHTML = ""; // Очищаем контейнер
+	// Используем жесто закодированные id предметов, но с ценами из prices.json
+	const itemIds = ["acorn", "plant_acorn"];
+	for (const itemId of itemIds) {
+		const item = {
+			id: itemId,
+			name: itemId === "acorn" ? "Желудь" : "Росток",
+			icon: itemId === "acorn" ? "acorn.png" : "plant_acorn.png",
+			price: prices[itemId]?.buy || 0, // Цена покупки из JSON
+			sell_price: prices[itemId]?.sell || 0 // Цена продажи из JSON
+		};
+		const div = document.createElement('div');
+		div.className = 'shop-item';
+		div.onclick = () => selectShopItem(item);
+		div.innerHTML = `
+			<img class="shop-item-icon" src="assets/${item.icon}" onerror="this.src='https://placehold.co/40x40?text=?'">
+			<div class="shop-item-name">${item.name}</div>
+			<div class="shop-item-price">${currentAction === 'buy' ? item.price : item.sell_price} 💰</div>
+		`;
+		container.appendChild(div);
+	}
+}
 
-    <div id="scr-main" class="screen">
-        <div class="menu-buttons">
-            <button class="btn-wood btn-play" onclick="nav('scr-bet')">В БОЙ</button>
-            <button class="btn-wood" onclick="nav('scr-inventory')">ИНВЕНТАРЬ</button>
-            <button class="btn-wood" onclick="nav('scr-shop')">МАГАЗИН</button>
-        </div>
-    </div>
+// --- НОВАЯ ФУНКЦИЯ: Выбор предмета в магазине ---
+function selectShopItem(item) {
+	currentShopItem = item;
+	currentShopQuantity = 1;
+	document.getElementById('qty-input').value = currentShopQuantity;
+	// Переключаем иконку
+	document.getElementById('detail-icon-placeholder').style.display = 'none';
+	document.getElementById('detail-icon-big').src = `assets/${item.icon}`;
+	document.getElementById('detail-icon-big').style.display = 'block';
+	document.getElementById('detail-name').innerText = item.name;
+	updatePriceDisplay();
+	// Подсветка
+	document.querySelectorAll('#shop-items-container .shop-item').forEach(el => el.classList.remove('selected'));
+	event.currentTarget.classList.add('selected');
+}
 
-    <div id="scr-bet" class="screen">
-        <div class="card">
-            <h3 style="margin-top:0; text-align: center; font-size: 1.4rem;">ВАША СТАВКА</h3>
-            <input type="number" id="bet-amt" value="100" min="10" inputmode="numeric">
-            <div style="display: flex; gap: 14px;">
-                <button class="btn-wood" style="flex:1; background: #3498db; border:none; box-shadow: 0 4px 0 #2573a7;" onclick="preStart(1)">ЛЕВЫЙ</button>
-                <button class="btn-wood" style="flex:1; background: #9b59b6; border:none; box-shadow: 0 4px 0 #7d4594;" onclick="preStart(2)">ПРАВЫЙ</button>
-            </div>
-            <button class="btn-wood" style="background: #7f8c8d; border:none; box-shadow: 0 4px 0 #566573; margin: 8px auto; width: 80%; display: block;" onclick="watchBattle()">ПОСМОТРЕТЬ БОЙ (+1)</button>
-            <button class="btn-wood" style="margin-top: 8px; width: 100%; opacity: 0.6;" onclick="nav('scr-main')">ОТМЕНА</button>
-        </div>
-    </div>
+// --- НОВАЯ ФУНКЦИЯ: Переключение действия (КУПИТЬ/ПРОДАТЬ) ---
+function toggleAction() {
+	const checkbox = document.getElementById('action-toggle');
+	const thumb = document.querySelector('#scr-shop .slider-thumb');
+	currentAction = checkbox.checked ? 'sell' : 'buy';
+	updatePriceDisplay(); // Обновляем цену под предметом
+	updateShopItemPrices(); // Обновляем цены в сетке магазина
+	updateTradeButton(); // Обновляем текст кнопки сделки
+	// Анимация thumb
+	if (thumb) {
+		thumb.style.transform = checkbox.checked ? 'translateX(76px)' : 'translateX(0)';
+	}
+	// ✅ ИСПРАВЛЕНИЕ: Обновляем цвет фона тумблера
+	const slider = document.querySelector('.slider');
+	slider.style.backgroundColor = currentAction === 'buy' ? 'var(--win)' : 'var(--lose)';
+}
 
-    <div id="scr-inventory" class="screen">
-        <div class="card" style="text-align: center;">
-            <h2 style="margin-top:0;">ИНВЕНТАРЬ</h2>
-            <p style="opacity:0.5; font-size: 0.95rem;">Раздел находится в разработке</p>
-            <div style="font-size: 6rem; margin: 30px 0;">🎒</div>
-            <button class="btn-wood" style="width: 100%;" onclick="nav('scr-main')">НАЗАД</button>
-        </div>
-    </div>
+// --- НОВАЯ ФУНКЦИЯ: Обновление текста кнопки сделки ---
+function updateTradeButton() {
+	const button = document.querySelector('#scr-shop .btn-trade');
+	button.innerText = currentAction === 'buy' ? 'КУПИТЬ' : 'ПРОДАТЬ';
+	button.classList.toggle('sell-mode', currentAction === 'sell');
+}
 
-    <div id="scr-shop" class="screen">
-        <div class="card" style="text-align: center;">
-            <h2 style="margin-top:0;">МАГАЗИН</h2>
-            <p style="opacity:0.5; font-size: 0.95rem;">Раздел находится в разработке</p>
-            <div style="font-size: 6rem; margin: 30px 0;">🛒</div>
-            <button class="btn-wood" style="width: 100%;" onclick="nav('scr-main')">НАЗАД</button>
-        </div>
-    </div>
+// --- НОВАЯ ФУНКЦИЯ: Обновление цен в сетке магазина ---
+function updateShopItemPrices() {
+	const items = document.querySelectorAll('#shop-items-container .shop-item');
+	items.forEach((el, index) => {
+		const itemIds = ["acorn", "plant_acorn"];
+		const itemId = itemIds[index];
+		const item = {
+			id: itemId,
+			name: itemId === "acorn" ? "Желудь" : "Росток",
+			icon: itemId === "acorn" ? "acorn.png" : "plant_acorn.png",
+			price: prices[itemId]?.buy || 0,
+			sell_price: prices[itemId]?.sell || 0
+		};
+		el.querySelector('.shop-item-price').innerText = `${currentAction === 'buy' ? item.price : item.sell_price} 💰`;
+	});
+}
 
-    <div id="scr-profile" class="screen">
-        <div class="card">
-            <h3 style="margin-top:0;">ВАШ ХРЯК</h3>
-            <input type="text" id="edit-name" placeholder="Имя хряка">
-            <div class="stat-grid">
-                <div class="stat-item"><span class="stat-val" id="st-games">0</span><span class="stat-lbl">Боев</span></div>
-                <div class="stat-item"><span class="stat-val" id="st-wins" style="color: var(--win);">0</span><span class="stat-lbl">Побед</span></div>
-                <div class="stat-item"><span class="stat-val" id="st-lose" style="color: var(--lose);">0</span><span class="stat-lbl">Пораж.</span></div>
-                <div class="stat-item"><span class="stat-val" id="st-wr">0%</span><span class="stat-lbl">Winrate</span></div>
-            </div>
-            <div style="display: flex; align-items: center; justify-content: space-between; margin: 20px 0;">
-                <span>Запретить мне писать</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="private-profile-toggle" onchange="togglePrivateProfile()">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <button class="btn-wood" style="width:100%; background: #fff; color: #000; box-shadow: 0 4px 0 #ccc;" onclick="updateName()">СОХРАНИТЬ</button>
-            <button class="btn-wood" style="width:100%; margin-top: 14px; opacity: 0.6;" onclick="nav('scr-main')">НАЗАД</button>
-        </div>
-    </div>
+// --- НОВАЯ ФУНКЦИЯ: Обновление текста цены под предметом и итоговой суммы ---
+function updatePriceDisplay() {
+	const totalCostEl = document.getElementById('total-cost');
+	if (!currentShopItem) {
+		document.getElementById('detail-price').innerText = 'Цена: -';
+		totalCostEl.style.display = 'none';
+		return;
+	}
+	const price = currentAction === 'buy' ? currentShopItem.price : currentShopItem.sell_price;
+	const total = price * currentShopQuantity;
+	document.getElementById('detail-price').innerText = `Цена: ${price} 💰 / шт.`;
+	totalCostEl.innerHTML = `${price} 💰 × ${currentShopQuantity} = ${total} 💰`;
+	totalCostEl.style.display = 'block';
+}
 
-    <div id="scr-rank" class="screen">
-        <div class="card" style="max-height: 85vh; display: flex; flex-direction: column;">
-            <h3 style="margin-top:0; text-align: center;">ТОП БОЙЦОВ</h3>
-            <!-- --- НОВЫЙ ЭЛЕМЕНТ: Текст "Твое место" --- -->
-            <div id="your-rank">Твое место — ?</div>
-            <!-- --- КОНЕЦ НОВОГО ЭЛЕМЕНТА --- -->
-            <div id="rank-loading" style="display: none; flex: 1; align-items: center; justify-content: center; flex-direction: column;">
-                <div style="width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite; margin-bottom: 10px;"></div>
-                <span>Загрузка...</span>
-            </div>
-            <div id="rank-list" style="overflow-y: auto; flex: 1; padding-right: 5px;"></div>
-            <button id="toggle-full-leaderboard" class="btn-wood" style="width:100%; margin-top: 10px; display: none;" onclick="toggleFullLeaderboard()">Развернуть</button>
-            <button class="btn-wood" style="width:100%; margin-top: 10px;" onclick="nav('scr-main')">НАЗАД</button>
-        </div>
-    </div>
+// --- НОВАЯ ФУНКЦИЯ: Обработка ввода в поле ---
+function onQtyInput(value) {
+	let newQty = parseInt(value) || 1;
+	if (newQty < 1) newQty = 1;
+	if (newQty > 999999) newQty = 999999;
+	currentShopQuantity = newQty;
+	updatePriceDisplay(); // Обновляем итоговую сумму
+}
 
-    <div id="scr-fight" class="screen">
-        <div class="arena">
-            <div id="cont-1" class="boar-container">
-                <div class="hp-bar-box">
-                    <div class="hp-txt" id="hp1-txt">100</div>
-                    <div class="hp-bar"><div id="hp1-f" class="hp-fill"></div></div>
-                </div>
-                <div class="boar-unit">
-                    <img id="boar1-img" src="assets/boar.png" onerror="this.src='https://api.dicebear.com/7.x/pixel-art/svg?seed=boar1'">
-                </div>
-            </div>
-            <div id="cont-2" class="boar-container">
-                <div class="hp-bar-box">
-                    <div class="hp-txt" id="hp2-txt">100</div>
-                    <div class="hp-bar"><div id="hp2-f" class="hp-fill"></div></div>
-                </div>
-                <div class="boar-unit">
-                    <img id="boar2-img" src="assets/boar.png" onerror="this.src='https://api.dicebear.com/7.x/pixel-art/svg?seed=boar2'">
-                </div>
-            </div>
-        </div>
-        <div id="fight-log">ПОДГОТОВКА...</div>
-    </div>
+// --- НОВАЯ ФУНКЦИЯ: Совершение транзакции ---
+async function performTransaction() {
+	if (!currentShopItem) {
+		tg.HapticFeedback.notificationOccurred('error');
+		showToast("Выберите предмет");
+		return;
+	}
+	const endpoint = currentAction === 'buy' ? '/api/shop/buy' : '/api/shop/sell';
+	const payload = {
+		tg_id: user.tg_id,
+		item_id: currentShopItem.id,
+		quantity: currentShopQuantity
+	};
+	const response = await apiFetch(endpoint, {
+		method: 'POST',
+		body: JSON.stringify(payload)
+	});
+	if (response && response.success) {
+		// Обновляем локальные данные пользователя
+		user.balance = response.new_balance;
+		user.acorns = response.new_acorns;
+		user.plant_acorns = response.new_plant_acorns;
+		// Обновляем UI
+		updateUI();
+		tg.HapticFeedback.notificationOccurred('success');
+		showToast(`${currentAction === 'buy' ? 'Куплено' : 'Продано'} ${currentShopQuantity}x ${currentShopItem.name}`);
+	} else {
+		tg.HapticFeedback.notificationOccurred('error');
+		showToast(response?.error || "Ошибка операции");
+	}
+}
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+// --- НОВАЯ ФУНКЦИЯ: Определение позиции пользователя ---
+function findUserRank(data) {
+	for (let i = 0; i < data.length; i++) {
+		if (data[i].tg_id === user.tg_id) {
+			return i + 1; // Позиция начинается с 1
+		}
+	}
+	return '?';
+}
 
-        let user = null;
-        let selectedSide = 0;
-        let isWatchingMode = false;
-        let fullLeaderboardLoaded = false;
-        let fullLeaderboardData = [];
-        let userRank = '?'; // Для хранения позиции
+// --- ИСПРАВЛЕНИЕ 1: Изменение функции loadRank ---
+async function loadRank() {
+	fullLeaderboardLoaded = false;
+	fullLeaderboardData = [];
+	document.getElementById('toggle-full-leaderboard').style.display = 'none';
+	document.getElementById('your-rank').textContent = 'Твое место — ?';
+	document.getElementById('rank-loading').style.display = 'flex';
+	document.getElementById('rank-list').style.display = 'none';
+	const data = await apiFetch('/api/leaderboard');
+	const list = document.getElementById('rank-list');
+	list.innerHTML = "";
+	if (data) {
+		userRank = findUserRank(data);
+		document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
+		data.forEach((u, i) => {
+			const item = document.createElement('div');
+			item.className = 'rank-item';
+			// Выделяем только если не приватный и это текущий пользователь
+			if (user && u.tg_id === user.tg_id && !u.private_profile) {
+				item.classList.add('current-user-highlight');
+			}
+			item.innerHTML = `
+				<div style="display:flex; align-items:center; gap:12px;">
+					<span style="opacity:0.3; font-weight:900; width:24px; font-size: 0.8rem;">${i+1}</span>
+					<span style="font-weight:700;">${u.display_name || u.username}</span>
+				</div>
+				<span style="color: var(--gold); font-weight:900;">${u.balance.toLocaleString()}</span>
+			`;
+			item.onclick = () => showUserDetail(u);
+			list.appendChild(item);
+		});
+	}
+	document.getElementById('rank-loading').style.display = 'none';
+	document.getElementById('rank-list').style.display = 'block';
+	document.getElementById('toggle-full-leaderboard').style.display = 'block';
+	document.getElementById('toggle-full-leaderboard').textContent = 'Развернуть';
+}
 
-        async function apiFetch(endpoint, options = {}) {
-            try {
-                const res = await fetch(endpoint, {
-                    ...options,
-                    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
-                });
-                return await res.json();
-            } catch (e) { return null; }
-        }
+// --- КОНЕЦ ИСПРАВЛЕНИЯ 1 ---
+// --- ИСПРАВЛЕНИЕ 1: Изменение функции toggleFullLeaderboard ---
+async function toggleFullLeaderboard() {
+	const button = document.getElementById('toggle-full-leaderboard');
+	const list = document.getElementById('rank-list');
+	if (!fullLeaderboardLoaded) {
+		button.textContent = 'Загрузка...';
+		button.disabled = true;
+		const data = await apiFetch('/api/leaderboard/full');
+		if (data) {
+			fullLeaderboardData = data;
+			fullLeaderboardLoaded = true;
+			// Обновляем текст "Твое место" для полного списка
+			userRank = findUserRank(data);
+			document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
+			renderLeaderboard(fullLeaderboardData, true);
+			button.textContent = 'Свернуть';
+		} else {
+			button.textContent = 'Ошибка';
+			setTimeout(() => button.textContent = 'Развернуть', 2000);
+		}
+		button.disabled = false;
+	} else {
+		fullLeaderboardLoaded = false;
+		loadRank(); // Перезагружаем топ-10 (и обновим "Твое место" для топ-10)
+	}
+}
 
-        async function auth() {
-            const tgUser = tg.initDataUnsafe?.user || { id: "dev_user", username: "kaban", first_name: "Хряк" };
-            user = await apiFetch('/api/auth', {
-                method: 'POST',
-                body: JSON.stringify({ tg_id: tgUser.id, username: tgUser.username, first_name: tgUser.first_name })
-            });
+// --- КОНЕЦ ИСПРАВЛЕНИЯ 1 ---
+function renderLeaderboard(data, isFullList = false) {
+	const list = document.getElementById('rank-list');
+	list.innerHTML = "";
+	data.forEach((u, i) => {
+		const item = document.createElement('div');
+		item.className = 'rank-item';
+		if (user && u.tg_id === user.tg_id && !u.private_profile) {
+			item.classList.add('current-user-highlight');
+		}
+		item.innerHTML = `
+			<div style="display:flex; align-items:center; gap:12px;">
+				<span style="opacity:0.3; font-weight:900; width:24px; font-size: 0.8rem;">${i+1}</span>
+				<span style="font-weight:700;">${u.display_name || u.username}</span>
+			</div>
+			<span style="color: var(--gold); font-weight:900;">${u.balance.toLocaleString()}</span>
+		`;
+		item.onclick = () => showUserDetail(u);
+		list.appendChild(item);
+	});
+}
 
-            if (user) {
-                updateUI();
-                nav('scr-main');
-            }
-        }
+// --- ИЗМЕНЕНАЯ ФУНКЦИЯ: Отображение деталей пользователя ---
+function showUserDetail(u) {
+	tg.HapticFeedback.selectionChanged();
+	// Заполняем данные пользователя
+	document.getElementById('modal-user-name').innerText = u.display_name || u.username;
+	document.getElementById('modal-games').innerText = u.total_games || 0;
+	document.getElementById('modal-wins').innerText = u.wins || 0;
+	document.getElementById('modal-lose').innerText = u.lose || 0;
+	document.getElementById('modal-bal').innerText = u.balance.toLocaleString();
+	const btn = document.getElementById('modal-write-btn');
+	if (u.username) {
+		btn.style.display = 'block';
+		btn.textContent = 'НАПИСАТЬ';
+		if (u.private_profile) {
+			// Если пользователь приватный
+			btn.style.background = '#7f8c8d'; // Серый цвет
+			btn.style.boxShadow = '0 4px 0 #566573'; // Серая тень
+			btn.onclick = () => {
+				showToast("Этот пользователь запретил ему писать"); // Показываем уведомление
+				tg.HapticFeedback.notificationOccurred('error'); // Вибрация об ошибке
+			};
+		} else {
+			// Если пользователь публичный
+			btn.style.background = '#0088cc'; // Синий цвет
+			btn.style.boxShadow = '0 4px 0 #006699'; // Синяя тень
+			btn.onclick = () => tg.openTelegramLink(`https://t.me/${u.username}`); // Открываем Telegram
+		}
+	} else {
+		// Если у пользователя нет username
+		btn.style.display = 'none';
+		btn.onclick = null;
+	}
+	// Показываем модальное окно
+	document.getElementById('user-modal').style.display = 'flex';
+}
 
-        function updateUI() {
-            if (!user) return;
+// --- КОНЕЦ ИЗМЕНЁННОЙ ФУНКЦИИ ---
+function closeModal() {
+	document.getElementById('user-modal').style.display = 'none';
+}
 
-            // --- ИСПРАВЛЕНИЕ 2: Обновление баланса в интерфейсе ---
-            document.getElementById('bal-val').innerText = user.balance.toLocaleString();
-            // --- КОНЕЦ ИСПРАВЛЕНИЯ 2 ---
+async function togglePrivateProfile() {
+	const toggle = document.getElementById('private-profile-toggle');
+	const isChecked = toggle.checked;
+	const response = await apiFetch('/api/user/set-private', {
+		method: 'POST',
+		body: JSON.stringify({tg_id: user.tg_id, is_private: isChecked})
+	});
+	if (response && response.success) {
+		user.private_profile = isChecked;
+		console.log("Профиль стал", isChecked ? "приватным." : "публичным.");
+	} else {
+		console.error("Ошибка обновления статуса приватности:", response?.error || "Неизвестная ошибка");
+		toggle.checked = !isChecked;
+	}
+}
 
-            document.getElementById('edit-name').value = user.display_name || user.username || "";
-            document.getElementById('st-games').innerText = user.total_games || 0;
-            document.getElementById('st-wins').innerText = user.wins || 0;
-            document.getElementById('st-lose').innerText = user.lose || 0;
-            const wr = user.total_games > 0 ? Math.round((user.wins / user.total_games) * 100) : 0;
-            document.getElementById('st-wr').innerText = wr + "%";
+function showToast(message) {
+	const toast = document.getElementById('notification-toast');
+	toast.textContent = message;
+	toast.classList.add('show');
+	setTimeout(() => toast.classList.remove('show'), 2500);
+}
 
-            const toggle = document.getElementById('private-profile-toggle');
-            if (toggle) toggle.checked = !!user.private_profile;
-        }
+async function watchBattle() {
+	if (document.getElementById('scr-fight').classList.contains('active')) return;
+	isWatchingMode = true;
+	startFight(0);
+}
 
-        function nav(id) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
+async function updateName() {
+	const name = document.getElementById('edit-name').value;
+	if (!name) return;
+	await apiFetch('/api/user/update-name', {
+		method: 'POST',
+		body: JSON.stringify({tg_id: user.tg_id, display_name: name})
+	});
+	user.display_name = name;
+	tg.HapticFeedback.notificationOccurred('success');
+	nav('scr-main');
+}
 
-            // Обновляем фон
-            document.getElementById('bg-main').style.display = 'block';
-            document.getElementById('bg-fight').style.display = 'none';
-            document.getElementById('bg-inventory').style.display = 'none';
-            document.getElementById('bg-shop').style.display = 'none';
+function preStart(side) {
+	const input = document.getElementById('bet-amt');
+	const amt = parseInt(input.value);
+	if (isNaN(amt) || amt < 10) return;
+	if (amt > user.balance) {
+		tg.HapticFeedback.notificationOccurred('error');
+		showResult("ОШИБКА", "МАЛО ЗОЛОТА", false);
+		return;
+	}
+	selectedSide = side;
+	isWatchingMode = false;
+	startFight(amt);
+}
 
-            if (id === 'scr-fight') {
-                document.getElementById('bg-main').style.display = 'none';
-                document.getElementById('bg-fight').style.display = 'block';
-            } else if (id === 'scr-inventory') {
-                document.getElementById('bg-main').style.display = 'none';
-                document.getElementById('bg-inventory').style.display = 'block';
-            } else if (id === 'scr-shop') {
-                document.getElementById('bg-main').style.display = 'none';
-                document.getElementById('bg-shop').style.display = 'block';
-            }
+function showResult(title, sum, isWin) {
+	const overlay = document.getElementById('result-overlay');
+	const card = document.getElementById('result-card');
+	const t = document.getElementById('res-title');
+	const s = document.getElementById('res-sum');
+	const icon = document.getElementById('res-icon');
+	t.innerText = title;
+	s.innerText = sum;
+	icon.innerText = isWin ? "🏆" : "💀";
+	overlay.style.display = 'flex';
+	setTimeout(() => card.classList.add('active'), 50);
+}
 
-            const isCardScreen = ['scr-bet', 'scr-inventory', 'scr-shop', 'scr-profile', 'scr-rank', 'scr-load'].includes(id);
-            document.body.classList.toggle('dimmed', isCardScreen);
+function closeResult() {
+	const card = document.getElementById('result-card');
+	card.classList.remove('active');
+	setTimeout(() => {
+		document.getElementById('result-overlay').style.display = 'none';
+		if (!isWatchingMode) auth(); // Обновляем данные после боя
+		else nav('scr-main');
+	}, 300);
+}
 
-            // --- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Устанавливаем класс для главного экрана ---
-            document.body.classList.toggle('show-main-screen', id === 'scr-main');
-            // ---------------------------------------------------------------
+function spawnDmg(container, val) {
+	const p = document.createElement('div');
+	p.className = 'dmg-popup';
+	p.innerText = `-${val}`;
+	p.style.left = Math.random() * 40 + 30 + "%";
+	container.appendChild(p);
+	setTimeout(() => p.remove(), 700);
+}
 
-            // Показываем кнопку профиля только на главном экране (это дублирует CSS, но надёжнее)
-            if (id === 'scr-main') {
-                document.body.classList.add('show-profile-btn');
-            } else {
-                document.body.classList.remove('show-profile-btn');
-            }
+function startFight(bet) {
+	nav('scr-fight');
+	let h1 = 100, h2 = 100;
+	const log = document.getElementById('fight-log');
+	document.getElementById('hp1-f').style.width = "100%";
+	document.getElementById('hp2-f').style.width = "100%";
+	document.getElementById('hp1-txt').innerText = "100";
+	document.getElementById('hp2-txt').innerText = "100";
+	log.innerText = "БОЙ НАЧАЛСЯ!";
+	const interval = setInterval(async () => {
+		const dmg = Math.floor(Math.random() * 12) + 6;
+		const target = Math.random() > 0.5 ? 1 : 2;
+		const cont = document.getElementById(`cont-${target}`);
+		cont.classList.add('hit');
+		spawnDmg(cont, dmg);
+		setTimeout(() => cont.classList.remove('hit'), 250);
+		if (target === 1) {
+			h1 = Math.max(0, h1 - dmg);
+			document.getElementById('hp1-f').style.width = h1 + "%";
+			document.getElementById('hp1-txt').innerText = h1;
+		} else {
+			h2 = Math.max(0, h2 - dmg);
+			document.getElementById('hp2-f').style.width = h2 + "%";
+			document.getElementById('hp2-txt').innerText = h2;
+		}
+		tg.HapticFeedback.impactOccurred('medium');
+		if (h1 <= 0 || h2 <= 0) {
+			clearInterval(interval);
+			const isWin = (h1 > 0 && selectedSide === 1) || (h2 > 0 && selectedSide === 2);
+			let resultPromise;
+			if (isWatchingMode) {
+				resultPromise = apiFetch('/api/battle/watch', {
+					method: 'POST',
+					body: JSON.stringify({tg_id: user.tg_id})
+				});
+			}
+			else {
+				resultPromise = apiFetch('/api/battle/result', {
+					method: 'POST',
+					body: JSON.stringify({tg_id: user.tg_id, is_win: isWin, bet_amount: bet})
+				});
+			}
+			const result = await resultPromise;
+			// --- ИСПРАВЛЕНИЕ 2: Обновление баланса после боя ---
+			if (result && (result.new_balance !== undefined || result.reward !== undefined)) {
+				// Для просмотра боя и результата боя сервер возвращает new_balance
+				// Для просмотра также возвращается reward
+				if (result.new_balance !== undefined) {
+					user.balance = result.new_balance; // Обновляем баланс в локальном объекте
+					user.acorns = result.acorns; // Обновляем acorns
+					user.plant_acorns = result.plant_acorns; // Обновляем plant_acorns
+					document.getElementById('bal-val').innerText = user.balance.toLocaleString(); // Обновляем интерфейс
+					document.getElementById('acorns-val').innerText = user.acorns.toLocaleString(); // Обновляем интерфейс
+				}
+			}
+			// --- КОНЕЦ ИСПРАВЛЕНИЯ 2 ---
+			setTimeout(() => {
+				if (isWatchingMode) {
+					tg.HapticFeedback.notificationOccurred('success');
+					showResult("ПОБЕДА", "+" + (result.reward || 1) + " 💰", true);
+				}
+				else {
+					if (isWin) {
+						tg.HapticFeedback.notificationOccurred('success');
+						showResult("ПОБЕДА", `+${bet} 💰`, true);
+					} else {
+						tg.HapticFeedback.notificationOccurred('error');
+						showResult("ПОРАЖЕНИЕ", `-${bet} 💰`, false);
+					}
+				}
+			}, 1000);
+		}
+	}, 700);
+}
 
-            // Загрузка рейтинга
-            if (id === 'scr-rank') loadRank(); // Загружаем рейтинг при открытии экрана
-
-            tg.HapticFeedback.impactOccurred('light');
-        }
-
-        // --- НОВАЯ ФУНКЦИЯ: Определение позиции пользователя ---
-        function findUserRank(data) {
-            for (let i = 0; i < data.length; i++) {
-                if (data[i].tg_id === user.tg_id) {
-                    return i + 1; // Позиция начинается с 1
-                }
-            }
-            return '?';
-        }
-
-        // --- ИСПРАВЛЕНИЕ 1: Изменение функции loadRank ---
-        async function loadRank() {
-            fullLeaderboardLoaded = false;
-            fullLeaderboardData = [];
-            document.getElementById('toggle-full-leaderboard').style.display = 'none';
-            document.getElementById('your-rank').textContent = 'Твое место — ?';
-            document.getElementById('rank-loading').style.display = 'flex';
-            document.getElementById('rank-list').style.display = 'none';
-
-            const data = await apiFetch('/api/leaderboard');
-            const list = document.getElementById('rank-list');
-            list.innerHTML = "";
-
-            if (data) {
-                userRank = findUserRank(data);
-                document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
-
-                data.forEach((u, i) => {
-                    const item = document.createElement('div');
-                    item.className = 'rank-item';
-                    // Выделяем только если не приватный и это текущий пользователь
-                    if (user && u.tg_id === user.tg_id && !u.private_profile) {
-                        item.classList.add('current-user-highlight');
-                    }
-                    item.innerHTML = `
-                        <div style="display:flex; align-items:center; gap:12px;">
-                            <span style="opacity:0.3; font-weight:900; width:24px; font-size: 0.8rem;">${i+1}</span>
-                            <span style="font-weight:700;">${u.display_name || u.username}</span>
-                        </div>
-                        <span style="color: var(--gold); font-weight:900;">${u.balance.toLocaleString()}</span>
-                    `;
-                    item.onclick = () => showUserDetail(u);
-                    list.appendChild(item);
-                });
-            }
-            document.getElementById('rank-loading').style.display = 'none';
-            document.getElementById('rank-list').style.display = 'block';
-            document.getElementById('toggle-full-leaderboard').style.display = 'block';
-            document.getElementById('toggle-full-leaderboard').textContent = 'Развернуть';
-        }
-        // --- КОНЕЦ ИСПРАВЛЕНИЯ 1 ---
-
-        // --- ИСПРАВЛЕНИЕ 1: Изменение функции toggleFullLeaderboard ---
-        async function toggleFullLeaderboard() {
-            const button = document.getElementById('toggle-full-leaderboard');
-            const list = document.getElementById('rank-list');
-            if (!fullLeaderboardLoaded) {
-                button.textContent = 'Загрузка...';
-                button.disabled = true;
-                const data = await apiFetch('/api/leaderboard/full');
-                if (data) {
-                    fullLeaderboardData = data;
-                    fullLeaderboardLoaded = true;
-                    // Обновляем текст "Твое место" для полного списка
-                    userRank = findUserRank(data);
-                    document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
-                    renderLeaderboard(fullLeaderboardData, true);
-                    button.textContent = 'Свернуть';
-                } else {
-                    button.textContent = 'Ошибка';
-                    setTimeout(() => button.textContent = 'Развернуть', 2000);
-                }
-                button.disabled = false;
-            } else {
-                fullLeaderboardLoaded = false;
-                loadRank(); // Перезагружаем топ-10 (и обновим "Твое место" для топ-10)
-            }
-        }
-        // --- КОНЕЦ ИСПРАВЛЕНИЯ 1 ---
-
-        function renderLeaderboard(data, isFullList = false) {
-            const list = document.getElementById('rank-list');
-            list.innerHTML = "";
-            data.forEach((u, i) => {
-                const item = document.createElement('div');
-                item.className = 'rank-item';
-                if (user && u.tg_id === user.tg_id && !u.private_profile) {
-                    item.classList.add('current-user-highlight');
-                }
-                item.innerHTML = `
-                    <div style="display:flex; align-items:center; gap:12px;">
-                        <span style="opacity:0.3; font-weight:900; width:24px; font-size: 0.8rem;">${i+1}</span>
-                        <span style="font-weight:700;">${u.display_name || u.username}</span>
-                    </div>
-                    <span style="color: var(--gold); font-weight:900;">${u.balance.toLocaleString()}</span>
-                `;
-                item.onclick = () => showUserDetail(u);
-                list.appendChild(item);
-            });
-        }
-
-        // --- ИЗМЕНЕНАЯ ФУНКЦИЯ: Отображение деталей пользователя ---
-        function showUserDetail(u) {
-            tg.HapticFeedback.selectionChanged();
-
-            // Заполняем данные пользователя
-            document.getElementById('modal-user-name').innerText = u.display_name || u.username;
-            document.getElementById('modal-games').innerText = u.total_games || 0;
-            document.getElementById('modal-wins').innerText = u.wins || 0;
-            document.getElementById('modal-lose').innerText = u.lose || 0;
-            document.getElementById('modal-bal').innerText = u.balance.toLocaleString();
-
-            const btn = document.getElementById('modal-write-btn');
-            if (u.username) {
-                btn.style.display = 'block';
-                btn.textContent = 'НАПИСАТЬ';
-                if (u.private_profile) {
-                    // Если пользователь приватный
-                    btn.style.background = '#7f8c8d'; // Серый цвет
-                    btn.style.boxShadow = '0 4px 0 #566573'; // Серая тень
-                    btn.onclick = () => {
-                        showToast("Этот пользователь запретил ему писать"); // Показываем уведомление
-                        tg.HapticFeedback.notificationOccurred('error'); // Вибрация об ошибке
-                    };
-                } else {
-                    // Если пользователь публичный
-                    btn.style.background = '#0088cc'; // Синий цвет
-                    btn.style.boxShadow = '0 4px 0 #006699'; // Синяя тень
-                    btn.onclick = () => tg.openTelegramLink(`https://t.me/${u.username}`); // Открываем Telegram
-                }
-            } else {
-                // Если у пользователя нет username
-                btn.style.display = 'none';
-                btn.onclick = null;
-            }
-            // Показываем модальное окно
-            document.getElementById('user-modal').style.display = 'flex';
-        }
-        // --- КОНЕЦ ИЗМЕНЁННОЙ ФУНКЦИИ ---
-
-        function closeModal() {
-            document.getElementById('user-modal').style.display = 'none';
-        }
-
-        async function togglePrivateProfile() {
-            const toggle = document.getElementById('private-profile-toggle');
-            const isChecked = toggle.checked;
-            const response = await apiFetch('/api/user/set-private', {
-                method: 'POST',
-                body: JSON.stringify({ tg_id: user.tg_id, is_private: isChecked })
-            });
-            if (response && response.success) {
-                user.private_profile = isChecked;
-                console.log("Профиль стал", isChecked ? "приватным." : "публичным.");
-            } else {
-                console.error("Ошибка обновления статуса приватности:", response?.error || "Неизвестная ошибка");
-                toggle.checked = !isChecked;
-            }
-        }
-
-        function showToast(message) {
-            const toast = document.getElementById('notification-toast');
-            toast.textContent = message;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2500);
-        }
-
-        async function watchBattle() {
-            if (document.getElementById('scr-fight').classList.contains('active')) return;
-            isWatchingMode = true;
-            startFight(0);
-        }
-
-        async function updateName() {
-            const name = document.getElementById('edit-name').value;
-            if(!name) return;
-            await apiFetch('/api/user/update-name', {
-                method: 'POST',
-                body: JSON.stringify({ tg_id: user.tg_id, display_name: name })
-            });
-            user.display_name = name;
-            tg.HapticFeedback.notificationOccurred('success');
-            nav('scr-main');
-        }
-
-        function preStart(side) {
-            const input = document.getElementById('bet-amt');
-            const amt = parseInt(input.value);
-            if (isNaN(amt) || amt < 10) return;
-            if (amt > user.balance) {
-                tg.HapticFeedback.notificationOccurred('error');
-                showResult("ОШИБКА", "МАЛО ЗОЛОТА", false);
-                return;
-            }
-            selectedSide = side;
-            isWatchingMode = false;
-            startFight(amt);
-        }
-
-        function showResult(title, sum, isWin) {
-            const overlay = document.getElementById('result-overlay');
-            const card = document.getElementById('result-card');
-            const t = document.getElementById('res-title');
-            const s = document.getElementById('res-sum');
-            const icon = document.getElementById('res-icon');
-            t.innerText = title;
-            s.innerText = sum;
-            icon.innerText = isWin ? "🏆" : "💀";
-            overlay.style.display = 'flex';
-            setTimeout(() => card.classList.add('active'), 50);
-        }
-
-        function closeResult() {
-            const card = document.getElementById('result-card');
-            card.classList.remove('active');
-            setTimeout(() => {
-                document.getElementById('result-overlay').style.display = 'none';
-                if (!isWatchingMode) auth(); // Обновляем данные после боя
-                else nav('scr-main');
-            }, 300);
-        }
-
-        function spawnDmg(container, val) {
-            const p = document.createElement('div');
-            p.className = 'dmg-popup';
-            p.innerText = `-${val}`;
-            p.style.left = Math.random() * 40 + 30 + "%";
-            container.appendChild(p);
-            setTimeout(() => p.remove(), 700);
-        }
-
-        function startFight(bet) {
-            nav('scr-fight');
-            let h1 = 100, h2 = 100;
-            const log = document.getElementById('fight-log');
-            document.getElementById('hp1-f').style.width = "100%";
-            document.getElementById('hp2-f').style.width = "100%";
-            document.getElementById('hp1-txt').innerText = "100";
-            document.getElementById('hp2-txt').innerText = "100";
-            log.innerText = "БОЙ НАЧАЛСЯ!";
-
-            const interval = setInterval(async () => {
-                const dmg = Math.floor(Math.random() * 12) + 6;
-                const target = Math.random() > 0.5 ? 1 : 2;
-                const cont = document.getElementById(`cont-${target}`);
-                cont.classList.add('hit');
-                spawnDmg(cont, dmg);
-                setTimeout(() => cont.classList.remove('hit'), 250);
-
-                if(target === 1) {
-                    h1 = Math.max(0, h1 - dmg);
-                    document.getElementById('hp1-f').style.width = h1 + "%";
-                    document.getElementById('hp1-txt').innerText = h1;
-                } else {
-                    h2 = Math.max(0, h2 - dmg);
-                    document.getElementById('hp2-f').style.width = h2 + "%";
-                    document.getElementById('hp2-txt').innerText = h2;
-                }
-                tg.HapticFeedback.impactOccurred('medium');
-
-                if(h1 <= 0 || h2 <= 0) {
-                    clearInterval(interval);
-                    const isWin = (h1 > 0 && selectedSide === 1) || (h2 > 0 && selectedSide === 2);
-                    let resultPromise;
-                    if (isWatchingMode) {
-                        resultPromise = apiFetch('/api/battle/watch', {
-                            method: 'POST',
-                            body: JSON.stringify({ tg_id: user.tg_id })
-                        });
-                    } else {
-                        resultPromise = apiFetch('/api/battle/result', {
-                            method: 'POST',
-                            body: JSON.stringify({ tg_id: user.tg_id, is_win: isWin, bet_amount: bet })
-                        });
-                    }
-                    const result = await resultPromise;
-                    // --- ИСПРАВЛЕНИЕ 2: Обновление баланса после боя ---
-                    if (result && (result.new_balance !== undefined || result.reward !== undefined)) {
-                        // Для просмотра боя и результата боя сервер возвращает new_balance
-                        // Для просмотра также возвращается reward
-                        if (result.new_balance !== undefined) {
-                            user.balance = result.new_balance; // Обновляем баланс в локальном объекте
-                            document.getElementById('bal-val').innerText = user.balance.toLocaleString(); // Обновляем интерфейс
-                        }
-                    }
-                    // --- КОНЕЦ ИСПРАВЛЕНИЯ 2 ---
-                    setTimeout(() => {
-                        if (isWatchingMode) {
-                            tg.HapticFeedback.notificationOccurred('success');
-                            showResult("ПОБЕДА", "+" + (result.reward || 1) + " 💰", true);
-                        } else {
-                            if (isWin) {
-                                tg.HapticFeedback.notificationOccurred('success');
-                                showResult("ПОБЕДА", `+${bet} 💰`, true);
-                            } else {
-                                tg.HapticFeedback.notificationOccurred('error');
-                                showResult("ПОРАЖЕНИЕ", `-${bet} 💰`, false);
-                            }
-                        }
-                    }, 1000);
-                }
-            }, 700);
-        }
-
-        auth();
-    </script>
+auth();
+</script>
 </body>
 </html>

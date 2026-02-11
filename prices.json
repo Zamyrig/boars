@@ -1,0 +1,10 @@
+{
+  "plant_acorn": {
+    "buy": 1000,
+    "sell": 800
+  },
+  "acorn": {
+    "buy": 200,
+    "sell": 150
+  }
+}
