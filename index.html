@@ -789,9 +789,7 @@ font-size: 4rem;
 <div class="bg-overlay"></div>
 <div id="balance-header">
 <span id="bal-val">0</span> 💰
-<!-- --- НОВЫЙ ЭЛЕМЕНТ: Желуди --- -->
 <span id="acorns-val">0</span> 🌰
-<!-- --- КОНЕЦ НОВОГО ЭЛЕМЕНТА --- -->
 </div>
 <!-- --- НОВЫЙ ЭЛЕМЕНТ: Уведомление --- -->
 <div id="notification-toast" class="notification-toast">
@@ -830,11 +828,16 @@ transform: rotate(360deg);
 <div class="card">
 <button class="close-x" onclick="closeModal()" style="top:12px; right:12px;">&times;</button>
 <h3 id="modal-user-name" style="margin-top:0; font-size: 1.5rem; padding-right: 30px;">ИГРОК</h3>
+<div style="font-size: 1.1rem; color: var(--gold); font-weight: 800; margin: 10px 0;">Баланс: <span id="modal-bal">0</span></div>
 <div class="stat-grid">
 <div class="stat-item"><span class="stat-val" id="modal-games">0</span><span class="stat-lbl">Боев</span></div>
 <div class="stat-item"><span class="stat-val" id="modal-wins" style="color: var(--win);">0</span><span class="stat-lbl">Побед</span></div>
 <div class="stat-item"><span class="stat-val" id="modal-lose" style="color: var(--lose);">0</span><span class="stat-lbl">Пораж.</span></div>
-<div class="stat-item"><span class="stat-val" id="modal-bal">0</span><span class="stat-lbl">Баланс</span></div>
+<div class="stat-item"><span class="stat-val" id="modal-wr">0%</span><span class="stat-lbl">Winrate</span></div>
+</div>
+<div class="stat-grid">
+<div class="stat-item"><span class="stat-val" id="modal-max-balance">0</span><span class="stat-lbl">Макс. баланс</span></div>
+<div class="stat-item"><span class="stat-val" id="modal-free-fights">0</span><span class="stat-lbl">Просмотрено</span></div>
 </div>
 <button class="btn-wood" style="width: 100%; background: #0088cc; border:none; box-shadow: 0 4px 0 #006699;" id="modal-write-btn">НАПИСАТЬ</button>
 <button class="btn-wood" style="width: 100%; margin-top: 14px; opacity: 0.6;" onclick="closeModal()">ЗАКРЫТЬ</button>
@@ -918,6 +921,10 @@ oninput="onQtyInput(this.value)">
 <div class="stat-item"><span class="stat-val" id="st-wins" style="color: var(--win);">0</span><span class="stat-lbl">Побед</span></div>
 <div class="stat-item"><span class="stat-val" id="st-lose" style="color: var(--lose);">0</span><span class="stat-lbl">Пораж.</span></div>
 <div class="stat-item"><span class="stat-val" id="st-wr">0%</span><span class="stat-lbl">Winrate</span></div>
+</div>
+<div class="stat-grid">
+<div class="stat-item"><span class="stat-val" id="st-max-balance">0</span><span class="stat-lbl">Макс. баланс</span></div>
+<div class="stat-item"><span class="stat-val" id="st-free-fights">0</span><span class="stat-lbl">Просмотрено</span></div>
 </div>
 <div style="display: flex; align-items: center; justify-content: space-between; margin: 20px 0;">
 <span>Запретить мне писать</span>
@@ -1037,6 +1044,8 @@ function updateUI() {
 	document.getElementById('st-lose').innerText = user.lose || 0;
 	const wr = user.total_games > 0 ? Math.round((user.wins / user.total_games) * 100) : 0;
 	document.getElementById('st-wr').innerText = wr + "%";
+	document.getElementById('st-max-balance').innerText = user.max_balance?.toLocaleString() || 0;
+	document.getElementById('st-free-fights').innerText = user.free_fights_watched || 0;
 	const toggle = document.getElementById('private-profile-toggle');
 	if (toggle) toggle.checked = !!user.private_profile;
 }
@@ -1277,7 +1286,7 @@ async function loadRank() {
 					<span style="opacity:0.3; font-weight:900; width:24px; font-size: 0.8rem;">${i+1}</span>
 					<span style="font-weight:700;">${u.display_name || u.username}</span>
 				</div>
-				<span style="color: var(--gold); font-weight:900;">${u.balance.toLocaleString()}</span>
+				<span style="color: var(--gold); font-weight:900;">${Math.round((u.wins / Math.max(u.total_games, 1)) * 100)}%</span>
 			`;
 			item.onclick = () => showUserDetail(u);
 			list.appendChild(item);
@@ -1332,7 +1341,7 @@ function renderLeaderboard(data, isFullList = false) {
 				<span style="opacity:0.3; font-weight:900; width:24px; font-size: 0.8rem;">${i+1}</span>
 				<span style="font-weight:700;">${u.display_name || u.username}</span>
 			</div>
-			<span style="color: var(--gold); font-weight:900;">${u.balance.toLocaleString()}</span>
+			<span style="color: var(--gold); font-weight:900;">${Math.round((u.wins / Math.max(u.total_games, 1)) * 100)}%</span>
 		`;
 		item.onclick = () => showUserDetail(u);
 		list.appendChild(item);
@@ -1348,6 +1357,8 @@ function showUserDetail(u) {
 	document.getElementById('modal-wins').innerText = u.wins || 0;
 	document.getElementById('modal-lose').innerText = u.lose || 0;
 	document.getElementById('modal-bal').innerText = u.balance.toLocaleString();
+document.getElementById('modal-max-balance').innerText = u.max_balance?.toLocaleString() || 0;
+document.getElementById('modal-free-fights').innerText = u.free_fights_watched || 0;
 	const btn = document.getElementById('modal-write-btn');
 	if (u.username) {
 		btn.style.display = 'block';
