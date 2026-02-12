@@ -757,7 +757,25 @@ box-shadow: 0 4px 0 #566573;
 background: #6c7b8b;
 box-shadow: 0 1px 0 #566573;
 }
-/* --- КОНЕЦ НОВОГО СТИЛЯ --- */
+/* Новые стили для валют в лидерборде */
+.lb-values {
+display: flex;
+flex-direction: column;
+align-items: flex-end;
+gap: 2px;
+}
+.lb-value-row {
+display: flex;
+align-items: center;
+gap: 4px;
+font-weight: 900;
+}
+.lb-val-gold {
+color: var(--gold);
+}
+.lb-val-acorn {
+color: #a0522d; /* Цвет желудя */
+}
 /* Адаптив под очень узкие экраны */
 @media (max-width: 360px) {
 #profile-trigger, #rank-trigger {
@@ -830,11 +848,35 @@ transform: rotate(360deg);
 <div class="card">
 <button class="close-x" onclick="closeModal()" style="top:12px; right:12px;">&times;</button>
 <h3 id="modal-user-name" style="margin-top:0; font-size: 1.5rem; padding-right: 30px;">ИГРОК</h3>
-<div class="stat-grid">
-<div class="stat-item"><span class="stat-val" id="modal-games">0</span><span class="stat-lbl">Боев</span></div>
-<div class="stat-item"><span class="stat-val" id="modal-wins" style="color: var(--win);">0</span><span class="stat-lbl">Побед</span></div>
-<div class="stat-item"><span class="stat-val" id="modal-lose" style="color: var(--lose);">0</span><span class="stat-lbl">Пораж.</span></div>
-<div class="stat-item"><span class="stat-val" id="modal-bal">0</span><span class="stat-lbl">Баланс</span></div>
+<!-- СЕТКА 2 строки × 2 колонки -->
+<div class="stat-grid" style="margin-top: 20px;">
+<div class="stat-item">
+<span class="stat-val" id="modal-games">0</span>
+<span class="stat-lbl">БОЕВ</span>
+</div>
+<div class="stat-item">
+<span class="stat-val" id="modal-wins" style="color: var(--win);">0</span>
+<span class="stat-lbl">ПОБЕД</span>
+</div>
+<div class="stat-item">
+<span class="stat-val" id="modal-lose" style="color: var(--lose);">0</span>
+<span class="stat-lbl">ПОРАЖ.</span>
+</div>
+<div class="stat-item">
+<span class="stat-val" id="modal-winrate">0%</span>
+<span class="stat-lbl">WINRATE</span>
+</div>
+</div>
+<!-- НОВЫЕ ПОЛЯ ДЛЯ ПРОФИЛЯ -->
+<div class="stat-grid" style="margin-top: 15px;">
+<div class="stat-item">
+<span class="stat-val" id="modal-max-balance">0</span>
+<span class="stat-lbl">МАКС. БАЛАНС</span>
+</div>
+<div class="stat-item">
+<span class="stat-val" id="modal-watched">0</span>
+<span class="stat-lbl">ПРОСМОТРЕНО</span>
+</div>
 </div>
 <button class="btn-wood" style="width: 100%; background: #0088cc; border:none; box-shadow: 0 4px 0 #006699;" id="modal-write-btn">НАПИСАТЬ</button>
 <button class="btn-wood" style="width: 100%; margin-top: 14px; opacity: 0.6;" onclick="closeModal()">ЗАКРЫТЬ</button>
@@ -919,6 +961,11 @@ oninput="onQtyInput(this.value)">
 <div class="stat-item"><span class="stat-val" id="st-lose" style="color: var(--lose);">0</span><span class="stat-lbl">Пораж.</span></div>
 <div class="stat-item"><span class="stat-val" id="st-wr">0%</span><span class="stat-lbl">Winrate</span></div>
 </div>
+<!-- НОВЫЕ ПОЛЯ ДЛЯ ПРОФИЛЯ -->
+<div class="stat-grid">
+<div class="stat-item"><span class="stat-val" id="st-max-balance">0</span><span class="stat-lbl">Макс. баланс</span></div>
+<div class="stat-item"><span class="stat-val" id="st-watched">0</span><span class="stat-lbl">Просмотрено</span></div>
+</div>
 <div style="display: flex; align-items: center; justify-content: space-between; margin: 20px 0;">
 <span>Запретить мне писать</span>
 <label class="toggle-switch">
@@ -981,567 +1028,606 @@ let currentShopItem = null; // Для выбранного предмета в �
 let currentShopQuantity = 1; // Для количества в магазине
 let currentAction = 'buy'; // 'buy' или 'sell'
 let prices = {}; // Хранение цен из prices.json
-
 async function apiFetch(endpoint, options = {}) {
-	try {
-		const res = await fetch(endpoint, {
-			...options,
-			headers: {'Content-Type': 'application/json', ...(options.headers || {})}
-		});
-		return await res.json();
-	} catch (e) {
-		return null;
-	}
+try {
+const res = await fetch(endpoint, {
+...options,
+headers: {'Content-Type': 'application/json', ...(options.headers || {})}
+});
+return await res.json();
+} catch (e) {
+return null;
 }
-
+}
 // --- НОВАЯ ФУНКЦИЯ: Загрузка цен из prices.json ---
 async function loadPrices() {
-	try {
-		const response = await fetch('prices.json');
-		if (!response.ok) {
-			throw new Error('Network response was not ok');
-		}
-		prices = await response.json();
-		console.log("Цены загружены:", prices);
-	} catch (error) {
-		console.error("Ошибка загрузки prices.json:", error);
-		// Устанавливаем цены по умолчанию в случае ошибки
-		prices = {
-			"plant_acorn": {"buy": 1000, "sell": 800},
-			"acorn": {"buy": 200, "sell": 150}
-		};
-	}
+try {
+const response = await fetch('prices.json');
+if (!response.ok) {
+throw new Error('Network response was not ok');
 }
-
+prices = await response.json();
+console.log("Цены загружены:", prices);
+} catch (error) {
+console.error("Ошибка загрузки prices.json:", error);
+// Устанавливаем цены по умолчанию в случае ошибки
+prices = {
+"plant_acorn": {"buy": 1000, "sell": 800},
+"acorn": {"buy": 200, "sell": 150}
+};
+}
+}
 async function auth() {
-	const tgUser = tg.initDataUnsafe?.user || {id: "dev_user", username: "kaban", first_name: "Хряк"};
-	user = await apiFetch('/api/auth', {
-		method: 'POST',
-		body: JSON.stringify({tg_id: tgUser.id, username: tgUser.username, first_name: tgUser.first_name})
-	});
-	if (user) {
-		updateUI();
-		nav('scr-main');
-	}
+const tgUser = tg.initDataUnsafe?.user || {id: "dev_user", username: "kaban", first_name: "Хряк"};
+user = await apiFetch('/api/auth', {
+method: 'POST',
+body: JSON.stringify({tg_id: tgUser.id, username: tgUser.username, first_name: tgUser.first_name})
+});
+if (user) {
+updateUI();
+nav('scr-main');
+} else {
+console.error("Не удалось авторизоваться");
+showToast("Ошибка загрузки профиля");
 }
-
+}
 function updateUI() {
-	if (!user) return;
-	// --- ИСПРАВЛЕНИЕ 2: Обновление баланса и желудей в интерфейсе ---
-	document.getElementById('bal-val').innerText = user.balance.toLocaleString();
-	document.getElementById('acorns-val').innerText = user.acorns.toLocaleString(); // Обновляем количество желудей
-	// --- КОНЕЦ ИСПРАВЛЕНИЯ 2 ---
-	document.getElementById('edit-name').value = user.display_name || user.username || "";
-	document.getElementById('st-games').innerText = user.total_games || 0;
-	document.getElementById('st-wins').innerText = user.wins || 0;
-	document.getElementById('st-lose').innerText = user.lose || 0;
-	const wr = user.total_games > 0 ? Math.round((user.wins / user.total_games) * 100) : 0;
-	document.getElementById('st-wr').innerText = wr + "%";
-	const toggle = document.getElementById('private-profile-toggle');
-	if (toggle) toggle.checked = !!user.private_profile;
+if (!user) return;
+// --- ИСПРАВЛЕНИЕ 2: Обновление баланса и желудей в интерфейсе ---
+document.getElementById('bal-val').innerText = user.balance.toLocaleString();
+document.getElementById('acorns-val').innerText = user.acorns.toLocaleString(); // Обновляем количество желудей
+// --- КОНЕЦ ИСПРАВЛЕНИЯ 2 ---
+document.getElementById('edit-name').value = user.display_name || user.username || "";
+document.getElementById('st-games').innerText = user.total_games || 0;
+document.getElementById('st-wins').innerText = user.wins || 0;
+document.getElementById('st-lose').innerText = user.lose || 0;
+const wr = user.total_games > 0 ? Math.round((user.wins / user.total_games) * 100) : 0;
+document.getElementById('st-wr').innerText = wr + "%";
+// НОВОЕ: Обновление новых полей профиля
+document.getElementById('st-max-balance').innerText = (user.max_balance || 0).toLocaleString();
+document.getElementById('st-watched').innerText = user.watched_battles || 0;
+const toggle = document.getElementById('private-profile-toggle');
+if (toggle) toggle.checked = !!user.private_profile;
 }
-
 function nav(id) {
-	document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-	document.getElementById(id).classList.add('active');
-	// Обновляем фон
-	document.getElementById('bg-main').style.display = 'block';
-	document.getElementById('bg-fight').style.display = 'none';
-	document.getElementById('bg-inventory').style.display = 'none';
-	document.getElementById('bg-shop').style.display = 'none';
-	if (id === 'scr-fight') {
-		document.getElementById('bg-main').style.display = 'none';
-		document.getElementById('bg-fight').style.display = 'block';
-	} else if (id === 'scr-inventory') {
-		document.getElementById('bg-main').style.display = 'none';
-		document.getElementById('bg-inventory').style.display = 'block';
-	} else if (id === 'scr-shop') {
-		document.getElementById('bg-main').style.display = 'none';
-		document.getElementById('bg-shop').style.display = 'block';
-		// ✅ ИСПРАВЛЕНИЕ: Сброс состояния магазина при входе
-		resetShopState();
-		loadShopItems(); // Загружаем предметы при открытии магазина
-	}
-	const isCardScreen = ['scr-bet', 'scr-inventory', 'scr-shop', 'scr-profile', 'scr-rank', 'scr-load'].includes(id);
-	document.body.classList.toggle('dimmed', isCardScreen);
-	// --- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Устанавливаем класс для главного экрана ---
-	document.body.classList.toggle('show-main-screen', id === 'scr-main');
-	// ---------------------------------------------------------------
-	// Показываем кнопку профиля только на главном экране (это дублирует CSS, но надёжнее)
-	if (id === 'scr-main') {
-		document.body.classList.add('show-profile-btn');
-	} else {
-		document.body.classList.remove('show-profile-btn');
-	}
-	// Загрузка рейтинга
-	if (id === 'scr-rank') loadRank(); // Загружаем рейтинг при открытии экрана
-	tg.HapticFeedback.impactOccurred('light');
+document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+document.getElementById(id).classList.add('active');
+// Обновляем фон
+document.getElementById('bg-main').style.display = 'block';
+document.getElementById('bg-fight').style.display = 'none';
+document.getElementById('bg-inventory').style.display = 'none';
+document.getElementById('bg-shop').style.display = 'none';
+if (id === 'scr-fight') {
+document.getElementById('bg-main').style.display = 'none';
+document.getElementById('bg-fight').style.display = 'block';
+} else if (id === 'scr-inventory') {
+document.getElementById('bg-main').style.display = 'none';
+document.getElementById('bg-inventory').style.display = 'block';
+} else if (id === 'scr-shop') {
+document.getElementById('bg-main').style.display = 'none';
+document.getElementById('bg-shop').style.display = 'block';
+// ✅ ИСПРАВЛЕНИЕ: Сброс состояния магазина при входе
+resetShopState();
+loadShopItems(); // Загружаем предметы при открытии магазина
 }
-
+const isCardScreen = ['scr-bet', 'scr-inventory', 'scr-shop', 'scr-profile', 'scr-rank', 'scr-load'].includes(id);
+document.body.classList.toggle('dimmed', isCardScreen);
+// --- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Устанавливаем класс для главного экрана ---
+document.body.classList.toggle('show-main-screen', id === 'scr-main');
+// ---------------------------------------------------------------
+// Показываем кнопку профиля только на главном экране (это дублирует CSS, но надёжнее)
+if (id === 'scr-main') {
+document.body.classList.add('show-profile-btn');
+} else {
+document.body.classList.remove('show-profile-btn');
+}
+// Загрузка рейтинга
+if (id === 'scr-rank') loadRank(); // Загружаем рейтинг при открытии экрана
+tg.HapticFeedback.impactOccurred('light');
+}
 // ✅ НОВАЯ ФУНКЦИЯ: Сброс состояния магазина (вызов при входе и при нажатии НАЗАД)
 function resetShopState() {
-	currentShopItem = null;
-	currentShopQuantity = 1;
-	document.getElementById('qty-input').value = '1';
-	document.getElementById('detail-icon-placeholder').style.display = 'block';
-	document.getElementById('detail-icon-big').style.display = 'none';
-	document.getElementById('detail-name').innerText = 'Выберите предмет';
-	document.getElementById('detail-price').innerText = 'Цена: -';
-	document.getElementById('total-cost').style.display = 'none';
-	// Снять выделение со всех предметов
-	document.querySelectorAll('#shop-items-container .shop-item').forEach(el => el.classList.remove('selected'));
-	// Сбросить тумблер в режим "КУПИТЬ" и цвет в зелёный
-	const toggle = document.getElementById('action-toggle');
-	toggle.checked = false;
-	currentAction = 'buy';
-	document.querySelector('.slider').style.backgroundColor = 'var(--win)';
-	document.querySelector('.slider-thumb').style.transform = 'translateX(0)';
-	updateTradeButton();
-	updatePriceDisplay();
+currentShopItem = null;
+currentShopQuantity = 1;
+document.getElementById('qty-input').value = '1';
+document.getElementById('detail-icon-placeholder').style.display = 'block';
+document.getElementById('detail-icon-big').style.display = 'none';
+document.getElementById('detail-name').innerText = 'Выберите предмет';
+document.getElementById('detail-price').innerText = 'Цена: -';
+document.getElementById('total-cost').style.display = 'none';
+// Снять выделение со всех предметов
+document.querySelectorAll('#shop-items-container .shop-item').forEach(el => el.classList.remove('selected'));
+// Сбросить тумблер в режим "КУПИТЬ" и цвет в зелёный
+const toggle = document.getElementById('action-toggle');
+toggle.checked = false;
+currentAction = 'buy';
+document.querySelector('.slider').style.backgroundColor = 'var(--win)';
+document.querySelector('.slider-thumb').style.transform = 'translateX(0)';
+updateTradeButton();
+updatePriceDisplay();
 }
-
 // --- НОВАЯ ФУНКЦИЯ: Загрузка предметов магазина ---
 async function loadShopItems() {
-	// Сначала загружаем цены
-	await loadPrices();
-	const container = document.getElementById('shop-items-container');
-	container.innerHTML = ""; // Очищаем контейнер
-	// Используем жесто закодированные id предметов, но с ценами из prices.json
-	const itemIds = ["acorn", "plant_acorn"];
-	for (const itemId of itemIds) {
-		const item = {
-			id: itemId,
-			name: itemId === "acorn" ? "Желудь" : "Росток",
-			icon: itemId === "acorn" ? "acorn.png" : "plant_acorn.png",
-			price: prices[itemId]?.buy || 0, // Цена покупки из JSON
-			sell_price: prices[itemId]?.sell || 0 // Цена продажи из JSON
-		};
-		const div = document.createElement('div');
-		div.className = 'shop-item';
-		div.onclick = () => selectShopItem(item);
-		div.innerHTML = `
-			<img class="shop-item-icon" src="assets/${item.icon}" onerror="this.src='https://placehold.co/40x40?text=?'">
-			<div class="shop-item-name">${item.name}</div>
-			<div class="shop-item-price">${currentAction === 'buy' ? item.price : item.sell_price} 💰</div>
-		`;
-		container.appendChild(div);
-	}
+// Сначала загружаем цены
+await loadPrices();
+const container = document.getElementById('shop-items-container');
+container.innerHTML = ""; // Очищаем контейнер
+// Используем жесто закодированные id предметов, но с ценами из prices.json
+const itemIds = ["acorn", "plant_acorn"];
+for (const itemId of itemIds) {
+const item = {
+id: itemId,
+name: itemId === "acorn" ? "Желудь" : "Росток",
+icon: itemId === "acorn" ? "acorn.png" : "plant_acorn.png",
+price: prices[itemId]?.buy || 0, // Цена покупки из JSON
+sell_price: prices[itemId]?.sell || 0 // Цена продажи из JSON
+};
+const div = document.createElement('div');
+div.className = 'shop-item';
+div.onclick = () => selectShopItem(item);
+div.innerHTML = `
+<img class="shop-item-icon" src="assets/${item.icon}" onerror="this.src='https://placehold.co/40x40?text=?'">
+<div class="shop-item-name">${item.name}</div>
+<div class="shop-item-price">${currentAction === 'buy' ? item.price : item.sell_price} 💰</div>
+`;
+container.appendChild(div);
 }
-
+}
 // --- НОВАЯ ФУНКЦИЯ: Выбор предмета в магазине ---
 function selectShopItem(item) {
-	currentShopItem = item;
-	currentShopQuantity = 1;
-	document.getElementById('qty-input').value = currentShopQuantity;
-	// Переключаем иконку
-	document.getElementById('detail-icon-placeholder').style.display = 'none';
-	document.getElementById('detail-icon-big').src = `assets/${item.icon}`;
-	document.getElementById('detail-icon-big').style.display = 'block';
-	document.getElementById('detail-name').innerText = item.name;
-	updatePriceDisplay();
-	// Подсветка
-	document.querySelectorAll('#shop-items-container .shop-item').forEach(el => el.classList.remove('selected'));
-	event.currentTarget.classList.add('selected');
+currentShopItem = item;
+currentShopQuantity = 1;
+document.getElementById('qty-input').value = currentShopQuantity;
+// Переключаем иконку
+document.getElementById('detail-icon-placeholder').style.display = 'none';
+document.getElementById('detail-icon-big').src = `assets/${item.icon}`;
+document.getElementById('detail-icon-big').style.display = 'block';
+document.getElementById('detail-name').innerText = item.name;
+updatePriceDisplay();
+// Подсветка
+document.querySelectorAll('#shop-items-container .shop-item').forEach(el => el.classList.remove('selected'));
+event.currentTarget.classList.add('selected');
 }
-
 // --- НОВАЯ ФУНКЦИЯ: Переключение действия (КУПИТЬ/ПРОДАТЬ) ---
 function toggleAction() {
-	const checkbox = document.getElementById('action-toggle');
-	const thumb = document.querySelector('#scr-shop .slider-thumb');
-	currentAction = checkbox.checked ? 'sell' : 'buy';
-	updatePriceDisplay(); // Обновляем цену под предметом
-	updateShopItemPrices(); // Обновляем цены в сетке магазина
-	updateTradeButton(); // Обновляем текст кнопки сделки
-	// Анимация thumb
-	if (thumb) {
-		thumb.style.transform = checkbox.checked ? 'translateX(76px)' : 'translateX(0)';
-	}
-	// ✅ ИСПРАВЛЕНИЕ: Обновляем цвет фона тумблера
-	const slider = document.querySelector('.slider');
-	slider.style.backgroundColor = currentAction === 'buy' ? 'var(--win)' : 'var(--lose)';
+const checkbox = document.getElementById('action-toggle');
+const thumb = document.querySelector('#scr-shop .slider-thumb');
+currentAction = checkbox.checked ? 'sell' : 'buy';
+updatePriceDisplay(); // Обновляем цену под предметом
+updateShopItemPrices(); // Обновляем цены в сетке магазина
+updateTradeButton(); // Обновляем текст кнопки сделки
+// Анимация thumb
+if (thumb) {
+thumb.style.transform = checkbox.checked ? 'translateX(76px)' : 'translateX(0)';
 }
-
+// ✅ ИСПРАВЛЕНИЕ: Обновляем цвет фона тумблера
+const slider = document.querySelector('.slider');
+slider.style.backgroundColor = currentAction === 'buy' ? 'var(--win)' : 'var(--lose)';
+}
 // --- НОВАЯ ФУНКЦИЯ: Обновление текста кнопки сделки ---
 function updateTradeButton() {
-	const button = document.querySelector('#scr-shop .btn-trade');
-	button.innerText = currentAction === 'buy' ? 'КУПИТЬ' : 'ПРОДАТЬ';
-	button.classList.toggle('sell-mode', currentAction === 'sell');
+const button = document.querySelector('#scr-shop .btn-trade');
+button.innerText = currentAction === 'buy' ? 'КУПИТЬ' : 'ПРОДАТЬ';
+button.classList.toggle('sell-mode', currentAction === 'sell');
 }
-
 // --- НОВАЯ ФУНКЦИЯ: Обновление цен в сетке магазина ---
 function updateShopItemPrices() {
-	const items = document.querySelectorAll('#shop-items-container .shop-item');
-	items.forEach((el, index) => {
-		const itemIds = ["acorn", "plant_acorn"];
-		const itemId = itemIds[index];
-		const item = {
-			id: itemId,
-			name: itemId === "acorn" ? "Желудь" : "Росток",
-			icon: itemId === "acorn" ? "acorn.png" : "plant_acorn.png",
-			price: prices[itemId]?.buy || 0,
-			sell_price: prices[itemId]?.sell || 0
-		};
-		el.querySelector('.shop-item-price').innerText = `${currentAction === 'buy' ? item.price : item.sell_price} 💰`;
-	});
+const items = document.querySelectorAll('#shop-items-container .shop-item');
+items.forEach((el, index) => {
+const itemIds = ["acorn", "plant_acorn"];
+const itemId = itemIds[index];
+const item = {
+id: itemId,
+name: itemId === "acorn" ? "Желудь" : "Росток",
+icon: itemId === "acorn" ? "acorn.png" : "plant_acorn.png",
+price: prices[itemId]?.buy || 0,
+sell_price: prices[itemId]?.sell || 0
+};
+el.querySelector('.shop-item-price').innerText = `${currentAction === 'buy' ? item.price : item.sell_price} 💰`;
+});
 }
-
 // --- НОВАЯ ФУНКЦИЯ: Обновление текста цены под предметом и итоговой суммы ---
 function updatePriceDisplay() {
-	const totalCostEl = document.getElementById('total-cost');
-	if (!currentShopItem) {
-		document.getElementById('detail-price').innerText = 'Цена: -';
-		totalCostEl.style.display = 'none';
-		return;
-	}
-	const price = currentAction === 'buy' ? currentShopItem.price : currentShopItem.sell_price;
-	const total = price * currentShopQuantity;
-	document.getElementById('detail-price').innerText = `Цена: ${price} 💰 / шт.`;
-	totalCostEl.innerHTML = `${price} 💰 × ${currentShopQuantity} = ${total} 💰`;
-	totalCostEl.style.display = 'block';
+const totalCostEl = document.getElementById('total-cost');
+if (!currentShopItem) {
+document.getElementById('detail-price').innerText = 'Цена: -';
+totalCostEl.style.display = 'none';
+return;
 }
-
+const price = currentAction === 'buy' ? currentShopItem.price : currentShopItem.sell_price;
+const total = price * currentShopQuantity;
+document.getElementById('detail-price').innerText = `Цена: ${price} 💰 / шт.`;
+totalCostEl.innerHTML = `${price} 💰 × ${currentShopQuantity} = ${total} 💰`;
+totalCostEl.style.display = 'block';
+}
 // --- НОВАЯ ФУНКЦИЯ: Обработка ввода в поле ---
 function onQtyInput(value) {
-	let newQty = parseInt(value) || 1;
-	if (newQty < 1) newQty = 1;
-	if (newQty > 999999) newQty = 999999;
-	currentShopQuantity = newQty;
-	updatePriceDisplay(); // Обновляем итоговую сумму
+let newQty = parseInt(value) || 1;
+if (newQty < 1) newQty = 1;
+if (newQty > 999999) newQty = 999999;
+currentShopQuantity = newQty;
+updatePriceDisplay(); // Обновляем итоговую сумму
 }
-
 // --- НОВАЯ ФУНКЦИЯ: Совершение транзакции ---
 async function performTransaction() {
-	if (!currentShopItem) {
-		tg.HapticFeedback.notificationOccurred('error');
-		showToast("Выберите предмет");
-		return;
-	}
-	const endpoint = currentAction === 'buy' ? '/api/shop/buy' : '/api/shop/sell';
-	const payload = {
-		tg_id: user.tg_id,
-		item_id: currentShopItem.id,
-		quantity: currentShopQuantity
-	};
-	const response = await apiFetch(endpoint, {
-		method: 'POST',
-		body: JSON.stringify(payload)
-	});
-	if (response && response.success) {
-		// Обновляем локальные данные пользователя
-		user.balance = response.new_balance;
-		user.acorns = response.new_acorns;
-		user.plant_acorns = response.new_plant_acorns;
-		// Обновляем UI
-		updateUI();
-		tg.HapticFeedback.notificationOccurred('success');
-		showToast(`${currentAction === 'buy' ? 'Куплено' : 'Продано'} ${currentShopQuantity}x ${currentShopItem.name}`);
-	} else {
-		tg.HapticFeedback.notificationOccurred('error');
-		showToast(response?.error || "Ошибка операции");
-	}
+if (!currentShopItem) {
+tg.HapticFeedback.notificationOccurred('error');
+showToast("Выберите предмет");
+return;
 }
-
+const endpoint = currentAction === 'buy' ? '/api/shop/buy' : '/api/shop/sell';
+const payload = {
+tg_id: user.tg_id,
+item_id: currentShopItem.id,
+quantity: currentShopQuantity
+};
+const response = await apiFetch(endpoint, {
+method: 'POST',
+body: JSON.stringify(payload)
+});
+if (response && response.success) {
+// Обновляем локальные данные пользователя
+user.balance = response.new_balance;
+user.acorns = response.new_acorns;
+user.plant_acorns = response.new_plant_acorns;
+// Обновляем UI
+updateUI();
+tg.HapticFeedback.notificationOccurred('success');
+showToast(`${currentAction === 'buy' ? 'Куплено' : 'Продано'} ${currentShopQuantity}x ${currentShopItem.name}`);
+} else {
+tg.HapticFeedback.notificationOccurred('error');
+showToast(response?.error || "Ошибка операции");
+}
+}
 // --- НОВАЯ ФУНКЦИЯ: Определение позиции пользователя ---
 function findUserRank(data) {
-	for (let i = 0; i < data.length; i++) {
-		if (data[i].tg_id === user.tg_id) {
-			return i + 1; // Позиция начинается с 1
-		}
-	}
-	return '?';
+for (let i = 0; i < data.length; i++) {
+if (data[i].tg_id === user.tg_id) {
+return i + 1; // Позиция начинается с 1
 }
-
+}
+return '?';
+}
+// --- НОВАЯ ФУНКЦИЯ: Расчет прогресса для баланса ---
+function calculateProgress(userBalance, maxBalance) {
+if (maxBalance <= 0) return 0;
+return Math.min(100, (userBalance / maxBalance) * 100);
+}
 // --- ИСПРАВЛЕНИЕ 1: Изменение функции loadRank ---
 async function loadRank() {
-	fullLeaderboardLoaded = false;
-	fullLeaderboardData = [];
-	document.getElementById('toggle-full-leaderboard').style.display = 'none';
-	document.getElementById('your-rank').textContent = 'Твое место — ?';
-	document.getElementById('rank-loading').style.display = 'flex';
-	document.getElementById('rank-list').style.display = 'none';
-	const data = await apiFetch('/api/leaderboard');
-	const list = document.getElementById('rank-list');
-	list.innerHTML = "";
-	if (data) {
-		userRank = findUserRank(data);
-		document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
-		data.forEach((u, i) => {
-			const item = document.createElement('div');
-			item.className = 'rank-item';
-			// Выделяем только если не приватный и это текущий пользователь
-			if (user && u.tg_id === user.tg_id && !u.private_profile) {
-				item.classList.add('current-user-highlight');
-			}
-			item.innerHTML = `
-				<div style="display:flex; align-items:center; gap:12px;">
-					<span style="opacity:0.3; font-weight:900; width:24px; font-size: 0.8rem;">${i+1}</span>
-					<span style="font-weight:700;">${u.display_name || u.username}</span>
-				</div>
-				<span style="color: var(--gold); font-weight:900;">${u.balance.toLocaleString()}</span>
-			`;
-			item.onclick = () => showUserDetail(u);
-			list.appendChild(item);
-		});
-	}
-	document.getElementById('rank-loading').style.display = 'none';
-	document.getElementById('rank-list').style.display = 'block';
-	document.getElementById('toggle-full-leaderboard').style.display = 'block';
-	document.getElementById('toggle-full-leaderboard').textContent = 'Развернуть';
+fullLeaderboardLoaded = false;
+fullLeaderboardData = [];
+document.getElementById('toggle-full-leaderboard').style.display = 'none';
+document.getElementById('your-rank').textContent = 'Твое место — ?';
+document.getElementById('rank-loading').style.display = 'flex';
+document.getElementById('rank-list').style.display = 'none';
+const data = await apiFetch('/api/leaderboard');
+const list = document.getElementById('rank-list');
+list.innerHTML = "";
+if (!data || !Array.isArray(data)) {
+document.getElementById('your-rank').textContent = 'Твое место — ?';
+document.getElementById('rank-loading').style.display = 'none';
+document.getElementById('rank-list').style.display = 'block';
+return;
 }
-
+// Сначала ищем пользователя в текущем списке
+let userIndex = -1;
+for (let i = 0; i < data.length; i++) {
+if (data[i].tg_id === user?.tg_id) {
+userIndex = i;
+break;
+}
+}
+// Если нашли — это его место
+if (userIndex !== -1) {
+userRank = userIndex + 1;
+}
+// Если не нашли — предполагаем, что он ниже топ-10
+else {
+// Пытаемся уточнить: если есть поле `your_rank` в ответе — используем его
+if (data.your_rank !== undefined && data.your_rank > 0) {
+userRank = data.your_rank;
+} else {
+// Иначе: ставим место = длина списка + 1 (например, 11, если топ-10)
+userRank = data.length + 1;
+}
+}
+// Обновляем текст независимо от того, найден ли пользователь
+document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
+// Рендерим список
+const maxBalance = data.length > 0 ? data[0].balance : 0;
+data.forEach((u, i) => {
+const item = document.createElement('div');
+item.className = 'rank-item';
+if (user && u.tg_id === user.tg_id) {
+item.classList.add('current-user-highlight');
+}
+item.innerHTML = `
+<div style="display:flex; align-items:center; gap:12px;">
+<span style="opacity:0.3; font-weight:900; width:24px; font-size: 0.8rem;">${i+1}</span>
+<span style="font-weight:700;">${u.display_name || u.username}</span>
+</div>
+<div class="lb-values">
+<div class="lb-value-row">
+<span class="lb-val-gold">${u.balance.toLocaleString()} 💰</span>
+</div>
+<div class="lb-value-row">
+<span class="lb-val-acorn">${u.acorns ? u.acorns.toLocaleString() : '0'} 🌰</span>
+</div>
+</div>
+`;
+item.onclick = () => showUserDetail(u);
+list.appendChild(item);
+});
+document.getElementById('rank-loading').style.display = 'none';
+document.getElementById('rank-list').style.display = 'block';
+document.getElementById('toggle-full-leaderboard').style.display = 'block';
+document.getElementById('toggle-full-leaderboard').textContent = 'Развернуть';
+}
 // --- КОНЕЦ ИСПРАВЛЕНИЯ 1 ---
 // --- ИСПРАВЛЕНИЕ 1: Изменение функции toggleFullLeaderboard ---
 async function toggleFullLeaderboard() {
-	const button = document.getElementById('toggle-full-leaderboard');
-	const list = document.getElementById('rank-list');
-	if (!fullLeaderboardLoaded) {
-		button.textContent = 'Загрузка...';
-		button.disabled = true;
-		const data = await apiFetch('/api/leaderboard/full');
-		if (data) {
-			fullLeaderboardData = data;
-			fullLeaderboardLoaded = true;
-			// Обновляем текст "Твое место" для полного списка
-			userRank = findUserRank(data);
-			document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
-			renderLeaderboard(fullLeaderboardData, true);
-			button.textContent = 'Свернуть';
-		} else {
-			button.textContent = 'Ошибка';
-			setTimeout(() => button.textContent = 'Развернуть', 2000);
-		}
-		button.disabled = false;
-	} else {
-		fullLeaderboardLoaded = false;
-		loadRank(); // Перезагружаем топ-10 (и обновим "Твое место" для топ-10)
-	}
+const button = document.getElementById('toggle-full-leaderboard');
+const list = document.getElementById('rank-list');
+if (!fullLeaderboardLoaded) {
+button.textContent = 'Загрузка...';
+button.disabled = true;
+const data = await apiFetch('/api/leaderboard/full');
+if (data) {
+fullLeaderboardData = data;
+fullLeaderboardLoaded = true;
+// Обновляем текст "Твое место" для полного списка
+userRank = findUserRank(data);
+document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
+// Находим максимальный баланс среди всех игроков для прогресс-бара
+const maxBalance = data.length > 0 ? data[0].balance : 0;
+renderLeaderboard(fullLeaderboardData, true, maxBalance);
+button.textContent = 'Свернуть';
+} else {
+button.textContent = 'Ошибка';
+setTimeout(() => button.textContent = 'Развернуть', 2000);
 }
-
+button.disabled = false;
+} else {
+fullLeaderboardLoaded = false;
+loadRank(); // Перезагружаем топ-10 (и обновим "Твое место" для топ-10)
+}
+}
 // --- КОНЕЦ ИСПРАВЛЕНИЯ 1 ---
-function renderLeaderboard(data, isFullList = false) {
-	const list = document.getElementById('rank-list');
-	list.innerHTML = "";
-	data.forEach((u, i) => {
-		const item = document.createElement('div');
-		item.className = 'rank-item';
-		if (user && u.tg_id === user.tg_id && !u.private_profile) {
-			item.classList.add('current-user-highlight');
-		}
-		item.innerHTML = `
-			<div style="display:flex; align-items:center; gap:12px;">
-				<span style="opacity:0.3; font-weight:900; width:24px; font-size: 0.8rem;">${i+1}</span>
-				<span style="font-weight:700;">${u.display_name || u.username}</span>
-			</div>
-			<span style="color: var(--gold); font-weight:900;">${u.balance.toLocaleString()}</span>
-		`;
-		item.onclick = () => showUserDetail(u);
-		list.appendChild(item);
-	});
+function renderLeaderboard(data, isFullList = false, maxBalanceOverride = null) {
+const list = document.getElementById('rank-list');
+list.innerHTML = "";
+// Если не передали maxBalance, используем первый элемент (лидера)
+const maxBalance = maxBalanceOverride || (data.length > 0 ? data[0].balance : 0);
+data.forEach((u, i) => {
+const item = document.createElement('div');
+item.className = 'rank-item';
+if (user && u.tg_id === user.tg_id) {
+item.classList.add('current-user-highlight');
 }
-
+// Рассчитываем прогресс для баланса
+const progress = calculateProgress(u.balance, maxBalance);
+item.innerHTML = `
+<div style="display:flex; align-items:center; gap:12px;">
+<span style="opacity:0.3; font-weight:900; width:24px; font-size: 0.8rem;">${i+1}</span>
+<span style="font-weight:700;">${u.display_name || u.username}</span>
+</div>
+<div class="lb-values">
+<div class="lb-value-row">
+<span class="lb-val-gold">${u.balance.toLocaleString()} 💰</span>
+</div>
+<div class="lb-value-row">
+<span class="lb-val-acorn">${u.acorns ? u.acorns.toLocaleString() : '0'} 🌰</span>
+</div>
+</div>
+`;
+item.onclick = () => showUserDetail(u);
+list.appendChild(item);
+});
+}
 // --- ИЗМЕНЕНАЯ ФУНКЦИЯ: Отображение деталей пользователя ---
 function showUserDetail(u) {
-	tg.HapticFeedback.selectionChanged();
-	// Заполняем данные пользователя
-	document.getElementById('modal-user-name').innerText = u.display_name || u.username;
-	document.getElementById('modal-games').innerText = u.total_games || 0;
-	document.getElementById('modal-wins').innerText = u.wins || 0;
-	document.getElementById('modal-lose').innerText = u.lose || 0;
-	document.getElementById('modal-bal').innerText = u.balance.toLocaleString();
-	const btn = document.getElementById('modal-write-btn');
-	if (u.username) {
-		btn.style.display = 'block';
-		btn.textContent = 'НАПИСАТЬ';
-		if (u.private_profile) {
-			// Если пользователь приватный
-			btn.style.background = '#7f8c8d'; // Серый цвет
-			btn.style.boxShadow = '0 4px 0 #566573'; // Серая тень
-			btn.onclick = () => {
-				showToast("Этот пользователь запретил ему писать"); // Показываем уведомление
-				tg.HapticFeedback.notificationOccurred('error'); // Вибрация об ошибке
-			};
-		} else {
-			// Если пользователь публичный
-			btn.style.background = '#0088cc'; // Синий цвет
-			btn.style.boxShadow = '0 4px 0 #006699'; // Синяя тень
-			btn.onclick = () => tg.openTelegramLink(`https://t.me/${u.username}`); // Открываем Telegram
-		}
-	} else {
-		// Если у пользователя нет username
-		btn.style.display = 'none';
-		btn.onclick = null;
-	}
-	// Показываем модальное окно
-	document.getElementById('user-modal').style.display = 'flex';
+tg.HapticFeedback.selectionChanged();
+// Заполняем данные пользователя
+document.getElementById('modal-user-name').innerText = u.display_name || u.username;
+document.getElementById('modal-games').innerText = u.total_games || 0;
+document.getElementById('modal-wins').innerText = u.wins || 0;
+document.getElementById('modal-lose').innerText = u.lose || 0;
+// --- НОВОЕ: Вычисление винрейта ---
+const wr = u.total_games > 0 ? Math.round((u.wins / u.total_games) * 100) : 0;
+document.getElementById('modal-winrate').innerText = wr + "%";
+// --- КОНЕЦ НОВОГО ---
+// Убираем баланс из отображения в модалке
+// document.getElementById('modal-bal').innerText = u.balance.toLocaleString();
+document.getElementById('modal-max-balance').innerText = (u.max_balance || 0).toLocaleString();
+document.getElementById('modal-watched').innerText = (u.watched_battles || 0).toLocaleString();
+const btn = document.getElementById('modal-write-btn');
+if (u.username) {
+btn.style.display = 'block';
+btn.textContent = 'НАПИСАТЬ';
+if (u.private_profile) {
+// Если пользователь приватный
+btn.style.background = '#7f8c8d'; // Серый цвет
+btn.style.boxShadow = '0 4px 0 #566573'; // Серая тень
+btn.onclick = () => {
+showToast("Этот пользователь запретил ему писать"); // Показываем уведомление
+tg.HapticFeedback.notificationOccurred('error'); // Вибрация об ошибке
+};
+} else {
+// Если пользователь публичный
+btn.style.background = '#0088cc'; // Синий цвет
+btn.style.boxShadow = '0 4px 0 #006699'; // Синяя тень
+btn.onclick = () => tg.openTelegramLink(`https://t.me/${u.username}`); // Открываем Telegram
 }
-
+}
+else {
+// Если у пользователя нет username
+btn.style.display = 'none';
+btn.onclick = null;
+}
+// Показываем модальное окно
+document.getElementById('user-modal').style.display = 'flex';
+}
 // --- КОНЕЦ ИЗМЕНЁННОЙ ФУНКЦИИ ---
 function closeModal() {
-	document.getElementById('user-modal').style.display = 'none';
+document.getElementById('user-modal').style.display = 'none';
 }
-
 async function togglePrivateProfile() {
-	const toggle = document.getElementById('private-profile-toggle');
-	const isChecked = toggle.checked;
-	const response = await apiFetch('/api/user/set-private', {
-		method: 'POST',
-		body: JSON.stringify({tg_id: user.tg_id, is_private: isChecked})
-	});
-	if (response && response.success) {
-		user.private_profile = isChecked;
-		console.log("Профиль стал", isChecked ? "приватным." : "публичным.");
-	} else {
-		console.error("Ошибка обновления статуса приватности:", response?.error || "Неизвестная ошибка");
-		toggle.checked = !isChecked;
-	}
+const toggle = document.getElementById('private-profile-toggle');
+const isChecked = toggle.checked;
+const response = await apiFetch('/api/user/set-private', {
+method: 'POST',
+body: JSON.stringify({tg_id: user.tg_id, is_private: isChecked})
+});
+if (response && response.success) {
+user.private_profile = isChecked;
+console.log("Профиль стал", isChecked ? "приватным." : "публичным.");
+} else {
+console.error("Ошибка обновления статуса приватности:", response?.error || "Неизвестная ошибка");
+toggle.checked = !isChecked;
 }
-
+}
 function showToast(message) {
-	const toast = document.getElementById('notification-toast');
-	toast.textContent = message;
-	toast.classList.add('show');
-	setTimeout(() => toast.classList.remove('show'), 2500);
+const toast = document.getElementById('notification-toast');
+toast.textContent = message;
+toast.classList.add('show');
+setTimeout(() => toast.classList.remove('show'), 2500);
 }
-
 async function watchBattle() {
-	if (document.getElementById('scr-fight').classList.contains('active')) return;
-	isWatchingMode = true;
-	startFight(0);
+if (document.getElementById('scr-fight').classList.contains('active')) return;
+isWatchingMode = true;
+startFight(0);
 }
-
 async function updateName() {
-	const name = document.getElementById('edit-name').value;
-	if (!name) return;
-	await apiFetch('/api/user/update-name', {
-		method: 'POST',
-		body: JSON.stringify({tg_id: user.tg_id, display_name: name})
-	});
-	user.display_name = name;
-	tg.HapticFeedback.notificationOccurred('success');
-	nav('scr-main');
+const name = document.getElementById('edit-name').value;
+if (!name) return;
+await apiFetch('/api/user/update-name', {
+method: 'POST',
+body: JSON.stringify({tg_id: user.tg_id, display_name: name})
+});
+user.display_name = name;
+tg.HapticFeedback.notificationOccurred('success');
+nav('scr-main');
 }
-
 function preStart(side) {
-	const input = document.getElementById('bet-amt');
-	const amt = parseInt(input.value);
-	if (isNaN(amt) || amt < 10) return;
-	if (amt > user.balance) {
-		tg.HapticFeedback.notificationOccurred('error');
-		showResult("ОШИБКА", "МАЛО ЗОЛОТА", false);
-		return;
-	}
-	selectedSide = side;
-	isWatchingMode = false;
-	startFight(amt);
+const input = document.getElementById('bet-amt');
+const amt = parseInt(input.value);
+if (isNaN(amt) || amt < 10) return;
+if (amt > user.balance) {
+tg.HapticFeedback.notificationOccurred('error');
+showResult("ОШИБКА", "МАЛО ЗОЛОТА", false);
+return;
 }
-
+selectedSide = side;
+isWatchingMode = false;
+startFight(amt);
+}
 function showResult(title, sum, isWin) {
-	const overlay = document.getElementById('result-overlay');
-	const card = document.getElementById('result-card');
-	const t = document.getElementById('res-title');
-	const s = document.getElementById('res-sum');
-	const icon = document.getElementById('res-icon');
-	t.innerText = title;
-	s.innerText = sum;
-	icon.innerText = isWin ? "🏆" : "💀";
-	overlay.style.display = 'flex';
-	setTimeout(() => card.classList.add('active'), 50);
+const overlay = document.getElementById('result-overlay');
+const card = document.getElementById('result-card');
+const t = document.getElementById('res-title');
+const s = document.getElementById('res-sum');
+const icon = document.getElementById('res-icon');
+t.innerText = title;
+s.innerText = sum;
+icon.innerText = isWin ? "🏆" : "💀";
+overlay.style.display = 'flex';
+setTimeout(() => card.classList.add('active'), 50);
 }
-
 function closeResult() {
-	const card = document.getElementById('result-card');
-	card.classList.remove('active');
-	setTimeout(() => {
-		document.getElementById('result-overlay').style.display = 'none';
-		if (!isWatchingMode) auth(); // Обновляем данные после боя
-		else nav('scr-main');
-	}, 300);
+const card = document.getElementById('result-card');
+card.classList.remove('active');
+setTimeout(() => {
+document.getElementById('result-overlay').style.display = 'none';
+if (!isWatchingMode) auth(); // Обновляем данные после боя
+else nav('scr-main');
+}, 300);
 }
-
 function spawnDmg(container, val) {
-	const p = document.createElement('div');
-	p.className = 'dmg-popup';
-	p.innerText = `-${val}`;
-	p.style.left = Math.random() * 40 + 30 + "%";
-	container.appendChild(p);
-	setTimeout(() => p.remove(), 700);
+const p = document.createElement('div');
+p.className = 'dmg-popup';
+p.innerText = `-${val}`;
+p.style.left = Math.random() * 40 + 30 + "%";
+container.appendChild(p);
+setTimeout(() => p.remove(), 700);
 }
-
 function startFight(bet) {
-	nav('scr-fight');
-	let h1 = 100, h2 = 100;
-	const log = document.getElementById('fight-log');
-	document.getElementById('hp1-f').style.width = "100%";
-	document.getElementById('hp2-f').style.width = "100%";
-	document.getElementById('hp1-txt').innerText = "100";
-	document.getElementById('hp2-txt').innerText = "100";
-	log.innerText = "БОЙ НАЧАЛСЯ!";
-	const interval = setInterval(async () => {
-		const dmg = Math.floor(Math.random() * 12) + 6;
-		const target = Math.random() > 0.5 ? 1 : 2;
-		const cont = document.getElementById(`cont-${target}`);
-		cont.classList.add('hit');
-		spawnDmg(cont, dmg);
-		setTimeout(() => cont.classList.remove('hit'), 250);
-		if (target === 1) {
-			h1 = Math.max(0, h1 - dmg);
-			document.getElementById('hp1-f').style.width = h1 + "%";
-			document.getElementById('hp1-txt').innerText = h1;
-		} else {
-			h2 = Math.max(0, h2 - dmg);
-			document.getElementById('hp2-f').style.width = h2 + "%";
-			document.getElementById('hp2-txt').innerText = h2;
-		}
-		tg.HapticFeedback.impactOccurred('medium');
-		if (h1 <= 0 || h2 <= 0) {
-			clearInterval(interval);
-			const isWin = (h1 > 0 && selectedSide === 1) || (h2 > 0 && selectedSide === 2);
-			let resultPromise;
-			if (isWatchingMode) {
-				resultPromise = apiFetch('/api/battle/watch', {
-					method: 'POST',
-					body: JSON.stringify({tg_id: user.tg_id})
-				});
-			}
-			else {
-				resultPromise = apiFetch('/api/battle/result', {
-					method: 'POST',
-					body: JSON.stringify({tg_id: user.tg_id, is_win: isWin, bet_amount: bet})
-				});
-			}
-			const result = await resultPromise;
-			// --- ИСПРАВЛЕНИЕ 2: Обновление баланса после боя ---
-			if (result && (result.new_balance !== undefined || result.reward !== undefined)) {
-				// Для просмотра боя и результата боя сервер возвращает new_balance
-				// Для просмотра также возвращается reward
-				if (result.new_balance !== undefined) {
-					user.balance = result.new_balance; // Обновляем баланс в локальном объекте
-					user.acorns = result.acorns; // Обновляем acorns
-					user.plant_acorns = result.plant_acorns; // Обновляем plant_acorns
-					document.getElementById('bal-val').innerText = user.balance.toLocaleString(); // Обновляем интерфейс
-					document.getElementById('acorns-val').innerText = user.acorns.toLocaleString(); // Обновляем интерфейс
-				}
-			}
-			// --- КОНЕЦ ИСПРАВЛЕНИЯ 2 ---
-			setTimeout(() => {
-				if (isWatchingMode) {
-					tg.HapticFeedback.notificationOccurred('success');
-					showResult("ПОБЕДА", "+" + (result.reward || 1) + " 💰", true);
-				}
-				else {
-					if (isWin) {
-						tg.HapticFeedback.notificationOccurred('success');
-						showResult("ПОБЕДА", `+${bet} 💰`, true);
-					} else {
-						tg.HapticFeedback.notificationOccurred('error');
-						showResult("ПОРАЖЕНИЕ", `-${bet} 💰`, false);
-					}
-				}
-			}, 1000);
-		}
-	}, 700);
+nav('scr-fight');
+let h1 = 100, h2 = 100;
+const log = document.getElementById('fight-log');
+document.getElementById('hp1-f').style.width = "100%";
+document.getElementById('hp2-f').style.width = "100%";
+document.getElementById('hp1-txt').innerText = "100";
+document.getElementById('hp2-txt').innerText = "100";
+log.innerText = "БОЙ НАЧАЛСЯ!";
+const interval = setInterval(async () => {
+const dmg = Math.floor(Math.random() * 12) + 6;
+const target = Math.random() > 0.5 ? 1 : 2;
+const cont = document.getElementById(`cont-${target}`);
+cont.classList.add('hit');
+spawnDmg(cont, dmg);
+setTimeout(() => cont.classList.remove('hit'), 250);
+if (target === 1) {
+h1 = Math.max(0, h1 - dmg);
+document.getElementById('hp1-f').style.width = h1 + "%";
+document.getElementById('hp1-txt').innerText = h1;
+} else {
+h2 = Math.max(0, h2 - dmg);
+document.getElementById('hp2-f').style.width = h2 + "%";
+document.getElementById('hp2-txt').innerText = h2;
 }
-
+tg.HapticFeedback.impactOccurred('medium');
+if (h1 <= 0 || h2 <= 0) {
+clearInterval(interval);
+const isWin = (h1 > 0 && selectedSide === 1) || (h2 > 0 && selectedSide === 2);
+let resultPromise;
+if (isWatchingMode) {
+resultPromise = apiFetch('/api/battle/watch', {
+method: 'POST',
+body: JSON.stringify({tg_id: user.tg_id})
+});
+}
+else {
+resultPromise = apiFetch('/api/battle/result', {
+method: 'POST',
+body: JSON.stringify({tg_id: user.tg_id, is_win: isWin, bet_amount: bet})
+});
+}
+const result = await resultPromise;
+// --- ИСПРАВЛЕНИЕ 2: Обновление баланса после боя ---
+if (result && (result.new_balance !== undefined || result.reward !== undefined)) {
+// Для просмотра боя и результата боя сервер возвращает new_balance
+// Для просмотра также возвращается reward
+if (result.new_balance !== undefined) {
+user.balance = result.new_balance; // Обновляем баланс в локальном объекте
+user.acorns = result.acorns; // Обновляем acorns
+user.plant_acorns = result.plant_acorns; // Обновляем plant_acorns
+// НОВОЕ: Обновляем новые поля, если они есть в ответе
+if (result.max_balance !== undefined) user.max_balance = result.max_balance;
+if (result.watched_battles !== undefined) user.watched_battles = result.watched_battles;
+document.getElementById('bal-val').innerText = user.balance.toLocaleString(); // Обновляем интерфейс
+document.getElementById('acorns-val').innerText = user.acorns.toLocaleString(); // Обновляем интерфейс
+}
+}
+// --- КОНЕЦ ИСПРАВЛЕНИЯ 2 ---
+setTimeout(() => {
+if (isWatchingMode) {
+tg.HapticFeedback.notificationOccurred('success');
+showResult("ПОБЕДА", "+" + (result.reward || 1) + " 💰", true);
+}
+else {
+if (isWin) {
+tg.HapticFeedback.notificationOccurred('success');
+showResult("ПОБЕДА", `+${bet} 💰`, true);
+} else {
+tg.HapticFeedback.notificationOccurred('error');
+showResult("ПОРАЖЕНИЕ", `-${bet} 💰`, false);
+}
+}
+}, 1000);
+}
+}, 700);
+}
 auth();
 </script>
 </body>
