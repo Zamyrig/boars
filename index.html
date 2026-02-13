@@ -797,6 +797,13 @@ font-size: 1.8rem;
 font-size: 4rem;
 }
 }
+/* --- НОВЫЙ СТИЛЬ: Disabled состояние кнопки просмотра --- */
+#watch-btn.disabled {
+background: #333;
+color: #888;
+box-shadow: none;
+cursor: not-allowed;
+}
 </style>
 </head>
 <body>
@@ -900,7 +907,7 @@ transform: rotate(360deg);
 <!-- --- НОВАЯ КНОПКА СЛУЧАЙНЫЙ КАБАН --- -->
 <button class="btn-wood" style="background: #e74c3c; border:none; box-shadow: 0 4px 0 #c0392b; margin: 8px auto; width: 80%; display: block;" onclick="startRandomBattle()">ПОСТАВИТЬ НА СЛУЧАЙНОГО</button>
 <!-- --- КОНЕЦ НОВОЙ КНОПКИ --- -->
-<button class="btn-wood" style="background: #7f8c8d; border:none; box-shadow: 0 4px 0 #566573; margin: 8px auto; width: 80%; display: block;" onclick="watchBattle()">ПОСМОТРЕТЬ БОЙ (+1)</button>
+<button class="btn-wood" style="background: #4cd964; border:none; box-shadow: 0 4px 0 #2d9a4a; margin: 8px auto; width: 80%; display: block; color: #000;" id="watch-btn" onclick="watchBattle()">(+200 кабанкойнов)</button>
 <button class="btn-wood" style="margin-top: 8px; width: 100%; opacity: 0.6;" onclick="nav('scr-main')">ОТМЕНА</button>
 </div>
 </div>
@@ -1031,6 +1038,62 @@ let currentShopItem = null; // Для выбранного предмета в �
 let currentShopQuantity = 1; // Для количества в магазине
 let currentAction = 'buy'; // 'buy' или 'sell'
 let prices = {}; // Хранение цен из prices.json
+let watchCooldownTimer = null; // Для хранения таймера обратного отсчета
+
+// --- НОВАЯ ФУНКЦИЯ: Форматирование времени (HH:MM:SS)
+function formatTime(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+// --- НОВАЯ ФУНКЦИЯ: Обновление состояния кнопки просмотра боя ---
+function updateWatchButton() {
+    if (!user) return;
+    const button = document.getElementById('watch-btn');
+    const now = new Date();
+    const cooldownEndsStr = user.watched_cooldown_ends;
+
+    if (cooldownEndsStr) {
+        const cooldownEnds = new Date(cooldownEndsStr);
+        const remainingMs = cooldownEnds - now;
+
+        if (remainingMs <= 0) {
+            // Кулдаун истёк — можно смотреть
+            button.textContent = '(+200 кабанкойнов)';
+            button.onclick = watchBattle;
+            button.disabled = false;
+            button.classList.remove('disabled');
+            // Очищаем таймер
+            if (watchCooldownTimer) clearInterval(watchCooldownTimer);
+            watchCooldownTimer = null;
+        } else {
+            // Кулдаун активен — показываем таймер
+            const remainingSeconds = Math.floor(remainingMs / 1000);
+            button.textContent = `До восстановления: ${formatTime(remainingSeconds)}`;
+            button.onclick = null;
+            button.disabled = true;
+            button.classList.add('disabled');
+            // Запускаем обновление каждую секунду
+            if (watchCooldownTimer) clearInterval(watchCooldownTimer);
+            watchCooldownTimer = setInterval(() => {
+                updateWatchButton();
+            }, 1000);
+        }
+    } else {
+        // Никогда не смотрел — сразу доступно
+        button.textContent = '(+200 кабанкойнов)';
+        button.onclick = watchBattle;
+        button.disabled = false;
+        button.classList.remove('disabled');
+        if (watchCooldownTimer) clearInterval(watchCooldownTimer);
+        watchCooldownTimer = null;
+    }
+}
+
+// --- КОНЕЦ НОВОЙ ФУНКЦИИ ---
+
 // --- НОВЫЙ ЭНДПОИНТ ДЛЯ СТАРТА БОЯ (SERVER-SIDE AUTHORITY) ---
 async function startBattleServerSide(betAmount) {
 const tgUser = tg.initDataUnsafe?.user || {id: "dev_user", username: "kaban", first_name: "Хряк"};
@@ -1059,6 +1122,7 @@ reward: result.reward
 }
 return null;
 }
+
 // --- КОНЕЦ НОВОГО ЭНДПОИНТА ---
 async function apiFetch(endpoint, options = {}) {
 try {
@@ -1072,6 +1136,7 @@ return await res.json();
 return null;
 }
 }
+
 // --- НОВАЯ ФУНКЦИЯ: Загрузка цен из prices.json ---
 async function loadPrices() {
 try {
@@ -1090,6 +1155,7 @@ prices = {
 };
 }
 }
+
 async function auth() {
 const tgUser = tg.initDataUnsafe?.user || {id: "dev_user", username: "kaban", first_name: "Хряк"};
 user = await apiFetch('/api/auth', {
@@ -1104,6 +1170,7 @@ console.error("Не удалось авторизоваться");
 showToast("Ошибка загрузки профиля");
 }
 }
+
 function updateUI() {
 if (!user) return;
 // --- ИСПРАВЛЕНИЕ 2: Обновление баланса и желудей в интерфейсе ---
@@ -1121,7 +1188,11 @@ document.getElementById('st-max-balance').innerText = (user.max_balance || 0).to
 document.getElementById('st-watched').innerText = user.watched_battles || 0;
 const toggle = document.getElementById('private-profile-toggle');
 if (toggle) toggle.checked = !!user.private_profile;
+
+// --- НОВОЕ: Обновление состояния кнопки просмотра боя ---
+updateWatchButton();
 }
+
 function nav(id) {
 document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
 document.getElementById(id).classList.add('active');
@@ -1142,6 +1213,9 @@ document.getElementById('bg-shop').style.display = 'block';
 // ✅ ИСПРАВЛЕНИЕ: Сброс состояния магазина при входе
 resetShopState();
 loadShopItems(); // Загружаем предметы при открытии магазина
+} else if (id === 'scr-bet') {
+// Обновляем состояние кнопки просмотра при входе на экран ставок
+updateWatchButton();
 }
 const isCardScreen = ['scr-bet', 'scr-inventory', 'scr-shop', 'scr-profile', 'scr-rank', 'scr-load'].includes(id);
 document.body.classList.toggle('dimmed', isCardScreen);
@@ -1158,6 +1232,7 @@ document.body.classList.remove('show-profile-btn');
 if (id === 'scr-rank') loadRank(); // Загружаем рейтинг при открытии экрана
 tg.HapticFeedback.impactOccurred('light');
 }
+
 // ✅ НОВАЯ ФУНКЦИЯ: Сброс состояния магазина (вызов при входе и при нажатии НАЗАД)
 function resetShopState() {
 currentShopItem = null;
@@ -1179,6 +1254,7 @@ document.querySelector('.slider-thumb').style.transform = 'translateX(0)';
 updateTradeButton();
 updatePriceDisplay();
 }
+
 // --- НОВАЯ ФУНКЦИЯ: Загрузка предметов магазина ---
 async function loadShopItems() {
 // Сначала загружаем цены
@@ -1206,6 +1282,7 @@ div.innerHTML = `
 container.appendChild(div);
 }
 }
+
 // --- НОВАЯ ФУНКЦИЯ: Выбор предмета в магазине ---
 function selectShopItem(item) {
 currentShopItem = item;
@@ -1221,6 +1298,7 @@ updatePriceDisplay();
 document.querySelectorAll('#shop-items-container .shop-item').forEach(el => el.classList.remove('selected'));
 event.currentTarget.classList.add('selected');
 }
+
 // --- НОВАЯ ФУНКЦИЯ: Переключение действия (КУПИТЬ/ПРОДАТЬ) ---
 function toggleAction() {
 const checkbox = document.getElementById('action-toggle');
@@ -1237,12 +1315,14 @@ thumb.style.transform = checkbox.checked ? 'translateX(76px)' : 'translateX(0)';
 const slider = document.querySelector('.slider');
 slider.style.backgroundColor = currentAction === 'buy' ? 'var(--win)' : 'var(--lose)';
 }
+
 // --- НОВАЯ ФУНКЦИЯ: Обновление текста кнопки сделки ---
 function updateTradeButton() {
 const button = document.querySelector('#scr-shop .btn-trade');
 button.innerText = currentAction === 'buy' ? 'КУПИТЬ' : 'ПРОДАТЬ';
 button.classList.toggle('sell-mode', currentAction === 'sell');
 }
+
 // --- НОВАЯ ФУНКЦИЯ: Обновление цен в сетке магазина ---
 function updateShopItemPrices() {
 const items = document.querySelectorAll('#shop-items-container .shop-item');
@@ -1259,6 +1339,7 @@ sell_price: prices[itemId]?.sell || 0
 el.querySelector('.shop-item-price').innerText = `${currentAction === 'buy' ? item.price : item.sell_price} 💰`;
 });
 }
+
 // --- НОВАЯ ФУНКЦИЯ: Обновление текста цены под предметом и итоговой суммы ---
 function updatePriceDisplay() {
 const totalCostEl = document.getElementById('total-cost');
@@ -1273,6 +1354,7 @@ document.getElementById('detail-price').innerText = `Цена: ${price} 💰 / �
 totalCostEl.innerHTML = `${price} 💰 × ${currentShopQuantity} = ${total} 💰`;
 totalCostEl.style.display = 'block';
 }
+
 // --- НОВАЯ ФУНКЦИЯ: Обработка ввода в поле ---
 function onQtyInput(value) {
 let newQty = parseInt(value) || 1;
@@ -1281,6 +1363,7 @@ if (newQty > 999999) newQty = 999999;
 currentShopQuantity = newQty;
 updatePriceDisplay(); // Обновляем итоговую сумму
 }
+
 // --- НОВАЯ ФУНКЦИЯ: Совершение транзакции ---
 async function performTransaction() {
 if (!currentShopItem) {
@@ -1312,6 +1395,7 @@ tg.HapticFeedback.notificationOccurred('error');
 showToast(response?.error || "Ошибка операции");
 }
 }
+
 // --- НОВАЯ ФУНКЦИЯ: Определение позиции пользователя ---
 function findUserRank(data) {
 for (let i = 0; i < data.length; i++) {
@@ -1321,11 +1405,13 @@ return i + 1; // Позиция начинается с 1
 }
 return '?';
 }
+
 // --- НОВАЯ ФУНКЦИЯ: Расчет прогресса для баланса ---
 function calculateProgress(userBalance, maxBalance) {
 if (maxBalance <= 0) return 0;
 return Math.min(100, (userBalance / maxBalance) * 100);
 }
+
 // --- ИСПРАВЛЕНИЕ 1: Изменение функции loadRank ---
 async function loadRank() {
 fullLeaderboardLoaded = false;
@@ -1397,7 +1483,9 @@ document.getElementById('rank-list').style.display = 'block';
 document.getElementById('toggle-full-leaderboard').style.display = 'block';
 document.getElementById('toggle-full-leaderboard').textContent = 'Развернуть';
 }
+
 // --- КОНЕЦ ИСПРАВЛЕНИЯ 1 ---
+
 // --- ИСПРАВЛЕНИЕ 1: Изменение функции toggleFullLeaderboard ---
 async function toggleFullLeaderboard() {
 const button = document.getElementById('toggle-full-leaderboard');
@@ -1426,7 +1514,9 @@ fullLeaderboardLoaded = false;
 loadRank(); // Перезагружаем топ-10 (и обновим "Твое место" для топ-10)
 }
 }
+
 // --- КОНЕЦ ИСПРАВЛЕНИЯ 1 ---
+
 function renderLeaderboard(data, isFullList = false, maxBalanceOverride = null) {
 const list = document.getElementById('rank-list');
 list.innerHTML = "";
@@ -1458,6 +1548,7 @@ item.onclick = () => showUserDetail(u);
 list.appendChild(item);
 });
 }
+
 // --- ИЗМЕНЕНАЯ ФУНКЦИЯ: Отображение деталей пользователя ---
 function showUserDetail(u) {
 tg.HapticFeedback.selectionChanged();
@@ -1501,10 +1592,13 @@ btn.onclick = null;
 // Показываем модальное окно
 document.getElementById('user-modal').style.display = 'flex';
 }
+
 // --- КОНЕЦ ИЗМЕНЁННОЙ ФУНКЦИИ ---
+
 function closeModal() {
 document.getElementById('user-modal').style.display = 'none';
 }
+
 async function togglePrivateProfile() {
 const toggle = document.getElementById('private-profile-toggle');
 const isChecked = toggle.checked;
@@ -1520,17 +1614,20 @@ console.error("Ошибка обновления статуса приватно
 toggle.checked = !isChecked;
 }
 }
+
 function showToast(message) {
 const toast = document.getElementById('notification-toast');
 toast.textContent = message;
 toast.classList.add('show');
 setTimeout(() => toast.classList.remove('show'), 2500);
 }
+
 async function watchBattle() {
 if (document.getElementById('scr-fight').classList.contains('active')) return;
 isWatchingMode = true;
 startFight(0);
 }
+
 async function updateName() {
 const name = document.getElementById('edit-name').value;
 if (!name) return;
@@ -1542,6 +1639,7 @@ user.display_name = name;
 tg.HapticFeedback.notificationOccurred('success');
 nav('scr-main');
 }
+
 function preStart(side) {
 const input = document.getElementById('bet-amt');
 const amt = parseInt(input.value);
@@ -1555,6 +1653,7 @@ selectedSide = side;
 isWatchingMode = false;
 startFight(amt);
 }
+
 // --- НОВАЯ ФУНКЦИЯ: Случайный бой ---
 function startRandomBattle() {
 const input = document.getElementById('bet-amt');
@@ -1570,7 +1669,9 @@ selectedSide = 0;
 isWatchingMode = false;
 startFight(amt);
 }
+
 // --- КОНЕЦ НОВОЙ ФУНКЦИИ ---
+
 function showResult(title, sum, isWin) {
 const overlay = document.getElementById('result-overlay');
 const card = document.getElementById('result-card');
@@ -1583,6 +1684,7 @@ icon.innerText = isWin ? "🏆" : "💀";
 overlay.style.display = 'flex';
 setTimeout(() => card.classList.add('active'), 50);
 }
+
 function closeResult() {
 const card = document.getElementById('result-card');
 card.classList.remove('active');
@@ -1592,6 +1694,7 @@ if (!isWatchingMode) auth(); // Обновляем данные после бо�
 else nav('scr-main');
 }, 300);
 }
+
 function spawnDmg(container, val) {
 const p = document.createElement('div');
 p.className = 'dmg-popup';
@@ -1600,6 +1703,7 @@ p.style.left = Math.random() * 40 + 30 + "%";
 container.appendChild(p);
 setTimeout(() => p.remove(), 700);
 }
+
 function startFight(bet) {
 nav('scr-fight');
 let h1 = 100, h2 = 100;
@@ -1627,8 +1731,11 @@ user.acorns = result.acorns;
 user.plant_acorns = result.plant_acorns;
 user.max_balance = result.max_balance;
 user.watched_battles = result.watched_battles;
+user.watched_cooldown_ends = result.watched_cooldown_ends; // Обновляем время кулдауна
 document.getElementById('bal-val').innerText = user.balance.toLocaleString();
 document.getElementById('acorns-val').innerText = user.acorns.toLocaleString();
+// Обновляем кнопку просмотра после получения результата
+updateWatchButton();
 }
 setTimeout(() => {
 tg.HapticFeedback.notificationOccurred('success');
@@ -1712,6 +1819,7 @@ showResult("ПОРАЖЕНИЕ", `${finalReward} 💰`, false);
 };
 runFightLogic();
 }
+
 auth();
 </script>
 </body>
