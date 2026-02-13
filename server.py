@@ -2,16 +2,15 @@ from flask import Flask, request, jsonify, send_file, send_from_directory
 import os
 import sqlite3
 from datetime import datetime
+import random
 # Включение CORS
 from flask_cors import CORS
 import json
-
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
 PORT = 3000
 DB_PATH = './database.db'
 STATIC_PATH = os.path.join(os.path.dirname(__file__), 'assets')
-
 CORS(app)
 
 # --- НАЧАЛО: ОПРЕДЕЛЕНИЕ ФУНКЦИЙ ---
@@ -22,7 +21,6 @@ def migrate_from_json_manual_call():
     json_path = './database.json'
     if not os.path.exists(json_path):
         return {'error': 'database.json not found'}
-
     try:
         with open(json_path, 'r', encoding='utf-8') as f:
             old_data = json.load(f)
@@ -106,7 +104,6 @@ def init_db():
     """Инициализация базы данных и создание/обновление таблиц"""
     conn = get_db_connection()
     cursor = conn.cursor()
-
     # --- СОЗДАНИЕ ТАБЛИЦЫ USERS ---
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -173,7 +170,6 @@ def check_update_max_balance(cursor, tg_id, new_balance):
     cursor.execute('SELECT max_balance FROM users WHERE tg_id = ?', (tg_id,))
     res = cursor.fetchone()
     current_max = res['max_balance'] if res else 0
-    
     if new_balance > current_max:
         cursor.execute('UPDATE users SET max_balance = ? WHERE tg_id = ?', (new_balance, tg_id))
 
@@ -340,67 +336,69 @@ def watch_battle():
         conn.close()
         return jsonify({'error': 'User not found'}), 404
 
-# 6. Результат боя
-@app.route('/api/battle/result', methods=['POST'])
-def battle_result():
+# 6. Новый эндпоинт для начала боя - SERVER SIDE AUTHORITY
+@app.route('/api/battle/start', methods=['POST'])
+def start_battle():
     data = request.get_json()
     tg_id = str(data.get('tg_id'))
-    is_win = data.get('is_win')
-    bet_amount = data.get('bet_amount')
+    bet_amount = int(data.get('bet_amount'))
+
+    if bet_amount <= 0:
+        return jsonify({'error': 'Bet amount must be greater than 0'}), 400
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
+    cursor.execute('SELECT balance FROM users WHERE tg_id = ?', (tg_id,))
     user = cursor.fetchone()
 
-    if user is not None:
-        bet = int(bet_amount) if bet_amount else 0
-        new_balance = user['balance']
-        
-        if is_win:
-            new_balance += bet
-            cursor.execute('''
-                UPDATE users
-                SET total_games = total_games + 1,
-                    wins = wins + 1,
-                    balance = ?,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE tg_id = ?
-            ''', (new_balance, tg_id))
-            # Проверяем на рекорд баланса только при победе
-            check_update_max_balance(cursor, tg_id, new_balance)
-        else:
-            new_balance -= bet
-            cursor.execute('''
-                UPDATE users
-                SET total_games = total_games + 1,
-                    lose = lose + 1,
-                    balance = ?,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE tg_id = ?
-            ''', (new_balance, tg_id))
-
-        cursor.execute('''
-            INSERT INTO battle_history (tg_id, opponent_display_name, bet_amount, is_win, reward_given)
-            VALUES (?, ?, ?, ?, 0)
-        ''', (tg_id, f"Оппонент_{datetime.now().strftime('%S')}", bet, int(is_win)))
-
-        conn.commit()
-        
-        cursor.execute('SELECT balance, acorns, plant_acorns, max_balance, watched_battles FROM users WHERE tg_id = ?', (tg_id,))
-        updated_user = cursor.fetchone()
-        conn.close()
-        return jsonify({
-            'success': True,
-            'new_balance': updated_user['balance'],
-            'acorns': updated_user['acorns'],
-            'plant_acorns': updated_user['plant_acorns'],
-            'max_balance': updated_user['max_balance'],
-            'watched_battles': updated_user['watched_battles']
-        })
-    else:
+    if user is None:
         conn.close()
         return jsonify({'error': 'User not found'}), 404
+
+    if user['balance'] < bet_amount:
+        conn.close()
+        return jsonify({'error': 'Not enough balance'}), 400
+
+    # Рассчитываем исход боя на сервере
+    is_win = random.choice([True, False])
+
+    # Обновляем баланс сразу
+    new_balance = user['balance']
+    if is_win:
+        new_balance += bet_amount
+        # Проверяем на рекорд баланса только при победе
+        check_update_max_balance(cursor, tg_id, new_balance)
+    else:
+        new_balance -= bet_amount
+
+    # Обновляем статистику
+    cursor.execute('''
+        UPDATE users
+        SET total_games = total_games + 1,
+            balance = ?,
+            wins = wins + ?,
+            lose = lose + ?
+        WHERE tg_id = ?
+    ''', (new_balance, 1 if is_win else 0, 0 if is_win else 1, tg_id))
+
+    # Сохраняем историю боя
+    cursor.execute('''
+        INSERT INTO battle_history (tg_id, opponent_display_name, bet_amount, is_win, reward_given)
+        VALUES (?, ?, ?, ?, 0)
+    ''', (tg_id, f"Оппонент_{datetime.now().strftime('%S')}", bet_amount, int(is_win)))
+
+    conn.commit()
+    conn.close()
+
+    # Возвращаем результат
+    reward = bet_amount if is_win else -bet_amount
+    return jsonify({
+        'success': True,
+        'is_win': is_win,
+        'new_balance': new_balance,
+        'reward': reward,
+        'bet_amount': bet_amount
+    })
 
 # 7. Рейтинг (Топ 10)
 @app.route('/api/leaderboard', methods=['GET'])
@@ -408,14 +406,13 @@ def leaderboard():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT tg_id, username, display_name, balance, total_games, wins, lose, private_profile, acorns, plant_acorns, max_balance, watched_battles
-        FROM users
-        ORDER BY balance DESC
-        LIMIT 10
+    SELECT tg_id, username, display_name, balance, total_games, wins, lose, private_profile, acorns, plant_acorns, max_balance, watched_battles
+    FROM users
+    ORDER BY balance DESC
+    LIMIT 10
     ''')
     players = cursor.fetchall()
     conn.close()
-
     result = [{
         'tg_id': row['tg_id'],
         'username': row['username'],
@@ -439,13 +436,12 @@ def full_leaderboard():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT tg_id, username, display_name, balance, total_games, wins, lose, private_profile, acorns, plant_acorns, max_balance, watched_battles
-        FROM users
-        ORDER BY balance DESC
+    SELECT tg_id, username, display_name, balance, total_games, wins, lose, private_profile, acorns, plant_acorns, max_balance, watched_battles
+    FROM users
+    ORDER BY balance DESC
     ''')
     players = cursor.fetchall()
     conn.close()
-
     result = [{
         'tg_id': row['tg_id'],
         'username': row['username'],
@@ -471,7 +467,6 @@ def get_user(tg_id):
     cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
     user = cursor.fetchone()
     conn.close()
-
     if user is not None:
         return jsonify({
             'tg_id': user['tg_id'],
@@ -501,7 +496,7 @@ def migrate_from_json():
     else:
         return jsonify(result), 500
 
-# === ЭНДПОИНТЫ ДЛЯ МАГАЗИНА ===
+# === ЭНДПИНТЫ ДЛЯ МАГАЗИНА ===
 
 # 11. Получение списка предметов магазина
 @app.route('/api/shop/items', methods=['GET'])
@@ -515,29 +510,29 @@ def shop_items():
     except json.JSONDecodeError:
         print("Ошибка чтения prices.json.")
         prices = {}
-    
+
     # Defaults
     def_prices = {
-        "plant_acorn": {"buy": 1000, "sell": 800},
-        "acorn": {"buy": 200, "sell": 150}
+         "plant_acorn": { "buy": 1000,  "sell": 800},
+         "acorn": { "buy": 200,  "sell": 150}
     }
 
     items = [
         {
-            "id": "acorn",
-            "name": "Желудь",
-            "icon": "acorn.png",
-            "price": prices.get("acorn", {}).get("buy", def_prices["acorn"]["buy"]),
-            "sell_price": prices.get("acorn", {}).get("sell", def_prices["acorn"]["sell"]),
-            "description": "Основной ресурс для выращивания."
+             "id":  "acorn",
+             "name":  "Желудь",
+             "icon":  "acorn.png",
+             "price": prices.get("acorn", {}).get("buy", def_prices["acorn"]["buy"]),
+             "sell_price": prices.get("acorn", {}).get("sell", def_prices["acorn"]["sell"]),
+             "description":  "Основной ресурс для выращивания."
         },
         {
-            "id": "plant_acorn",
-            "name": "Росток",
-            "icon": "plant_acorn.png",
-            "price": prices.get("plant_acorn", {}).get("buy", def_prices["plant_acorn"]["buy"]),
-            "sell_price": prices.get("plant_acorn", {}).get("sell", def_prices["plant_acorn"]["sell"]),
-            "description": "Готовый к посадке росток."
+             "id":  "plant_acorn",
+             "name":  "Росток",
+             "icon":  "plant_acorn.png",
+             "price": prices.get("plant_acorn", {}).get("buy", def_prices["plant_acorn"]["buy"]),
+             "sell_price": prices.get("plant_acorn", {}).get("sell", def_prices["plant_acorn"]["sell"]),
+             "description":  "Готовый к посадке росток."
         }
     ]
     return jsonify(items)
@@ -570,7 +565,6 @@ def shop_buy():
     tg_id = str(data.get('tg_id'))
     item_id = data.get('item_id')
     quantity = int(data.get('quantity', 1))
-
     if quantity <= 0:
         return jsonify({'error': 'Quantity must be > 0'}), 400
 
@@ -579,8 +573,8 @@ def shop_buy():
             prices = json.load(f)
     except:
         prices = {
-            "plant_acorn": {"buy": 1000, "sell": 800},
-            "acorn": {"buy": 200, "sell": 150}
+             "plant_acorn": { "buy": 1000,  "sell": 800},
+             "acorn": { "buy": 200,  "sell": 150}
         }
 
     price_per_unit = prices.get(item_id, {}).get("buy", 0)
@@ -621,7 +615,7 @@ def shop_buy():
 
     return jsonify({
         'success': True,
-        'new_balance': new_balance,
+        'new_balance':  new_balance,
         'new_acorns': new_acorns if item_id == 'acorn' else user['acorns'],
         'new_plant_acorns': new_plant_acorns if item_id == 'plant_acorn' else user['plant_acorns']
     })
@@ -633,7 +627,6 @@ def shop_sell():
     tg_id = str(data.get('tg_id'))
     item_id = data.get('item_id')
     quantity = int(data.get('quantity', 1))
-
     if quantity <= 0:
         return jsonify({'error': 'Quantity must be > 0'}), 400
 
@@ -642,8 +635,8 @@ def shop_sell():
             prices = json.load(f)
     except:
         prices = {
-            "plant_acorn": {"buy": 1000, "sell": 800},
-            "acorn": {"buy": 200, "sell": 150}
+             "plant_acorn": { "buy": 1000,  "sell": 800},
+             "acorn": { "buy": 200,  "sell": 150}
         }
 
     sell_price_per_unit = prices.get(item_id, {}).get("sell", 0)
@@ -669,10 +662,10 @@ def shop_sell():
         return jsonify({'error': 'Not enough plant_acorns'}), 400
 
     new_balance = user['balance'] + total_reward
-    
+
     # Обновление макс баланса при продаже
     if new_balance > user['max_balance']:
-         cursor.execute('UPDATE users SET max_balance = ? WHERE tg_id = ?', (new_balance, tg_id))
+        cursor.execute('UPDATE users SET max_balance = ? WHERE tg_id = ?', (new_balance, tg_id))
 
     if item_id == 'acorn':
         new_acorns = user['acorns'] - quantity
@@ -698,6 +691,7 @@ def shop_sell():
     })
 
 # --- ИНИЦИАЛИЗАЦИЯ И ЗАПУСК ПРИЛОЖЕНИЯ ---
+
 if __name__ == '__main__':
     init_db()
     migrate_from_json_on_startup()
