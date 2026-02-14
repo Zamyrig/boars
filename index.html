@@ -776,6 +776,57 @@ color: var(--gold);
 .lb-val-acorn {
 color: #a0522d; /* Цвет желудя */
 }
+/* --- СТИЛИ ДЛЯ КНОПКИ ПРОСМОТРА БОЯ --- */
+.btn-watch-ready {
+background: var(--win); /* Зелёный */
+color: #000;
+border: none;
+box-shadow: 0 4px 0 #2d9a4a;
+display: flex !important;
+flex-direction: column !important;
+align-items: center !important;
+justify-content: center !important;
+text-align: center !important;
+padding: 16px;
+}
+.btn-watch-cooldown {
+background: #A9A9A9; /* Серый */
+color: white;
+border: none;
+box-shadow: 0 4px 0 #696969;
+display: flex !important;
+flex-direction: column !important;
+align-items: center !important;
+justify-content: center !important;
+text-align: center !important;
+padding: 16px;
+}
+.watch-label {
+font-size: 0.95rem;
+font-weight: 800;
+text-transform: uppercase;
+letter-spacing: 1.2px;
+margin-bottom: 4px;
+}
+.watch-reward {
+font-size: 0.85rem;
+font-weight: 700;
+display: flex;
+align-items: center;
+gap: 4px;
+}
+.watch-timer {
+font-size: 0.75rem;
+margin-top: 4px;
+}
+.currency-icon {
+height: 1.1em; /* Чуть больше размера шрифта */
+width: auto;
+vertical-align: middle;
+margin-left: 4px;
+margin-right: 2px;
+filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
 /* Адаптив под очень узкие экраны */
 @media (max-width: 360px) {
 #profile-trigger, #rank-trigger {
@@ -797,13 +848,6 @@ font-size: 1.8rem;
 font-size: 4rem;
 }
 }
-/* --- НОВЫЙ СТИЛЬ: Disabled состояние кнопки просмотра --- */
-#watch-btn.disabled {
-background: #333;
-color: #888;
-box-shadow: none;
-cursor: not-allowed;
-}
 </style>
 </head>
 <body>
@@ -813,7 +857,7 @@ cursor: not-allowed;
 <div id="bg-shop" class="game-bg"></div>
 <div class="bg-overlay"></div>
 <div id="balance-header">
-<span id="bal-val">0</span> 💰
+<span id="bal-val">0</span> <img src="assets/boarcoin.png" class="currency-icon" alt="BC">
 <!-- --- НОВЫЙ ЭЛЕМЕНТ: Желуди --- -->
 <span id="acorns-val">0</span> 🌰
 <!-- --- КОНЕЦ НОВОГО ЭЛЕМЕНТА --- -->
@@ -846,7 +890,7 @@ transform: rotate(360deg);
 <button class="close-x" onclick="closeResult()">&times;</button>
 <span class="res-icon" id="res-icon">🏆</span>
 <h2 class="res-title" id="res-title">ПОБЕДА</h2>
-<div class="res-sum" id="res-sum">+500 💰</div>
+<div class="res-sum" id="res-sum">+500 <img src="assets/boarcoin.png" class="currency-icon" alt="BC"></div>
 <button class="res-btn" onclick="closeResult()">ПРОДОЛЖИТЬ</button>
 </div>
 </div>
@@ -904,10 +948,13 @@ transform: rotate(360deg);
 <button class="btn-wood" style="flex:1; background: #3498db; border:none; box-shadow: 0 4px 0 #2573a7;" onclick="preStart(1)">ЛЕВЫЙ</button>
 <button class="btn-wood" style="flex:1; background: #9b59b6; border:none; box-shadow: 0 4px 0 #7d4594;" onclick="preStart(2)">ПРАВЫЙ</button>
 </div>
-<!-- --- НОВАЯ КНОПКА СЛУЧАЙНЫЙ КАБАН --- -->
-<button class="btn-wood" style="background: #e74c3c; border:none; box-shadow: 0 4px 0 #c0392b; margin: 8px auto; width: 80%; display: block;" onclick="startRandomBattle()">ПОСТАВИТЬ НА СЛУЧАЙНОГО</button>
-<!-- --- КОНЕЦ НОВОЙ КНОПКИ --- -->
-<button class="btn-wood" style="background: #4cd964; border:none; box-shadow: 0 4px 0 #2d9a4a; margin: 8px auto; width: 80%; display: block; color: #000;" id="watch-btn" onclick="watchBattle()">(+200 кабанкойнов)</button>
+<!-- --- ИЗМЕНЁННАЯ КНОПКА СЛУЧАЙНЫЙ КАБАН --- -->
+<button class="btn-wood" id="random-bet-btn" style="background: #ff9500; border:none; box-shadow: 0 4px 0 #cc7700; margin: 8px auto; width: 80%; display: block;" onclick="preStart(0)">СЛУЧАЙНЫЙ</button>
+<!-- --- ИЗМЕНЁННАЯ КНОПКА ПОСМОТРЕТЬ БОЙ --- -->
+<button id="watch-battle-btn" class="btn-wood btn-watch-ready" style="margin: 8px auto; width: 80%; display: block;" onclick="watchBattle()">
+<span class="watch-label">ПОСМОТРЕТЬ БОЙ</span>
+<span class="watch-reward">+<span id="watch-reward-amount">200</span> <img src="assets/boarcoin.png" class="currency-icon" alt="BC"></span>
+</button>
 <button class="btn-wood" style="margin-top: 8px; width: 100%; opacity: 0.6;" onclick="nav('scr-main')">ОТМЕНА</button>
 </div>
 </div>
@@ -951,7 +998,7 @@ border-radius: 20px; background: rgba(255,255,255,0.06); border: 1px solid rgba(
 oninput="onQtyInput(this.value)">
 <!-- --- ИТОГОВАЯ СУММА — скрыта до выбора предмета --- -->
 <div id="total-cost" style="font-size: 1rem; font-weight: 700; color: var(--gold); text-align: center; margin-bottom: 12px; display: none;">
-- 💰 × - = - 💰
+- <img src="assets/boarcoin.png" class="currency-icon" alt="BC"> × - = - <img src="assets/boarcoin.png" class="currency-icon" alt="BC">
 </div>
 <!-- --- КНОПКА СДЕЛКИ (цвет зависит от действия) --- -->
 <button class="btn-wood btn-trade" onclick="performTransaction()" style="width: 100%; margin-top: 10px;">КУПИТЬ</button>
@@ -1029,8 +1076,8 @@ oninput="onQtyInput(this.value)">
 const tg = window.Telegram.WebApp;
 tg.expand();
 let user = null;
-let selectedSide = 0;
-let isWatchingMode = false;
+let selectedSide = 0; // 0 - случайный, 1 - левый, 2 - правый
+let isWatchingMode = false; // Режим просмотра
 let fullLeaderboardLoaded = false;
 let fullLeaderboardData = [];
 let userRank = '?'; // Для хранения позиции
@@ -1038,105 +1085,68 @@ let currentShopItem = null; // Для выбранного предмета в �
 let currentShopQuantity = 1; // Для количества в магазине
 let currentAction = 'buy'; // 'buy' или 'sell'
 let prices = {}; // Хранение цен из prices.json
-let watchCooldownTimer = null; // Для хранения таймера обратного отсчета
-
-// --- НОВАЯ ФУНКЦИЯ: Форматирование времени (HH:MM:SS)
-function formatTime(seconds) {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+let watchCooldownEndTimestamp = null; // Временная метка окончания кулдауна просмотра
+let cooldownIntervalId = null; // ID интервала таймера кулдауна
+// --- НОВАЯ ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ --- //
+let currentWatchRewardAmount = 0;
+// --- ИСПРАВЛЕНИЕ: Новая функция для обновления состояния кнопки просмотра ---
+function updateWatchButtonState() {
+const button = document.getElementById('watch-battle-btn');
+if (!button) return;
+const now = Date.now();
+if (watchCooldownEndTimestamp && watchCooldownEndTimestamp > now) {
+// Кулдаун активен
+button.classList.remove('btn-watch-ready');
+button.classList.add('btn-watch-cooldown');
+// Обновляем текст кнопки на таймер
+const hours = Math.floor((watchCooldownEndTimestamp - now) / (1000 * 60 * 60));
+const minutes = Math.floor(((watchCooldownEndTimestamp - now) % (1000 * 60 * 60)) / (1000 * 60));
+const seconds = Math.floor(((watchCooldownEndTimestamp - now) % (1000 * 60)) / 1000);
+document.querySelector('#watch-battle-btn .watch-label').textContent = 'ПОСМОТРЕТЬ БОЙ';
+document.querySelector('#watch-battle-btn .watch-reward').innerHTML = `<span class="watch-timer">ВРЕМЯ ДО НАГРАДЫ: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}</span>`;
+} else {
+// Кулдаун неактивен
+button.classList.remove('btn-watch-cooldown');
+button.classList.add('btn-watch-ready');
+// Обновляем текст кнопки на награду
+document.querySelector('#watch-battle-btn .watch-label').textContent = 'ПОСМОТРЕТЬ БОЙ';
+document.querySelector('#watch-battle-btn .watch-reward').innerHTML = `+<span id="watch-reward-amount">200</span> <img src="assets/boarcoin.png" class="currency-icon" alt="BC">`;
 }
-
-// --- НОВАЯ ФУНКЦИЯ: Обновление состояния кнопки просмотра боя ---
-function updateWatchButton() {
-    if (!user) return;
-    const button = document.getElementById('watch-btn');
-    const now = new Date();
-    const cooldownEndsStr = user.watched_cooldown_ends;
-
-    if (cooldownEndsStr) {
-        const cooldownEnds = new Date(cooldownEndsStr);
-        const remainingMs = cooldownEnds - now;
-
-        if (remainingMs <= 0) {
-            // Кулдаун истёк — можно смотреть
-            button.textContent = '(+200 кабанкойнов)';
-            button.onclick = watchBattle;
-            button.disabled = false;
-            button.classList.remove('disabled');
-            // Очищаем таймер
-            if (watchCooldownTimer) clearInterval(watchCooldownTimer);
-            watchCooldownTimer = null;
-        } else {
-            // Кулдаун активен — показываем таймер
-            const remainingSeconds = Math.floor(remainingMs / 1000);
-            button.textContent = `До восстановления: ${formatTime(remainingSeconds)}`;
-            button.onclick = null;
-            button.disabled = true;
-            button.classList.add('disabled');
-            // Запускаем обновление каждую секунду
-            if (watchCooldownTimer) clearInterval(watchCooldownTimer);
-            watchCooldownTimer = setInterval(() => {
-                updateWatchButton();
-            }, 1000);
-        }
-    } else {
-        // Никогда не смотрел — сразу доступно
-        button.textContent = '(+200 кабанкойнов)';
-        button.onclick = watchBattle;
-        button.disabled = false;
-        button.classList.remove('disabled');
-        if (watchCooldownTimer) clearInterval(watchCooldownTimer);
-        watchCooldownTimer = null;
-    }
 }
-
-// --- КОНЕЦ НОВОЙ ФУНКЦИИ ---
-
-// --- НОВЫЙ ЭНДПОИНТ ДЛЯ СТАРТА БОЯ (SERVER-SIDE AUTHORITY) ---
-async function startBattleServerSide(betAmount) {
-const tgUser = tg.initDataUnsafe?.user || {id: "dev_user", username: "kaban", first_name: "Хряк"};
-const response = await fetch('/api/battle/start', {
-method: 'POST',
-headers: {'Content-Type': 'application/json'},
-body: JSON.stringify({
-tg_id: tgUser.id,
-bet_amount: betAmount
-})
-});
-if (!response.ok) {
-const error = await response.json();
-alert(error.error || 'Ошибка начала боя');
-return null;
+// --- НОВАЯ ФУНКЦИЯ: Запуск таймера кулдауна ---
+function startCooldownTimer() {
+stopCooldownTimer(); // Останавливаем предыдущий таймер
+cooldownIntervalId = setInterval(() => {
+const now = Date.now();
+if (!watchCooldownEndTimestamp || watchCooldownEndTimestamp <= now) {
+clearInterval(cooldownIntervalId);
+cooldownIntervalId = null;
+updateWatchButtonState();
+return;
 }
-const result = await response.json();
-if (result.success) {
-// Обновляем локальный баланс пользователя
-user.balance = result.new_balance;
-// Возвращаем результат
-return {
-isWin: result.is_win,
-reward: result.reward
-};
+// Обновляем текст на кнопке каждый тик
+updateWatchButtonState();
+}, 1000);
 }
-return null;
+// --- НОВАЯ ФУНКЦИЯ: Остановка таймера кулдауна ---
+function stopCooldownTimer() {
+if (cooldownIntervalId) {
+clearInterval(cooldownIntervalId);
+cooldownIntervalId = null;
 }
-
-// --- КОНЕЦ НОВОГО ЭНДПОИНТА ---
+}
 async function apiFetch(endpoint, options = {}) {
 try {
 const res = await fetch(endpoint, {
 ...options,
-headers: {'Content-Type': 'application/json', ...(options.headers || {})
-}
+headers: {'Content-Type': 'application/json', ...(options.headers || {})}
 });
 return await res.json();
 } catch (e) {
+console.error("API Fetch Error:", e);
 return null;
 }
 }
-
 // --- НОВАЯ ФУНКЦИЯ: Загрузка цен из prices.json ---
 async function loadPrices() {
 try {
@@ -1155,7 +1165,6 @@ prices = {
 };
 }
 }
-
 async function auth() {
 const tgUser = tg.initDataUnsafe?.user || {id: "dev_user", username: "kaban", first_name: "Хряк"};
 user = await apiFetch('/api/auth', {
@@ -1163,14 +1172,21 @@ method: 'POST',
 body: JSON.stringify({tg_id: tgUser.id, username: tgUser.username, first_name: tgUser.first_name})
 });
 if (user) {
+// --- ИСПРАВЛЕНИЕ: Загрузка времени кулдауна просмотра из time_left_seconds ---
+watchCooldownEndTimestamp = null;
+if (user.time_left_seconds && user.time_left_seconds > 0) {
+watchCooldownEndTimestamp = Date.now() + (user.time_left_seconds * 1000);
+}
+// -------------------------
 updateUI();
 nav('scr-main');
+updateWatchButtonState(); // Обновляем состояние кнопки после загрузки данных
+startCooldownTimer(); // Запускаем таймер, если кулдаун активен
 } else {
 console.error("Не удалось авторизоваться");
 showToast("Ошибка загрузки профиля");
 }
 }
-
 function updateUI() {
 if (!user) return;
 // --- ИСПРАВЛЕНИЕ 2: Обновление баланса и желудей в интерфейсе ---
@@ -1188,11 +1204,7 @@ document.getElementById('st-max-balance').innerText = (user.max_balance || 0).to
 document.getElementById('st-watched').innerText = user.watched_battles || 0;
 const toggle = document.getElementById('private-profile-toggle');
 if (toggle) toggle.checked = !!user.private_profile;
-
-// --- НОВОЕ: Обновление состояния кнопки просмотра боя ---
-updateWatchButton();
 }
-
 function nav(id) {
 document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
 document.getElementById(id).classList.add('active');
@@ -1213,9 +1225,6 @@ document.getElementById('bg-shop').style.display = 'block';
 // ✅ ИСПРАВЛЕНИЕ: Сброс состояния магазина при входе
 resetShopState();
 loadShopItems(); // Загружаем предметы при открытии магазина
-} else if (id === 'scr-bet') {
-// Обновляем состояние кнопки просмотра при входе на экран ставок
-updateWatchButton();
 }
 const isCardScreen = ['scr-bet', 'scr-inventory', 'scr-shop', 'scr-profile', 'scr-rank', 'scr-load'].includes(id);
 document.body.classList.toggle('dimmed', isCardScreen);
@@ -1232,7 +1241,6 @@ document.body.classList.remove('show-profile-btn');
 if (id === 'scr-rank') loadRank(); // Загружаем рейтинг при открытии экрана
 tg.HapticFeedback.impactOccurred('light');
 }
-
 // ✅ НОВАЯ ФУНКЦИЯ: Сброс состояния магазина (вызов при входе и при нажатии НАЗАД)
 function resetShopState() {
 currentShopItem = null;
@@ -1254,7 +1262,6 @@ document.querySelector('.slider-thumb').style.transform = 'translateX(0)';
 updateTradeButton();
 updatePriceDisplay();
 }
-
 // --- НОВАЯ ФУНКЦИЯ: Загрузка предметов магазина ---
 async function loadShopItems() {
 // Сначала загружаем цены
@@ -1277,12 +1284,11 @@ div.onclick = () => selectShopItem(item);
 div.innerHTML = `
 <img class="shop-item-icon" src="assets/${item.icon}" onerror="this.src='https://placehold.co/40x40?text=?'">
 <div class="shop-item-name">${item.name}</div>
-<div class="shop-item-price">${currentAction === 'buy' ? item.price : item.sell_price} 💰</div>
+<div class="shop-item-price">${currentAction === 'buy' ? item.price : item.sell_price} <img src="assets/boarcoin.png" class="currency-icon" alt="BC"></div>
 `;
 container.appendChild(div);
 }
 }
-
 // --- НОВАЯ ФУНКЦИЯ: Выбор предмета в магазине ---
 function selectShopItem(item) {
 currentShopItem = item;
@@ -1292,13 +1298,12 @@ document.getElementById('qty-input').value = currentShopQuantity;
 document.getElementById('detail-icon-placeholder').style.display = 'none';
 document.getElementById('detail-icon-big').src = `assets/${item.icon}`;
 document.getElementById('detail-icon-big').style.display = 'block';
-document.getElementById('detail-name').innerText = item.name;
+document.getElementById('detail-name').innerHTML = item.name; // Используем innerHTML
 updatePriceDisplay();
 // Подсветка
 document.querySelectorAll('#shop-items-container .shop-item').forEach(el => el.classList.remove('selected'));
 event.currentTarget.classList.add('selected');
 }
-
 // --- НОВАЯ ФУНКЦИЯ: Переключение действия (КУПИТЬ/ПРОДАТЬ) ---
 function toggleAction() {
 const checkbox = document.getElementById('action-toggle');
@@ -1315,14 +1320,12 @@ thumb.style.transform = checkbox.checked ? 'translateX(76px)' : 'translateX(0)';
 const slider = document.querySelector('.slider');
 slider.style.backgroundColor = currentAction === 'buy' ? 'var(--win)' : 'var(--lose)';
 }
-
 // --- НОВАЯ ФУНКЦИЯ: Обновление текста кнопки сделки ---
 function updateTradeButton() {
 const button = document.querySelector('#scr-shop .btn-trade');
 button.innerText = currentAction === 'buy' ? 'КУПИТЬ' : 'ПРОДАТЬ';
 button.classList.toggle('sell-mode', currentAction === 'sell');
 }
-
 // --- НОВАЯ ФУНКЦИЯ: Обновление цен в сетке магазина ---
 function updateShopItemPrices() {
 const items = document.querySelectorAll('#shop-items-container .shop-item');
@@ -1336,25 +1339,27 @@ icon: itemId === "acorn" ? "acorn.png" : "plant_acorn.png",
 price: prices[itemId]?.buy || 0,
 sell_price: prices[itemId]?.sell || 0
 };
-el.querySelector('.shop-item-price').innerText = `${currentAction === 'buy' ? item.price : item.sell_price} 💰`;
+// Используем innerHTML для вставки иконки
+el.querySelector('.shop-item-price').innerHTML = `${currentAction === 'buy' ? item.price : item.sell_price} <img src="assets/boarcoin.png" class="currency-icon" alt="BC">`;
 });
 }
-
 // --- НОВАЯ ФУНКЦИЯ: Обновление текста цены под предметом и итоговой суммы ---
 function updatePriceDisplay() {
 const totalCostEl = document.getElementById('total-cost');
 if (!currentShopItem) {
-document.getElementById('detail-price').innerText = 'Цена: -';
+// Используем innerHTML для вставки иконки
+document.getElementById('detail-price').innerHTML = 'Цена: -';
 totalCostEl.style.display = 'none';
 return;
 }
 const price = currentAction === 'buy' ? currentShopItem.price : currentShopItem.sell_price;
 const total = price * currentShopQuantity;
-document.getElementById('detail-price').innerText = `Цена: ${price} 💰 / шт.`;
-totalCostEl.innerHTML = `${price} 💰 × ${currentShopQuantity} = ${total} 💰`;
+// Используем innerHTML для вставки иконки
+document.getElementById('detail-price').innerHTML = `Цена: ${price} <img src="assets/boarcoin.png" class="currency-icon" alt="BC"> / шт.`;
+// Используем innerHTML для вставки иконки
+totalCostEl.innerHTML = `${price} <img src="assets/boarcoin.png" class="currency-icon" alt="BC"> × ${currentShopQuantity} = ${total} <img src="assets/boarcoin.png" class="currency-icon" alt="BC">`;
 totalCostEl.style.display = 'block';
 }
-
 // --- НОВАЯ ФУНКЦИЯ: Обработка ввода в поле ---
 function onQtyInput(value) {
 let newQty = parseInt(value) || 1;
@@ -1363,7 +1368,6 @@ if (newQty > 999999) newQty = 999999;
 currentShopQuantity = newQty;
 updatePriceDisplay(); // Обновляем итоговую сумму
 }
-
 // --- НОВАЯ ФУНКЦИЯ: Совершение транзакции ---
 async function performTransaction() {
 if (!currentShopItem) {
@@ -1395,7 +1399,6 @@ tg.HapticFeedback.notificationOccurred('error');
 showToast(response?.error || "Ошибка операции");
 }
 }
-
 // --- НОВАЯ ФУНКЦИЯ: Определение позиции пользователя ---
 function findUserRank(data) {
 for (let i = 0; i < data.length; i++) {
@@ -1405,13 +1408,11 @@ return i + 1; // Позиция начинается с 1
 }
 return '?';
 }
-
 // --- НОВАЯ ФУНКЦИЯ: Расчет прогресса для баланса ---
 function calculateProgress(userBalance, maxBalance) {
 if (maxBalance <= 0) return 0;
 return Math.min(100, (userBalance / maxBalance) * 100);
 }
-
 // --- ИСПРАВЛЕНИЕ 1: Изменение функции loadRank ---
 async function loadRank() {
 fullLeaderboardLoaded = false;
@@ -1468,7 +1469,7 @@ item.innerHTML = `
 </div>
 <div class="lb-values">
 <div class="lb-value-row">
-<span class="lb-val-gold">${u.balance.toLocaleString()} 💰</span>
+<span class="lb-val-gold">${u.balance.toLocaleString()} <img src="assets/boarcoin.png" class="currency-icon" alt="BC"></span>
 </div>
 <div class="lb-value-row">
 <span class="lb-val-acorn">${u.acorns ? u.acorns.toLocaleString() : '0'} 🌰</span>
@@ -1483,9 +1484,7 @@ document.getElementById('rank-list').style.display = 'block';
 document.getElementById('toggle-full-leaderboard').style.display = 'block';
 document.getElementById('toggle-full-leaderboard').textContent = 'Развернуть';
 }
-
 // --- КОНЕЦ ИСПРАВЛЕНИЯ 1 ---
-
 // --- ИСПРАВЛЕНИЕ 1: Изменение функции toggleFullLeaderboard ---
 async function toggleFullLeaderboard() {
 const button = document.getElementById('toggle-full-leaderboard');
@@ -1493,7 +1492,7 @@ const list = document.getElementById('rank-list');
 if (!fullLeaderboardLoaded) {
 button.textContent = 'Загрузка...';
 button.disabled = true;
-const data = await apiFetch('/api/leaderboard/full');
+const data = await apiFetch('/api/leaderboard.full');
 if (data) {
 fullLeaderboardData = data;
 fullLeaderboardLoaded = true;
@@ -1514,9 +1513,7 @@ fullLeaderboardLoaded = false;
 loadRank(); // Перезагружаем топ-10 (и обновим "Твое место" для топ-10)
 }
 }
-
 // --- КОНЕЦ ИСПРАВЛЕНИЯ 1 ---
-
 function renderLeaderboard(data, isFullList = false, maxBalanceOverride = null) {
 const list = document.getElementById('rank-list');
 list.innerHTML = "";
@@ -1537,7 +1534,7 @@ item.innerHTML = `
 </div>
 <div class="lb-values">
 <div class="lb-value-row">
-<span class="lb-val-gold">${u.balance.toLocaleString()} 💰</span>
+<span class="lb-val-gold">${u.balance.toLocaleString()} <img src="assets/boarcoin.png" class="currency-icon" alt="BC"></span>
 </div>
 <div class="lb-value-row">
 <span class="lb-val-acorn">${u.acorns ? u.acorns.toLocaleString() : '0'} 🌰</span>
@@ -1548,7 +1545,6 @@ item.onclick = () => showUserDetail(u);
 list.appendChild(item);
 });
 }
-
 // --- ИЗМЕНЕНАЯ ФУНКЦИЯ: Отображение деталей пользователя ---
 function showUserDetail(u) {
 tg.HapticFeedback.selectionChanged();
@@ -1591,14 +1587,55 @@ btn.onclick = null;
 }
 // Показываем модальное окно
 document.getElementById('user-modal').style.display = 'flex';
+// --- НОВАЯ ЛОГИКА: Отображение баланса в lowercase и замена на winrate и параметры ---
+const statsEl = document.getElementById('modal-games'); // Используем один из элементов сетки для демонстрации
+// Предположим, что мы хотим заменить содержимое сетки статистики
+const modalStatsGrid = document.querySelector('#user-modal .stat-grid');
+if (modalStatsGrid) {
+const wr = u.total_games > 0 ? Math.round((u.wins / u.total_games) * 100) : 0;
+const maxBal = u.max_balance || 0;
+const watched = u.watched_battles || 0;
+// Обновляем статистику с новыми значениями, но не меняем разметку сетки
+document.getElementById('modal-games').innerText = u.total_games;
+document.getElementById('modal-wins').innerText = u.wins;
+document.getElementById('modal-lose').innerText = u.lose;
+document.getElementById('modal-winrate').innerText = wr + "%";
+document.getElementById('modal-max-balance').innerText = maxBal.toLocaleString();
+document.getElementById('modal-watched').innerText = watched.toLocaleString();
+// Дополнительно: если это профиль текущего пользователя, можно изменить отображение в модалке
+if (u.tg_id === user.tg_id) {
+// Нам нужно заменить содержимое сетки, но оставить разметку
+const newContent = `
+<div class="stat-item">
+<span class="stat-val">${wr}%</span>
+<span class="stat-lbl">WINRATE</span>
+</div>
+<div class="stat-item">
+<span class="stat-val">${maxBal.toLocaleString()}</span>
+<span class="stat-lbl">МАКС. БАЛАНС</span>
+</div>
+<div class="stat-item">
+<span class="stat-val">${watched}</span>
+<span class="stat-lbl">ПРОСМОТРЕНО</span>
+</div>
+<div class="stat-item">
+<span class="stat-val">${u.total_games}</span>
+<span class="stat-lbl">БОЕВ</span>
+</div>
+`;
+// Заменяем только второй ряд сетки, оставив первый
+const statItems = modalStatsGrid.querySelectorAll('.stat-item');
+if (statItems.length >= 4) {
+statItems[2].innerHTML = `<span class="stat-val">${watched}</span><span class="stat-lbl">ПРОСМОТРЕНО</span>`;
+statItems[3].innerHTML = `<span class="stat-val">${u.total_games}</span><span class="stat-lbl">БОЕВ</span>`;
 }
-
+}
+}
+}
 // --- КОНЕЦ ИЗМЕНЁННОЙ ФУНКЦИИ ---
-
 function closeModal() {
 document.getElementById('user-modal').style.display = 'none';
 }
-
 async function togglePrivateProfile() {
 const toggle = document.getElementById('private-profile-toggle');
 const isChecked = toggle.checked;
@@ -1614,20 +1651,66 @@ console.error("Ошибка обновления статуса приватно
 toggle.checked = !isChecked;
 }
 }
-
 function showToast(message) {
 const toast = document.getElementById('notification-toast');
 toast.textContent = message;
 toast.classList.add('show');
 setTimeout(() => toast.classList.remove('show'), 2500);
 }
-
+// --- ИЗМЕНЁННАЯ ФУНКЦИЯ: Просмотр боя ---
 async function watchBattle() {
+const button = document.getElementById('watch-battle-btn');
 if (document.getElementById('scr-fight').classList.contains('active')) return;
 isWatchingMode = true;
-startFight(0);
+selectedSide = 0; // Убедимся, что сторона не выбрана
+// Отправляем запрос на сервер перед запуском анимации
+try {
+const result = await apiFetch('/api/battle/watch', {
+method: 'POST',
+body: JSON.stringify({tg_id: user.tg_id})
+});
+if (result && result.success) {
+// Обновляем локальные данные пользователя из ответа сервера
+user.balance = result.new_balance;
+user.acorns = result.acorns;
+user.plant_acorns = result.plant_acorns;
+user.max_balance = result.max_balance;
+user.watched_battles = result.watched_battles;
+// --- ИСПРАВЛЕНИЕ: Обновляем кулдаун и показываем уведомление только при получении награды ---
+if (result.reward_granted) {
+// Устанавливаем кулдаун на 2 часа (в миллисекундах)
+watchCooldownEndTimestamp = Date.now() + (2 * 60 * 60 * 1000);
+// Показываем уведомление
+showToast("🏆 БОЙ ПРОСМОТРЕН");
+// --- НОВОЕ: Сохраняем реальную награду ---
+currentWatchRewardAmount = result.reward || 0;
+// ---
+} else {
+// Кулдаун не обновляем, награда не выдана
+// Не показываем уведомление о награде
+// --- НОВОЕ: Устанавливаем награду в 0 ---
+currentWatchRewardAmount = 0;
+// ---
 }
-
+// ---
+// Обновляем UI
+updateUI();
+// Обновляем состояние кнопки и запускаем таймер
+updateWatchButtonState();
+startCooldownTimer();
+// Запускаем анимацию боя
+startFight(0); // Ставка 0 для просмотра
+// После завершения анимации (в closeResult) будет обновление UI
+} else {
+console.error("Ошибка просмотра боя:", result?.error || "Неизвестная ошибка");
+showToast(result?.error || "Ошибка просмотра боя");
+}
+} catch (error) {
+console.error("Ошибка сети при попытке просмотра боя:", error);
+showToast("Ошибка соединения");
+}
+}
+// --- КОНЕЦ ИЗМЕНЁННОЙ ФУНКЦИИ ---
 async function updateName() {
 const name = document.getElementById('edit-name').value;
 if (!name) return;
@@ -1639,7 +1722,7 @@ user.display_name = name;
 tg.HapticFeedback.notificationOccurred('success');
 nav('scr-main');
 }
-
+// --- ИЗМЕНЕНАЯ ФУНКЦИЯ: preStart теперь учитывает случайный выбор ---
 function preStart(side) {
 const input = document.getElementById('bet-amt');
 const amt = parseInt(input.value);
@@ -1649,29 +1732,10 @@ tg.HapticFeedback.notificationOccurred('error');
 showResult("ОШИБКА", "МАЛО ЗОЛОТА", false);
 return;
 }
-selectedSide = side;
-isWatchingMode = false;
+selectedSide = side; // side может быть 0 (случайный), 1 (левый), 2 (правый)
+isWatchingMode = false; // Убедимся, что это не режим просмотра
 startFight(amt);
 }
-
-// --- НОВАЯ ФУНКЦИЯ: Случайный бой ---
-function startRandomBattle() {
-const input = document.getElementById('bet-amt');
-const amt = parseInt(input.value);
-if (isNaN(amt) || amt < 10) return;
-if (amt > user.balance) {
-tg.HapticFeedback.notificationOccurred('error');
-showResult("ОШИБКА", "МАЛО ЗОЛОТА", false);
-return;
-}
-// Устанавливаем selectedSide в 0, чтобы обозначить "случайный"
-selectedSide = 0;
-isWatchingMode = false;
-startFight(amt);
-}
-
-// --- КОНЕЦ НОВОЙ ФУНКЦИИ ---
-
 function showResult(title, sum, isWin) {
 const overlay = document.getElementById('result-overlay');
 const card = document.getElementById('result-card');
@@ -1679,22 +1743,33 @@ const t = document.getElementById('res-title');
 const s = document.getElementById('res-sum');
 const icon = document.getElementById('res-icon');
 t.innerText = title;
-s.innerText = sum;
+// --- ИЗМЕНЕНИЕ: Если sum пустая строка или currentWatchRewardAmount равно 0, не отображаем иконку валюты ---
+if(sum === "" || (isWatchingMode && currentWatchRewardAmount === 0)) {
+s.style.display = 'none'; // Скрываем элемент суммы
+} else {
+s.style.display = 'block'; // Показываем элемент суммы
+s.innerHTML = sum;
+}
+// ---
 icon.innerText = isWin ? "🏆" : "💀";
 overlay.style.display = 'flex';
 setTimeout(() => card.classList.add('active'), 50);
 }
-
 function closeResult() {
 const card = document.getElementById('result-card');
 card.classList.remove('active');
 setTimeout(() => {
 document.getElementById('result-overlay').style.display = 'none';
-if (!isWatchingMode) auth(); // Обновляем данные после боя
-else nav('scr-main');
+if (!isWatchingMode) auth(); // Обновляем данные после боя (обычного или случайного)
+else {
+// Обновляем UI и состояние кнопки после просмотра боя
+updateUI();
+updateWatchButtonState();
+startCooldownTimer(); // Перезапускаем таймер, если нужно
+nav('scr-main');
+}
 }, 300);
 }
-
 function spawnDmg(container, val) {
 const p = document.createElement('div');
 p.className = 'dmg-popup';
@@ -1703,7 +1778,6 @@ p.style.left = Math.random() * 40 + 30 + "%";
 container.appendChild(p);
 setTimeout(() => p.remove(), 700);
 }
-
 function startFight(bet) {
 nav('scr-fight');
 let h1 = 100, h2 = 100;
@@ -1727,23 +1801,57 @@ body: JSON.stringify({tg_id: user.tg_id})
 });
 if (result && result.new_balance !== undefined) {
 user.balance = result.new_balance;
-user.acorns = result.acorns;
-user.plant_acorns = result.plant_acorns;
-user.max_balance = result.max_balance;
-user.watched_battles = result.watched_battles;
-user.watched_cooldown_ends = result.watched_cooldown_ends; // Обновляем время кулдауна
-document.getElementById('bal-val').innerText = user.balance.toLocaleString();
-document.getElementById('acorns-val').innerText = user.acorns.toLocaleString();
-// Обновляем кнопку просмотра после получения результата
-updateWatchButton();
+// Показываем уведомление только если награда была выдана
+// (это уже обработано в watchBattle, но на всякий случай оставим комментарий)
+// showToast("Бой посмотрен. +200 кабанкойнов");
 }
-setTimeout(() => {
-tg.HapticFeedback.notificationOccurred('success');
-showResult("ПОБЕДА", "+" + (result.reward || 1) + " 💰", true);
-}, 1000);
-fightFinished = true;
+// Просто анимируем бой
+const interval = setInterval(() => {
+if (fightFinished) {
+clearInterval(interval);
+return;
+}
+const dmg = Math.floor(Math.random() * 12) + 6;
+const target = Math.random() > 0.5 ? 1 : 2;
+const cont = document.getElementById(`cont-${target}`);
+cont.classList.add('hit');
+spawnDmg(cont, dmg);
+setTimeout(() => cont.classList.remove('hit'), 250);
+if (target === 1) {
+h1 = Math.max(0, h1 - dmg);
+document.getElementById('hp1-f').style.width = h1 + "%";
+document.getElementById('hp1-txt').innerText = h1;
 } else {
-// Для обычного боя используем новый серверный эндпоинт
+h2 = Math.max(0, h2 - dmg);
+document.getElementById('hp2-f').style.width = h2 + "%";
+document.getElementById('hp2-txt').innerText = h2;
+}
+tg.HapticFeedback.impactOccurred('medium');
+// Принудительно завершаем бой через 5 секунд (или когда HP одного из бойцов достигает 0)
+if (h1 <= 0 || h2 <= 0) {
+clearInterval(interval);
+fightFinished = true;
+// --- ИСПРАВЛЕНИЕ: Фиксация финальных HP ---
+// После завершения анимации, HP не должны изменяться.
+// Обновляем интерфейс с финальными значениями
+document.getElementById('hp1-f').style.width = h1 + "%";
+document.getElementById('hp1-txt').innerText = h1;
+document.getElementById('hp2-f').style.width = h2 + "%";
+document.getElementById('hp2-txt').innerText = h2;
+// ---
+// Показываем результат просмотра
+setTimeout(() => {
+// --- ИЗМЕНЕНИЕ: Условное отображение награды ---
+if (currentWatchRewardAmount > 0) {
+showResult("БОЙ ПРОСМОТРЕН", `+${currentWatchRewardAmount} <img src="assets/boarcoin.png" class="currency-icon" alt="BC">`, true);
+} else {
+showResult("БОЙ ПРОСМОТРЕН", "", true); // Передаём пустую строку
+}
+// ---
+}, 1000);
+}
+}, 700);
+} else { // Обычный бой (включая случайный)
 serverResult = await startBattleServerSide(bet);
 if (!serverResult) {
 fightFinished = true;
@@ -1762,7 +1870,7 @@ finalIsWin = serverResult.isWin; // Финальный результат - от
 finalIsWin = (selectedSide === 1 && serverResult.isWin) || (selectedSide === 2 && !serverResult.isWin);
 }
 finalReward = serverResult.reward;
-// -----------------------------------------
+// ---
 const targetH1 = (simulatedSide === 1 && serverResult.isWin) || (simulatedSide === 2 && !serverResult.isWin) ? 100 : 0;
 const targetH2 = (simulatedSide === 2 && serverResult.isWin) || (simulatedSide === 1 && !serverResult.isWin) ? 100 : 0;
 const interval = setInterval(() => {
@@ -1790,28 +1898,22 @@ tg.HapticFeedback.impactOccurred('medium');
 if (h1 <= 0 || h2 <= 0) {
 clearInterval(interval);
 fightFinished = true;
-// ИСПРАВЛЕНИЕ: Не меняем визуальные HP на серверные, если бой уже визуально закончен
-// Закрепляем финальное состояние HP, если они уже нулевые
-if (h1 <= 0) {
-h1 = 0;
-document.getElementById('hp1-f').style.width = '0%';
-document.getElementById('hp1-txt').innerText = '0';
-} else if (h2 <= 0) {
-h2 = 0;
-document.getElementById('hp2-f').style.width = '0%';
-document.getElementById('hp2-txt').innerText = '0';
-}
+// --- ИСПРАВЛЕНИЕ: Фиксация финальных HP из данных сервера ---
+// Устанавливаем HP в соответствии с серверным результатом
+document.getElementById('hp1-f').style.width = targetH1 + "%";
+document.getElementById('hp1-txt').innerText = targetH1;
+document.getElementById('hp2-f').style.width = targetH2 + "%";
+document.getElementById('hp2-txt').innerText = targetH2;
+// ---
 // Показываем результат
 setTimeout(() => {
-// --- ИЗМЕНЕНИЕ: Используем finalIsWin и finalReward ---
 if (finalIsWin) {
 tg.HapticFeedback.notificationOccurred('success');
-showResult("ПОБЕДА", `+${finalReward} 💰`, true);
+showResult("ПОБЕДА", `+${finalReward} <img src="assets/boarcoin.png" class="currency-icon" alt="BC">`, true);
 } else {
 tg.HapticFeedback.notificationOccurred('error');
-showResult("ПОРАЖЕНИЕ", `${finalReward} 💰`, false);
+showResult("ПОРАЖЕНИЕ", `${finalReward} <img src="assets/boarcoin.png" class="currency-icon" alt="BC">`, false);
 }
-// ----------------------------------------------
 }, 1000);
 }
 }, 700);
@@ -1819,7 +1921,34 @@ showResult("ПОРАЖЕНИЕ", `${finalReward} 💰`, false);
 };
 runFightLogic();
 }
-
+// --- НОВЫЙ ЭНДПОИНТ ДЛЯ СТАРТА БОЯ (SERVER-SIDE AUTHORITY) ---
+async function startBattleServerSide(betAmount) {
+const tgUser = tg.initDataUnsafe?.user || {id: "dev_user", username: "kaban", first_name: "Хряк"};
+const response = await fetch('/api/battle/start', {
+method: 'POST',
+headers: {'Content-Type': 'application/json'},
+body: JSON.stringify({
+tg_id: tgUser.id,
+bet_amount: betAmount
+})
+});
+if (!response.ok) {
+const error = await response.json();
+alert(error.error || 'Ошибка начала боя');
+return null;
+}
+const result = await response.json();
+if (result.success) {
+// Обновляем локальный баланс пользователя
+user.balance = result.new_balance;
+// Возвращаем результат
+return {
+isWin: result.is_win,
+reward: result.reward
+};
+}
+return null;
+}
 auth();
 </script>
 </body>
