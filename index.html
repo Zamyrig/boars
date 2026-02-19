@@ -36,7 +36,6 @@ padding-bottom: 0;
 height: 100dvh;
 width: 100vw;
 }
-/* Фоновые изображения */
 .game-bg {
 position: fixed;
 top: 0;
@@ -136,7 +135,32 @@ align-items: center;
 gap: 8px;
 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
-/* --- ИЗМЕНЁННЫЙ СТИЛЬ: Уведомление --- */
+/* --- АНИМАЦИЯ СПИСАНИЯ (ВЫЛЕТ ИЗ-ПОД БАЛАНСА) --- */
+#bet-deduction-notify {
+position: absolute;
+top: 100%;
+left: 50%;
+transform: translateX(-50%) translateY(-10px);
+background: rgba(255, 62, 62, 0.95);
+backdrop-filter: blur(15px);
+border: 1px solid rgba(255, 255, 255, 0.2);
+padding: 8px 16px;
+border-radius: 100px;
+font-weight: 800;
+color: #fff;
+font-size: 0.85rem;
+white-space: nowrap;
+opacity: 0;
+visibility: hidden;
+z-index: 999;
+transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+}
+#bet-deduction-notify.show {
+opacity: 1;
+visibility: visible;
+transform: translateX(-50%) translateY(25px);
+}
+/* --- КОНЕЦ АНИМАЦИИ СПИСАНИЯ --- */
 .notification-toast {
 position: fixed;
 top: calc(12px + var(--safe-top));
@@ -164,8 +188,6 @@ opacity: 1;
 visibility: visible;
 transform: translateX(-50%) translateY(40px);
 }
-/* --- КОНЕЦ ИЗМЕНЁННОГО СТИЛЯ --- */
-/* --- НОВАЯ СТИЛИЗАЦИЯ ДЛЯ КНОПОК --- */
 #rank-trigger,
 #profile-trigger {
 position: fixed;
@@ -197,25 +219,20 @@ height: 80%;
 border-radius: 50%;
 object-fit: cover;
 }
-/* Позиционирование: профиль — справа, рейтинг — слева от него */
 #profile-trigger {
 right: calc(16px + var(--safe-right));
 }
 #rank-trigger {
-/* Сдвигаем влево на ширину кнопки + отступ */
-right: calc(16px + 68px + 16px + var(--safe-right)); /* 16px (отступ профиля) + 68px (ширина профиля) + 16px (отступ между кнопками) */
+right: calc(16px + 68px + 16px + var(--safe-right));
 }
-/* Скрываем обе кнопки, когда активен любой экран, кроме главного */
 body:not(.show-main-screen) #rank-trigger,
 body:not(.show-main-screen) #profile-trigger {
 display: none;
 }
-/* Убедимся, что на главном экране они видны */
 body.show-main-screen #rank-trigger,
 body.show-main-screen #profile-trigger {
 display: flex;
 }
-/* --- КОНЕЦ НОВОЙ СТИЛИЗАЦИИ --- */
 .menu-buttons {
 width: 100%;
 max-width: 300px;
@@ -247,6 +264,13 @@ user-select: none;
 top: 2px;
 box-shadow: 0 1px 0px #151517;
 background: #2a2a2d;
+}
+.btn-wood:disabled {
+opacity: 0.5;
+pointer-events: none;
+cursor: not-allowed;
+box-shadow: none;
+top: 0;
 }
 .btn-play {
 background: var(--gold);
@@ -324,7 +348,10 @@ transition: border-color 0.2s;
 input:focus {
 border-color: var(--gold);
 }
-/* БОЙ */
+input:disabled {
+opacity: 0.5;
+cursor: not-allowed;
+}
 .arena {
 position: absolute;
 bottom: 25%;
@@ -438,7 +465,6 @@ box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 max-width: 80%;
 text-align: center;
 }
-/* УВЕДОМЛЕНИЯ / RESULT OVERLAY */
 #result-overlay {
 position: fixed;
 inset: 0;
@@ -519,7 +545,6 @@ justify-content: center;
 .res-btn:active {
 transform: scale(0.96);
 }
-/* Кнопка закрытия (крестик) */
 .close-x {
 position: absolute;
 top: 16px;
@@ -557,14 +582,10 @@ transition: background 0.2s;
 transform: scale(0.97);
 background: rgba(255, 255, 255, 0.08);
 }
-/* --- НОВЫЙ СТИЛЬ: Выделение текущего пользователя (только outline) --- */
 .rank-item.current-user-highlight {
-outline: 2px solid var(--gold); /* Только тонкая рамка */
-outline-offset: -2px; /* Чтобы рамка не выходила за границы элемента */
-/* background-color: rgba(255, 204, 0, 0.1); */ /* Удалено */
+outline: 2px solid var(--gold);
+outline-offset: -2px;
 }
-/* --- КОНЕЦ НОВОГО СТИЛЯ --- */
-/* --- НОВЫЙ ЭЛЕМЕНТ: Текст "Твое место" --- */
 #your-rank {
 font-size: 0.9rem;
 opacity: 0.7;
@@ -572,7 +593,6 @@ margin-bottom: 16px;
 text-align: center;
 font-weight: 700;
 }
-/* --- КОНЕЦ НОВОГО ЭЛЕМЕНТА --- */
 #user-modal {
 position: fixed;
 inset: 0;
@@ -587,7 +607,6 @@ box-sizing: border-box;
 backdrop-filter: blur(15px);
 padding-bottom: calc(24px + var(--safe-bottom));
 }
-/* Стили для тумблера */
 .toggle-switch {
 position: relative;
 display: inline-block;
@@ -606,7 +625,7 @@ top: 0;
 left: 0;
 right: 0;
 bottom: 0;
-background-color: var(--lose); /* по умолчанию красный (продажа) */
+background-color: var(--lose);
 transition: background-color 0.4s;
 border-radius: 20px;
 }
@@ -623,21 +642,19 @@ border-radius: 50%;
 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 input:checked + .slider {
-background-color: var(--win); /* зелёный при покупке */
+background-color: var(--win);
 }
 input:checked + .slider:before {
-transform: translateX(76px); /* 120 - 32 - 4*2 = 76 */
+transform: translateX(76px);
 }
-/* --- НОВЫЙ СТИЛЬ: Интерфейс магазина --- */
 .shop-grid {
 display: grid;
 grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
 gap: 12px;
 margin-top: 10px;
-max-height: 300px; /* Ограничиваем высоту для скролла */
-overflow-y: auto; /* Добавляем скролл */
-padding-right: 5px; /* Отступ для полосы */
-/* Стилизация скролла */
+max-height: 300px;
+overflow-y: auto;
+padding-right: 5px;
 scrollbar-width: thin;
 scrollbar-color: var(--gold) var(--card);
 }
@@ -698,7 +715,7 @@ gap: 12px;
 .shop-detail-icon-big {
 width: 80px;
 height: 80px;
-object-fit: contain; /* Сохраняем пропорции */
+object-fit: contain;
 }
 .shop-quantity-controls {
 display: flex;
@@ -757,7 +774,6 @@ box-shadow: 0 4px 0 #566573;
 background: #6c7b8b;
 box-shadow: 0 1px 0 #566573;
 }
-/* Новые стили для валют в лидерборде */
 .lb-values {
 display: flex;
 flex-direction: column;
@@ -774,60 +790,8 @@ font-weight: 900;
 color: var(--gold);
 }
 .lb-val-acorn {
-color: #a0522d; /* Цвет желудя */
+color: #a0522d;
 }
-/* --- СТИЛИ ДЛЯ КНОПКИ ПРОСМОТРА БОЯ --- */
-.btn-watch-ready {
-background: var(--win); /* Зелёный */
-color: #000;
-border: none;
-box-shadow: 0 4px 0 #2d9a4a;
-display: flex !important;
-flex-direction: column !important;
-align-items: center !important;
-justify-content: center !important;
-text-align: center !important;
-padding: 16px;
-}
-.btn-watch-cooldown {
-background: #A9A9A9; /* Серый */
-color: white;
-border: none;
-box-shadow: 0 4px 0 #696969;
-display: flex !important;
-flex-direction: column !important;
-align-items: center !important;
-justify-content: center !important;
-text-align: center !important;
-padding: 16px;
-}
-.watch-label {
-font-size: 0.95rem;
-font-weight: 800;
-text-transform: uppercase;
-letter-spacing: 1.2px;
-margin-bottom: 4px;
-}
-.watch-reward {
-font-size: 0.85rem;
-font-weight: 700;
-display: flex;
-align-items: center;
-gap: 4px;
-}
-.watch-timer {
-font-size: 0.75rem;
-margin-top: 4px;
-}
-.currency-icon {
-height: 1.1em; /* Чуть больше размера шрифта */
-width: auto;
-vertical-align: middle;
-margin-left: 4px;
-margin-right: 2px;
-filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-}
-/* Адаптив под очень узкие экраны */
 @media (max-width: 360px) {
 #profile-trigger, #rank-trigger {
 width: 60px;
@@ -857,25 +821,21 @@ font-size: 4rem;
 <div id="bg-shop" class="game-bg"></div>
 <div class="bg-overlay"></div>
 <div id="balance-header">
-<span id="bal-val">0</span> <img src="assets/boarcoin.png" class="currency-icon" alt="BC">
-<!-- --- НОВЫЙ ЭЛЕМЕНТ: Желуди --- -->
+<span id="bal-val">0</span> 💰
 <span id="acorns-val">0</span> 🌰
-<!-- --- КОНЕЦ НОВОГО ЭЛЕМЕНТА --- -->
+<!-- --- АНИМАЦИЯ СПИСАНИЯ (ВЫЛЕТ ИЗ-ПОД БАЛАНСА) --- -->
+<div id="bet-deduction-notify">-0 💰</div>
+<!-- --- КОНЕЦ АНИМАЦИИ СПИСАНИЯ --- -->
 </div>
-<!-- --- НОВЫЙ ЭЛЕМЕНТ: Уведомление --- -->
 <div id="notification-toast" class="notification-toast">
 Это пользователь запретил ему писать
 </div>
-<!-- --- КОНЕЦ НОВОГО ЭЛЕМЕНТА --- -->
-<!-- --- НОВАЯ КНОПКА РЕЙТИНГА (🏆) --- -->
 <div id="rank-trigger" onclick="nav('scr-rank')">
 <span>🏆</span>
 </div>
-<!-- --- КОНЕЦ НОВОЙ КНОПКИ --- -->
 <div id="profile-trigger" onclick="nav('scr-profile')">
 <img src="assets/boar.png" onerror="this.src='https://api.dicebear.com/7.x/pixel-art/svg?seed=porker'">
 </div>
-<!-- Загрузка -->
 <div id="scr-load" class="screen active">
 <div style="width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;"></div>
 </div>
@@ -884,22 +844,19 @@ to {
 transform: rotate(360deg);
 }
 }</style>
-<!-- Результат боя -->
 <div id="result-overlay">
 <div id="result-card">
 <button class="close-x" onclick="closeResult()">&times;</button>
 <span class="res-icon" id="res-icon">🏆</span>
 <h2 class="res-title" id="res-title">ПОБЕДА</h2>
-<div class="res-sum" id="res-sum">+500 <img src="assets/boarcoin.png" class="currency-icon" alt="BC"></div>
+<div class="res-sum" id="res-sum">+500 💰</div>
 <button class="res-btn" onclick="closeResult()">ПРОДОЛЖИТЬ</button>
 </div>
 </div>
-<!-- Модалка игрока -->
 <div id="user-modal" onclick="if(event.target==this) closeModal()">
 <div class="card">
 <button class="close-x" onclick="closeModal()" style="top:12px; right:12px;">&times;</button>
 <h3 id="modal-user-name" style="margin-top:0; font-size: 1.5rem; padding-right: 30px;">ИГРОК</h3>
-<!-- СЕТКА 2 строки × 2 колонки -->
 <div class="stat-grid" style="margin-top: 20px;">
 <div class="stat-item">
 <span class="stat-val" id="modal-games">0</span>
@@ -918,7 +875,6 @@ transform: rotate(360deg);
 <span class="stat-lbl">WINRATE</span>
 </div>
 </div>
-<!-- НОВЫЕ ПОЛЯ ДЛЯ ПРОФИЛЯ -->
 <div class="stat-grid" style="margin-top: 15px;">
 <div class="stat-item">
 <span class="stat-val" id="modal-max-balance">0</span>
@@ -948,13 +904,7 @@ transform: rotate(360deg);
 <button class="btn-wood" style="flex:1; background: #3498db; border:none; box-shadow: 0 4px 0 #2573a7;" onclick="preStart(1)">ЛЕВЫЙ</button>
 <button class="btn-wood" style="flex:1; background: #9b59b6; border:none; box-shadow: 0 4px 0 #7d4594;" onclick="preStart(2)">ПРАВЫЙ</button>
 </div>
-<!-- --- ИЗМЕНЁННАЯ КНОПКА СЛУЧАЙНЫЙ КАБАН --- -->
-<button class="btn-wood" id="random-bet-btn" style="background: #ff9500; border:none; box-shadow: 0 4px 0 #cc7700; margin: 8px auto; width: 80%; display: block;" onclick="preStart(0)">СЛУЧАЙНЫЙ</button>
-<!-- --- ИЗМЕНЁННАЯ КНОПКА ПОСМОТРЕТЬ БОЙ --- -->
-<button id="watch-battle-btn" class="btn-wood btn-watch-ready" style="margin: 8px auto; width: 80%; display: block;" onclick="watchBattle()">
-<span class="watch-label">ПОСМОТРЕТЬ БОЙ</span>
-<span class="watch-reward">+<span id="watch-reward-amount">200</span> <img src="assets/boarcoin.png" class="currency-icon" alt="BC"></span>
-</button>
+<button class="btn-wood" style="background: #7f8c8d; border:none; box-shadow: 0 4px 0 #566573; margin: 8px auto; width: 80%; display: block;" onclick="watchBattle()">ПОСМОТРЕТЬ БОЙ (+1)</button>
 <button class="btn-wood" style="margin-top: 8px; width: 100%; opacity: 0.6;" onclick="nav('scr-main')">ОТМЕНА</button>
 </div>
 </div>
@@ -966,11 +916,9 @@ transform: rotate(360deg);
 <button class="btn-wood" style="width: 100%;" onclick="nav('scr-main')">НАЗАД</button>
 </div>
 </div>
-<!-- --- НОВЫЙ ЭКРАН: МАГАЗИН --- -->
 <div id="scr-shop" class="screen">
 <div class="card" style="max-height: 85vh; display: flex; flex-direction: column;">
 <h3 style="margin-top:0; text-align: center;">МАГАЗИН</h3>
-<!-- --- ТУМБЛЕР КУПИТЬ / ПРОДАТЬ (надписи СНАРУЖИ) --- -->
 <div class="shop-actions" style="margin-top: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;">
 <span class="label-left" style="font-size: 0.8rem; font-weight: 700; opacity: 0.7; color: #fff;">КУПИТЬ</span>
 <label class="toggle-switch" style="width: 120px; height: 40px; position: relative; display: inline-flex; align-items: center;">
@@ -980,34 +928,24 @@ transform: rotate(360deg);
 </label>
 <span class="label-right" style="font-size: 0.8rem; font-weight: 700; opacity: 0.7; color: #fff;">ПРОДАТЬ</span>
 </div>
-<!-- --- СЕТКА ПРЕДМЕТОВ --- -->
-<div id="shop-items-container" class="shop-grid" style="margin-top: 12px;">
-<!-- JS добавит элементы -->
-</div>
-<!-- --- ДЕТАЛИ ВЫБРАННОГО ПРЕДМЕТА --- -->
+<div id="shop-items-container" class="shop-grid" style="margin-top: 12px;"></div>
 <div class="shop-detail-section">
-<!-- Иконка: сначала placeholder, потом реальная -->
 <span id="detail-icon-placeholder" style="font-size: 4rem; opacity: 0.5;">📦</span>
 <img id="detail-icon-big" class="shop-detail-icon-big" src="" alt="Иконка предмета" style="display: none;">
 <div id="detail-name" style="font-size: 1.2rem; font-weight: 800;">Выберите предмет</div>
 <div id="detail-price" style="font-size: 0.9rem; opacity: 0.7;">Цена: -</div>
-<!-- --- ПОЛЕ ВВОДА КОЛИЧЕСТВА --- -->
 <input type="number" id="qty-input" value="1" min="1" inputmode="numeric"
 style="margin: 10px 0; width: 100%; padding: 16px; font-size: 1.4rem; text-align: center;
 border-radius: 20px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);"
 oninput="onQtyInput(this.value)">
-<!-- --- ИТОГОВАЯ СУММА — скрыта до выбора предмета --- -->
 <div id="total-cost" style="font-size: 1rem; font-weight: 700; color: var(--gold); text-align: center; margin-bottom: 12px; display: none;">
-- <img src="assets/boarcoin.png" class="currency-icon" alt="BC"> × - = - <img src="assets/boarcoin.png" class="currency-icon" alt="BC">
+- 💰 × - = - 💰
 </div>
-<!-- --- КНОПКА СДЕЛКИ (цвет зависит от действия) --- -->
 <button class="btn-wood btn-trade" onclick="performTransaction()" style="width: 100%; margin-top: 10px;">КУПИТЬ</button>
-<!-- --- КНОПКА НАЗАД --- -->
 <button class="btn-wood btn-nav-back" onclick="nav('scr-main')">НАЗАД</button>
 </div>
 </div>
 </div>
-<!-- --- КОНЕЦ НОВОГО ЭКРАНА --- -->
 <div id="scr-profile" class="screen">
 <div class="card">
 <h3 style="margin-top:0;">ВАШ ХРЯК</h3>
@@ -1018,7 +956,6 @@ oninput="onQtyInput(this.value)">
 <div class="stat-item"><span class="stat-val" id="st-lose" style="color: var(--lose);">0</span><span class="stat-lbl">Пораж.</span></div>
 <div class="stat-item"><span class="stat-val" id="st-wr">0%</span><span class="stat-lbl">Winrate</span></div>
 </div>
-<!-- НОВЫЕ ПОЛЯ ДЛЯ ПРОФИЛЯ -->
 <div class="stat-grid">
 <div class="stat-item"><span class="stat-val" id="st-max-balance">0</span><span class="stat-lbl">Макс. баланс</span></div>
 <div class="stat-item"><span class="stat-val" id="st-watched">0</span><span class="stat-lbl">Просмотрено</span></div>
@@ -1037,9 +974,7 @@ oninput="onQtyInput(this.value)">
 <div id="scr-rank" class="screen">
 <div class="card" style="max-height: 85vh; display: flex; flex-direction: column;">
 <h3 style="margin-top:0; text-align: center;">ТОП БОЙЦОВ</h3>
-<!-- --- НОВЫЙ ЭЛЕМЕНТ: Текст "Твое место" --- -->
 <div id="your-rank">Твое место — ?</div>
-<!-- --- КОНЕЦ НОВОГО ЭЛЕМЕНТА --- -->
 <div id="rank-loading" style="display: none; flex: 1; align-items: center; justify-content: center; flex-direction: column;">
 <div style="width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite; margin-bottom: 10px;"></div>
 <span>Загрузка...</span>
@@ -1076,65 +1011,19 @@ oninput="onQtyInput(this.value)">
 const tg = window.Telegram.WebApp;
 tg.expand();
 let user = null;
-let selectedSide = 0; // 0 - случайный, 1 - левый, 2 - правый
-let isWatchingMode = false; // Режим просмотра
+let selectedSide = 0;
+let isWatchingMode = false;
 let fullLeaderboardLoaded = false;
 let fullLeaderboardData = [];
-let userRank = '?'; // Для хранения позиции
-let currentShopItem = null; // Для выбранного предмета в магазине
-let currentShopQuantity = 1; // Для количества в магазине
-let currentAction = 'buy'; // 'buy' или 'sell'
-let prices = {}; // Хранение цен из prices.json
-let watchCooldownEndTimestamp = null; // Временная метка окончания кулдауна просмотра
-let cooldownIntervalId = null; // ID интервала таймера кулдауна
-// --- НОВАЯ ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ --- //
-let currentWatchRewardAmount = 0;
-// --- ИСПРАВЛЕНИЕ: Новая функция для обновления состояния кнопки просмотра ---
-function updateWatchButtonState() {
-const button = document.getElementById('watch-battle-btn');
-if (!button) return;
-const now = Date.now();
-if (watchCooldownEndTimestamp && watchCooldownEndTimestamp > now) {
-// Кулдаун активен
-button.classList.remove('btn-watch-ready');
-button.classList.add('btn-watch-cooldown');
-// Обновляем текст кнопки на таймер
-const hours = Math.floor((watchCooldownEndTimestamp - now) / (1000 * 60 * 60));
-const minutes = Math.floor(((watchCooldownEndTimestamp - now) % (1000 * 60 * 60)) / (1000 * 60));
-const seconds = Math.floor(((watchCooldownEndTimestamp - now) % (1000 * 60)) / 1000);
-document.querySelector('#watch-battle-btn .watch-label').textContent = 'ПОСМОТРЕТЬ БОЙ';
-document.querySelector('#watch-battle-btn .watch-reward').innerHTML = `<span class="watch-timer">ВРЕМЯ ДО НАГРАДЫ: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}</span>`;
-} else {
-// Кулдаун неактивен
-button.classList.remove('btn-watch-cooldown');
-button.classList.add('btn-watch-ready');
-// Обновляем текст кнопки на награду
-document.querySelector('#watch-battle-btn .watch-label').textContent = 'ПОСМОТРЕТЬ БОЙ';
-document.querySelector('#watch-battle-btn .watch-reward').innerHTML = `+<span id="watch-reward-amount">200</span> <img src="assets/boarcoin.png" class="currency-icon" alt="BC">`;
-}
-}
-// --- НОВАЯ ФУНКЦИЯ: Запуск таймера кулдауна ---
-function startCooldownTimer() {
-stopCooldownTimer(); // Останавливаем предыдущий таймер
-cooldownIntervalId = setInterval(() => {
-const now = Date.now();
-if (!watchCooldownEndTimestamp || watchCooldownEndTimestamp <= now) {
-clearInterval(cooldownIntervalId);
-cooldownIntervalId = null;
-updateWatchButtonState();
-return;
-}
-// Обновляем текст на кнопке каждый тик
-updateWatchButtonState();
-}, 1000);
-}
-// --- НОВАЯ ФУНКЦИЯ: Остановка таймера кулдауна ---
-function stopCooldownTimer() {
-if (cooldownIntervalId) {
-clearInterval(cooldownIntervalId);
-cooldownIntervalId = null;
-}
-}
+let userRank = '?';
+let currentShopItem = null;
+let currentShopQuantity = 1;
+let currentAction = 'buy';
+let prices = {};
+let isBattleLocked = false;
+let battleResult = null;
+let pendingBalance = null;
+
 async function apiFetch(endpoint, options = {}) {
 try {
 const res = await fetch(endpoint, {
@@ -1143,11 +1032,10 @@ headers: {'Content-Type': 'application/json', ...(options.headers || {})}
 });
 return await res.json();
 } catch (e) {
-console.error("API Fetch Error:", e);
 return null;
 }
 }
-// --- НОВАЯ ФУНКЦИЯ: Загрузка цен из prices.json ---
+
 async function loadPrices() {
 try {
 const response = await fetch('prices.json');
@@ -1158,13 +1046,13 @@ prices = await response.json();
 console.log("Цены загружены:", prices);
 } catch (error) {
 console.error("Ошибка загрузки prices.json:", error);
-// Устанавливаем цены по умолчанию в случае ошибки
 prices = {
 "plant_acorn": {"buy": 1000, "sell": 800},
 "acorn": {"buy": 200, "sell": 150}
 };
 }
 }
+
 async function auth() {
 const tgUser = tg.initDataUnsafe?.user || {id: "dev_user", username: "kaban", first_name: "Хряк"};
 user = await apiFetch('/api/auth', {
@@ -1172,43 +1060,33 @@ method: 'POST',
 body: JSON.stringify({tg_id: tgUser.id, username: tgUser.username, first_name: tgUser.first_name})
 });
 if (user) {
-// --- ИСПРАВЛЕНИЕ: Загрузка времени кулдауна просмотра из time_left_seconds ---
-watchCooldownEndTimestamp = null;
-if (user.time_left_seconds && user.time_left_seconds > 0) {
-watchCooldownEndTimestamp = Date.now() + (user.time_left_seconds * 1000);
-}
-// -------------------------
 updateUI();
 nav('scr-main');
-updateWatchButtonState(); // Обновляем состояние кнопки после загрузки данных
-startCooldownTimer(); // Запускаем таймер, если кулдаун активен
 } else {
 console.error("Не удалось авторизоваться");
 showToast("Ошибка загрузки профиля");
 }
 }
+
 function updateUI() {
 if (!user) return;
-// --- ИСПРАВЛЕНИЕ 2: Обновление баланса и желудей в интерфейсе ---
 document.getElementById('bal-val').innerText = user.balance.toLocaleString();
-document.getElementById('acorns-val').innerText = user.acorns.toLocaleString(); // Обновляем количество желудей
-// --- КОНЕЦ ИСПРАВЛЕНИЯ 2 ---
+document.getElementById('acorns-val').innerText = user.acorns.toLocaleString();
 document.getElementById('edit-name').value = user.display_name || user.username || "";
 document.getElementById('st-games').innerText = user.total_games || 0;
 document.getElementById('st-wins').innerText = user.wins || 0;
 document.getElementById('st-lose').innerText = user.lose || 0;
 const wr = user.total_games > 0 ? Math.round((user.wins / user.total_games) * 100) : 0;
 document.getElementById('st-wr').innerText = wr + "%";
-// НОВОЕ: Обновление новых полей профиля
 document.getElementById('st-max-balance').innerText = (user.max_balance || 0).toLocaleString();
 document.getElementById('st-watched').innerText = user.watched_battles || 0;
 const toggle = document.getElementById('private-profile-toggle');
 if (toggle) toggle.checked = !!user.private_profile;
 }
+
 function nav(id) {
 document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
 document.getElementById(id).classList.add('active');
-// Обновляем фон
 document.getElementById('bg-main').style.display = 'block';
 document.getElementById('bg-fight').style.display = 'none';
 document.getElementById('bg-inventory').style.display = 'none';
@@ -1222,26 +1100,21 @@ document.getElementById('bg-inventory').style.display = 'block';
 } else if (id === 'scr-shop') {
 document.getElementById('bg-main').style.display = 'none';
 document.getElementById('bg-shop').style.display = 'block';
-// ✅ ИСПРАВЛЕНИЕ: Сброс состояния магазина при входе
 resetShopState();
-loadShopItems(); // Загружаем предметы при открытии магазина
+loadShopItems();
 }
 const isCardScreen = ['scr-bet', 'scr-inventory', 'scr-shop', 'scr-profile', 'scr-rank', 'scr-load'].includes(id);
 document.body.classList.toggle('dimmed', isCardScreen);
-// --- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Устанавливаем класс для главного экрана ---
 document.body.classList.toggle('show-main-screen', id === 'scr-main');
-// ---------------------------------------------------------------
-// Показываем кнопку профиля только на главном экране (это дублирует CSS, но надёжнее)
 if (id === 'scr-main') {
 document.body.classList.add('show-profile-btn');
 } else {
 document.body.classList.remove('show-profile-btn');
 }
-// Загрузка рейтинга
-if (id === 'scr-rank') loadRank(); // Загружаем рейтинг при открытии экрана
+if (id === 'scr-rank') loadRank();
 tg.HapticFeedback.impactOccurred('light');
 }
-// ✅ НОВАЯ ФУНКЦИЯ: Сброс состояния магазина (вызов при входе и при нажатии НАЗАД)
+
 function resetShopState() {
 currentShopItem = null;
 currentShopQuantity = 1;
@@ -1251,9 +1124,7 @@ document.getElementById('detail-icon-big').style.display = 'none';
 document.getElementById('detail-name').innerText = 'Выберите предмет';
 document.getElementById('detail-price').innerText = 'Цена: -';
 document.getElementById('total-cost').style.display = 'none';
-// Снять выделение со всех предметов
 document.querySelectorAll('#shop-items-container .shop-item').forEach(el => el.classList.remove('selected'));
-// Сбросить тумблер в режим "КУПИТЬ" и цвет в зелёный
 const toggle = document.getElementById('action-toggle');
 toggle.checked = false;
 currentAction = 'buy';
@@ -1262,21 +1133,19 @@ document.querySelector('.slider-thumb').style.transform = 'translateX(0)';
 updateTradeButton();
 updatePriceDisplay();
 }
-// --- НОВАЯ ФУНКЦИЯ: Загрузка предметов магазина ---
+
 async function loadShopItems() {
-// Сначала загружаем цены
 await loadPrices();
 const container = document.getElementById('shop-items-container');
-container.innerHTML = ""; // Очищаем контейнер
-// Используем жесто закодированные id предметов, но с ценами из prices.json
+container.innerHTML = "";
 const itemIds = ["acorn", "plant_acorn"];
 for (const itemId of itemIds) {
 const item = {
 id: itemId,
 name: itemId === "acorn" ? "Желудь" : "Росток",
 icon: itemId === "acorn" ? "acorn.png" : "plant_acorn.png",
-price: prices[itemId]?.buy || 0, // Цена покупки из JSON
-sell_price: prices[itemId]?.sell || 0 // Цена продажи из JSON
+price: prices[itemId]?.buy || 0,
+sell_price: prices[itemId]?.sell || 0
 };
 const div = document.createElement('div');
 div.className = 'shop-item';
@@ -1284,49 +1153,45 @@ div.onclick = () => selectShopItem(item);
 div.innerHTML = `
 <img class="shop-item-icon" src="assets/${item.icon}" onerror="this.src='https://placehold.co/40x40?text=?'">
 <div class="shop-item-name">${item.name}</div>
-<div class="shop-item-price">${currentAction === 'buy' ? item.price : item.sell_price} <img src="assets/boarcoin.png" class="currency-icon" alt="BC"></div>
+<div class="shop-item-price">${currentAction === 'buy' ? item.price : item.sell_price} 💰</div>
 `;
 container.appendChild(div);
 }
 }
-// --- НОВАЯ ФУНКЦИЯ: Выбор предмета в магазине ---
+
 function selectShopItem(item) {
 currentShopItem = item;
 currentShopQuantity = 1;
 document.getElementById('qty-input').value = currentShopQuantity;
-// Переключаем иконку
 document.getElementById('detail-icon-placeholder').style.display = 'none';
 document.getElementById('detail-icon-big').src = `assets/${item.icon}`;
 document.getElementById('detail-icon-big').style.display = 'block';
-document.getElementById('detail-name').innerHTML = item.name; // Используем innerHTML
+document.getElementById('detail-name').innerText = item.name;
 updatePriceDisplay();
-// Подсветка
 document.querySelectorAll('#shop-items-container .shop-item').forEach(el => el.classList.remove('selected'));
 event.currentTarget.classList.add('selected');
 }
-// --- НОВАЯ ФУНКЦИЯ: Переключение действия (КУПИТЬ/ПРОДАТЬ) ---
+
 function toggleAction() {
 const checkbox = document.getElementById('action-toggle');
 const thumb = document.querySelector('#scr-shop .slider-thumb');
 currentAction = checkbox.checked ? 'sell' : 'buy';
-updatePriceDisplay(); // Обновляем цену под предметом
-updateShopItemPrices(); // Обновляем цены в сетке магазина
-updateTradeButton(); // Обновляем текст кнопки сделки
-// Анимация thumb
+updatePriceDisplay();
+updateShopItemPrices();
+updateTradeButton();
 if (thumb) {
 thumb.style.transform = checkbox.checked ? 'translateX(76px)' : 'translateX(0)';
 }
-// ✅ ИСПРАВЛЕНИЕ: Обновляем цвет фона тумблера
 const slider = document.querySelector('.slider');
 slider.style.backgroundColor = currentAction === 'buy' ? 'var(--win)' : 'var(--lose)';
 }
-// --- НОВАЯ ФУНКЦИЯ: Обновление текста кнопки сделки ---
+
 function updateTradeButton() {
 const button = document.querySelector('#scr-shop .btn-trade');
 button.innerText = currentAction === 'buy' ? 'КУПИТЬ' : 'ПРОДАТЬ';
 button.classList.toggle('sell-mode', currentAction === 'sell');
 }
-// --- НОВАЯ ФУНКЦИЯ: Обновление цен в сетке магазина ---
+
 function updateShopItemPrices() {
 const items = document.querySelectorAll('#shop-items-container .shop-item');
 items.forEach((el, index) => {
@@ -1339,36 +1204,32 @@ icon: itemId === "acorn" ? "acorn.png" : "plant_acorn.png",
 price: prices[itemId]?.buy || 0,
 sell_price: prices[itemId]?.sell || 0
 };
-// Используем innerHTML для вставки иконки
-el.querySelector('.shop-item-price').innerHTML = `${currentAction === 'buy' ? item.price : item.sell_price} <img src="assets/boarcoin.png" class="currency-icon" alt="BC">`;
+el.querySelector('.shop-item-price').innerText = `${currentAction === 'buy' ? item.price : item.sell_price} 💰`;
 });
 }
-// --- НОВАЯ ФУНКЦИЯ: Обновление текста цены под предметом и итоговой суммы ---
+
 function updatePriceDisplay() {
 const totalCostEl = document.getElementById('total-cost');
 if (!currentShopItem) {
-// Используем innerHTML для вставки иконки
-document.getElementById('detail-price').innerHTML = 'Цена: -';
+document.getElementById('detail-price').innerText = 'Цена: -';
 totalCostEl.style.display = 'none';
 return;
 }
 const price = currentAction === 'buy' ? currentShopItem.price : currentShopItem.sell_price;
 const total = price * currentShopQuantity;
-// Используем innerHTML для вставки иконки
-document.getElementById('detail-price').innerHTML = `Цена: ${price} <img src="assets/boarcoin.png" class="currency-icon" alt="BC"> / шт.`;
-// Используем innerHTML для вставки иконки
-totalCostEl.innerHTML = `${price} <img src="assets/boarcoin.png" class="currency-icon" alt="BC"> × ${currentShopQuantity} = ${total} <img src="assets/boarcoin.png" class="currency-icon" alt="BC">`;
+document.getElementById('detail-price').innerText = `Цена: ${price} 💰 / шт.`;
+totalCostEl.innerHTML = `${price} 💰 × ${currentShopQuantity} = ${total} 💰`;
 totalCostEl.style.display = 'block';
 }
-// --- НОВАЯ ФУНКЦИЯ: Обработка ввода в поле ---
+
 function onQtyInput(value) {
 let newQty = parseInt(value) || 1;
 if (newQty < 1) newQty = 1;
 if (newQty > 999999) newQty = 999999;
 currentShopQuantity = newQty;
-updatePriceDisplay(); // Обновляем итоговую сумму
+updatePriceDisplay();
 }
-// --- НОВАЯ ФУНКЦИЯ: Совершение транзакции ---
+
 async function performTransaction() {
 if (!currentShopItem) {
 tg.HapticFeedback.notificationOccurred('error');
@@ -1386,11 +1247,9 @@ method: 'POST',
 body: JSON.stringify(payload)
 });
 if (response && response.success) {
-// Обновляем локальные данные пользователя
 user.balance = response.new_balance;
 user.acorns = response.new_acorns;
 user.plant_acorns = response.new_plant_acorns;
-// Обновляем UI
 updateUI();
 tg.HapticFeedback.notificationOccurred('success');
 showToast(`${currentAction === 'buy' ? 'Куплено' : 'Продано'} ${currentShopQuantity}x ${currentShopItem.name}`);
@@ -1399,21 +1258,21 @@ tg.HapticFeedback.notificationOccurred('error');
 showToast(response?.error || "Ошибка операции");
 }
 }
-// --- НОВАЯ ФУНКЦИЯ: Определение позиции пользователя ---
+
 function findUserRank(data) {
 for (let i = 0; i < data.length; i++) {
 if (data[i].tg_id === user.tg_id) {
-return i + 1; // Позиция начинается с 1
+return i + 1;
 }
 }
 return '?';
 }
-// --- НОВАЯ ФУНКЦИЯ: Расчет прогресса для баланса ---
+
 function calculateProgress(userBalance, maxBalance) {
 if (maxBalance <= 0) return 0;
 return Math.min(100, (userBalance / maxBalance) * 100);
 }
-// --- ИСПРАВЛЕНИЕ 1: Изменение функции loadRank ---
+
 async function loadRank() {
 fullLeaderboardLoaded = false;
 fullLeaderboardData = [];
@@ -1430,7 +1289,6 @@ document.getElementById('rank-loading').style.display = 'none';
 document.getElementById('rank-list').style.display = 'block';
 return;
 }
-// Сначала ищем пользователя в текущем списке
 let userIndex = -1;
 for (let i = 0; i < data.length; i++) {
 if (data[i].tg_id === user?.tg_id) {
@@ -1438,23 +1296,16 @@ userIndex = i;
 break;
 }
 }
-// Если нашли — это его место
 if (userIndex !== -1) {
 userRank = userIndex + 1;
-}
-// Если не нашли — предполагаем, что он ниже топ-10
-else {
-// Пытаемся уточнить: если есть поле `your_rank` в ответе — используем его
+} else {
 if (data.your_rank !== undefined && data.your_rank > 0) {
 userRank = data.your_rank;
 } else {
-// Иначе: ставим место = длина списка + 1 (например, 11, если топ-10)
 userRank = data.length + 1;
 }
 }
-// Обновляем текст независимо от того, найден ли пользователь
 document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
-// Рендерим список
 const maxBalance = data.length > 0 ? data[0].balance : 0;
 data.forEach((u, i) => {
 const item = document.createElement('div');
@@ -1469,7 +1320,7 @@ item.innerHTML = `
 </div>
 <div class="lb-values">
 <div class="lb-value-row">
-<span class="lb-val-gold">${u.balance.toLocaleString()} <img src="assets/boarcoin.png" class="currency-icon" alt="BC"></span>
+<span class="lb-val-gold">${u.balance.toLocaleString()} 💰</span>
 </div>
 <div class="lb-value-row">
 <span class="lb-val-acorn">${u.acorns ? u.acorns.toLocaleString() : '0'} 🌰</span>
@@ -1484,22 +1335,19 @@ document.getElementById('rank-list').style.display = 'block';
 document.getElementById('toggle-full-leaderboard').style.display = 'block';
 document.getElementById('toggle-full-leaderboard').textContent = 'Развернуть';
 }
-// --- КОНЕЦ ИСПРАВЛЕНИЯ 1 ---
-// --- ИСПРАВЛЕНИЕ 1: Изменение функции toggleFullLeaderboard ---
+
 async function toggleFullLeaderboard() {
 const button = document.getElementById('toggle-full-leaderboard');
 const list = document.getElementById('rank-list');
 if (!fullLeaderboardLoaded) {
 button.textContent = 'Загрузка...';
 button.disabled = true;
-const data = await apiFetch('/api/leaderboard.full');
+const data = await apiFetch('/api/leaderboard/full');
 if (data) {
 fullLeaderboardData = data;
 fullLeaderboardLoaded = true;
-// Обновляем текст "Твое место" для полного списка
 userRank = findUserRank(data);
 document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
-// Находим максимальный баланс среди всех игроков для прогресс-бара
 const maxBalance = data.length > 0 ? data[0].balance : 0;
 renderLeaderboard(fullLeaderboardData, true, maxBalance);
 button.textContent = 'Свернуть';
@@ -1510,14 +1358,13 @@ setTimeout(() => button.textContent = 'Развернуть', 2000);
 button.disabled = false;
 } else {
 fullLeaderboardLoaded = false;
-loadRank(); // Перезагружаем топ-10 (и обновим "Твое место" для топ-10)
+loadRank();
 }
 }
-// --- КОНЕЦ ИСПРАВЛЕНИЯ 1 ---
+
 function renderLeaderboard(data, isFullList = false, maxBalanceOverride = null) {
 const list = document.getElementById('rank-list');
 list.innerHTML = "";
-// Если не передали maxBalance, используем первый элемент (лидера)
 const maxBalance = maxBalanceOverride || (data.length > 0 ? data[0].balance : 0);
 data.forEach((u, i) => {
 const item = document.createElement('div');
@@ -1525,7 +1372,6 @@ item.className = 'rank-item';
 if (user && u.tg_id === user.tg_id) {
 item.classList.add('current-user-highlight');
 }
-// Рассчитываем прогресс для баланса
 const progress = calculateProgress(u.balance, maxBalance);
 item.innerHTML = `
 <div style="display:flex; align-items:center; gap:12px;">
@@ -1534,7 +1380,7 @@ item.innerHTML = `
 </div>
 <div class="lb-values">
 <div class="lb-value-row">
-<span class="lb-val-gold">${u.balance.toLocaleString()} <img src="assets/boarcoin.png" class="currency-icon" alt="BC"></span>
+<span class="lb-val-gold">${u.balance.toLocaleString()} 💰</span>
 </div>
 <div class="lb-value-row">
 <span class="lb-val-acorn">${u.acorns ? u.acorns.toLocaleString() : '0'} 🌰</span>
@@ -1545,20 +1391,15 @@ item.onclick = () => showUserDetail(u);
 list.appendChild(item);
 });
 }
-// --- ИЗМЕНЕНАЯ ФУНКЦИЯ: Отображение деталей пользователя ---
+
 function showUserDetail(u) {
 tg.HapticFeedback.selectionChanged();
-// Заполняем данные пользователя
 document.getElementById('modal-user-name').innerText = u.display_name || u.username;
 document.getElementById('modal-games').innerText = u.total_games || 0;
 document.getElementById('modal-wins').innerText = u.wins || 0;
 document.getElementById('modal-lose').innerText = u.lose || 0;
-// --- НОВОЕ: Вычисление винрейта ---
 const wr = u.total_games > 0 ? Math.round((u.wins / u.total_games) * 100) : 0;
 document.getElementById('modal-winrate').innerText = wr + "%";
-// --- КОНЕЦ НОВОГО ---
-// Убираем баланс из отображения в модалке
-// document.getElementById('modal-bal').innerText = u.balance.toLocaleString();
 document.getElementById('modal-max-balance').innerText = (u.max_balance || 0).toLocaleString();
 document.getElementById('modal-watched').innerText = (u.watched_battles || 0).toLocaleString();
 const btn = document.getElementById('modal-write-btn');
@@ -1566,76 +1407,28 @@ if (u.username) {
 btn.style.display = 'block';
 btn.textContent = 'НАПИСАТЬ';
 if (u.private_profile) {
-// Если пользователь приватный
-btn.style.background = '#7f8c8d'; // Серый цвет
-btn.style.boxShadow = '0 4px 0 #566573'; // Серая тень
+btn.style.background = '#7f8c8d';
+btn.style.boxShadow = '0 4px 0 #566573';
 btn.onclick = () => {
-showToast("Этот пользователь запретил ему писать"); // Показываем уведомление
-tg.HapticFeedback.notificationOccurred('error'); // Вибрация об ошибке
+showToast("Этот пользователь запретил ему писать");
+tg.HapticFeedback.notificationOccurred('error');
 };
 } else {
-// Если пользователь публичный
-btn.style.background = '#0088cc'; // Синий цвет
-btn.style.boxShadow = '0 4px 0 #006699'; // Синяя тень
-btn.onclick = () => tg.openTelegramLink(`https://t.me/${u.username}`); // Открываем Telegram
+btn.style.background = '#0088cc';
+btn.style.boxShadow = '0 4px 0 #006699';
+btn.onclick = () => tg.openTelegramLink(`https://t.me/${u.username}`);
 }
-}
-else {
-// Если у пользователя нет username
+} else {
 btn.style.display = 'none';
 btn.onclick = null;
 }
-// Показываем модальное окно
 document.getElementById('user-modal').style.display = 'flex';
-// --- НОВАЯ ЛОГИКА: Отображение баланса в lowercase и замена на winrate и параметры ---
-const statsEl = document.getElementById('modal-games'); // Используем один из элементов сетки для демонстрации
-// Предположим, что мы хотим заменить содержимое сетки статистики
-const modalStatsGrid = document.querySelector('#user-modal .stat-grid');
-if (modalStatsGrid) {
-const wr = u.total_games > 0 ? Math.round((u.wins / u.total_games) * 100) : 0;
-const maxBal = u.max_balance || 0;
-const watched = u.watched_battles || 0;
-// Обновляем статистику с новыми значениями, но не меняем разметку сетки
-document.getElementById('modal-games').innerText = u.total_games;
-document.getElementById('modal-wins').innerText = u.wins;
-document.getElementById('modal-lose').innerText = u.lose;
-document.getElementById('modal-winrate').innerText = wr + "%";
-document.getElementById('modal-max-balance').innerText = maxBal.toLocaleString();
-document.getElementById('modal-watched').innerText = watched.toLocaleString();
-// Дополнительно: если это профиль текущего пользователя, можно изменить отображение в модалке
-if (u.tg_id === user.tg_id) {
-// Нам нужно заменить содержимое сетки, но оставить разметку
-const newContent = `
-<div class="stat-item">
-<span class="stat-val">${wr}%</span>
-<span class="stat-lbl">WINRATE</span>
-</div>
-<div class="stat-item">
-<span class="stat-val">${maxBal.toLocaleString()}</span>
-<span class="stat-lbl">МАКС. БАЛАНС</span>
-</div>
-<div class="stat-item">
-<span class="stat-val">${watched}</span>
-<span class="stat-lbl">ПРОСМОТРЕНО</span>
-</div>
-<div class="stat-item">
-<span class="stat-val">${u.total_games}</span>
-<span class="stat-lbl">БОЕВ</span>
-</div>
-`;
-// Заменяем только второй ряд сетки, оставив первый
-const statItems = modalStatsGrid.querySelectorAll('.stat-item');
-if (statItems.length >= 4) {
-statItems[2].innerHTML = `<span class="stat-val">${watched}</span><span class="stat-lbl">ПРОСМОТРЕНО</span>`;
-statItems[3].innerHTML = `<span class="stat-val">${u.total_games}</span><span class="stat-lbl">БОЕВ</span>`;
 }
-}
-}
-}
-// --- КОНЕЦ ИЗМЕНЁННОЙ ФУНКЦИИ ---
+
 function closeModal() {
 document.getElementById('user-modal').style.display = 'none';
 }
+
 async function togglePrivateProfile() {
 const toggle = document.getElementById('private-profile-toggle');
 const isChecked = toggle.checked;
@@ -1651,66 +1444,31 @@ console.error("Ошибка обновления статуса приватно
 toggle.checked = !isChecked;
 }
 }
+
 function showToast(message) {
 const toast = document.getElementById('notification-toast');
 toast.textContent = message;
 toast.classList.add('show');
 setTimeout(() => toast.classList.remove('show'), 2500);
 }
-// --- ИЗМЕНЁННАЯ ФУНКЦИЯ: Просмотр боя ---
+
+// === АНИМАЦИЯ СПИСАНИЯ (ВЫЛЕТ ИЗ-ПОД БАЛАНСА) ===
+function showBetDeduction(amount) {
+const notify = document.getElementById('bet-deduction-notify');
+notify.innerText = `-${amount} 💰`;
+notify.classList.add('show');
+setTimeout(() => {
+notify.classList.remove('show');
+}, 2000);
+}
+// === КОНЕЦ АНИМАЦИИ СПИСАНИЯ ===
+
 async function watchBattle() {
-const button = document.getElementById('watch-battle-btn');
 if (document.getElementById('scr-fight').classList.contains('active')) return;
 isWatchingMode = true;
-selectedSide = 0; // Убедимся, что сторона не выбрана
-// Отправляем запрос на сервер перед запуском анимации
-try {
-const result = await apiFetch('/api/battle/watch', {
-method: 'POST',
-body: JSON.stringify({tg_id: user.tg_id})
-});
-if (result && result.success) {
-// Обновляем локальные данные пользователя из ответа сервера
-user.balance = result.new_balance;
-user.acorns = result.acorns;
-user.plant_acorns = result.plant_acorns;
-user.max_balance = result.max_balance;
-user.watched_battles = result.watched_battles;
-// --- ИСПРАВЛЕНИЕ: Обновляем кулдаун и показываем уведомление только при получении награды ---
-if (result.reward_granted) {
-// Устанавливаем кулдаун на 2 часа (в миллисекундах)
-watchCooldownEndTimestamp = Date.now() + (2 * 60 * 60 * 1000);
-// Показываем уведомление
-showToast("🏆 БОЙ ПРОСМОТРЕН");
-// --- НОВОЕ: Сохраняем реальную награду ---
-currentWatchRewardAmount = result.reward || 0;
-// ---
-} else {
-// Кулдаун не обновляем, награда не выдана
-// Не показываем уведомление о награде
-// --- НОВОЕ: Устанавливаем награду в 0 ---
-currentWatchRewardAmount = 0;
-// ---
+startBattle(0);
 }
-// ---
-// Обновляем UI
-updateUI();
-// Обновляем состояние кнопки и запускаем таймер
-updateWatchButtonState();
-startCooldownTimer();
-// Запускаем анимацию боя
-startFight(0); // Ставка 0 для просмотра
-// После завершения анимации (в closeResult) будет обновление UI
-} else {
-console.error("Ошибка просмотра боя:", result?.error || "Неизвестная ошибка");
-showToast(result?.error || "Ошибка просмотра боя");
-}
-} catch (error) {
-console.error("Ошибка сети при попытке просмотра боя:", error);
-showToast("Ошибка соединения");
-}
-}
-// --- КОНЕЦ ИЗМЕНЁННОЙ ФУНКЦИИ ---
+
 async function updateName() {
 const name = document.getElementById('edit-name').value;
 if (!name) return;
@@ -1722,54 +1480,72 @@ user.display_name = name;
 tg.HapticFeedback.notificationOccurred('success');
 nav('scr-main');
 }
-// --- ИЗМЕНЕНАЯ ФУНКЦИЯ: preStart теперь учитывает случайный выбор ---
-function preStart(side) {
+
+// === РЕФАКТОРИНГ МЕХАНИКИ БОЯ ===
+
+async function preStart(side) {
+if (isBattleLocked) return;
+
 const input = document.getElementById('bet-amt');
 const amt = parseInt(input.value);
-if (isNaN(amt) || amt < 10) return;
-if (amt > user.balance) {
+
+if (isNaN(amt) || amt < 10) {
 tg.HapticFeedback.notificationOccurred('error');
-showResult("ОШИБКА", "МАЛО ЗОЛОТА", false);
+showToast("Минимальная ставка: 10 💰");
 return;
 }
-selectedSide = side; // side может быть 0 (случайный), 1 (левый), 2 (правый)
-isWatchingMode = false; // Убедимся, что это не режим просмотра
-startFight(amt);
+
+if (amt > user.balance) {
+tg.HapticFeedback.notificationOccurred('error');
+showToast("Недостаточно золота");
+return;
 }
-function showResult(title, sum, isWin) {
-const overlay = document.getElementById('result-overlay');
-const card = document.getElementById('result-card');
-const t = document.getElementById('res-title');
-const s = document.getElementById('res-sum');
-const icon = document.getElementById('res-icon');
-t.innerText = title;
-// --- ИЗМЕНЕНИЕ: Если sum пустая строка или currentWatchRewardAmount равно 0, не отображаем иконку валюты ---
-if(sum === "" || (isWatchingMode && currentWatchRewardAmount === 0)) {
-s.style.display = 'none'; // Скрываем элемент суммы
-} else {
-s.style.display = 'block'; // Показываем элемент суммы
-s.innerHTML = sum;
+
+// 1. МГНОВЕННОЕ СПИСАНИЕ: обновляем баланс визуально
+const newTempBalance = user.balance - amt;
+document.getElementById('bal-val').innerText = newTempBalance.toLocaleString();
+
+// 2. Показываем анимацию вылетающего уведомления
+showBetDeduction(amt);
+
+// Блокируем кнопку и интерфейс
+isBattleLocked = true;
+input.disabled = true;
+selectedSide = side;
+isWatchingMode = false;
+
+try {
+// 3. Отправляем запрос на сервер ПЕРЕД началом анимации
+const response = await apiFetch('/api/battle/init', {
+method: 'POST',
+body: JSON.stringify({
+tg_id: user.tg_id,
+bet_amount: amt
+})
+});
+
+if (!response || response.error) {
+throw new Error(response?.error || 'Ошибка инициализации боя');
 }
-// ---
-icon.innerText = isWin ? "🏆" : "💀";
-overlay.style.display = 'flex';
-setTimeout(() => card.classList.add('active'), 50);
+
+// 4. Сохраняем new_balance в переменную, НЕ обновляем UI ещё
+battleResult = response;
+pendingBalance = response.new_balance;
+
+// 5. Запускаем анимацию боя только после успешного ответа
+startBattle(amt, response);
+
+} catch (error) {
+console.error("Ошибка начала боя:", error);
+tg.HapticFeedback.notificationOccurred('error');
+showToast(error.message || "Ошибка начала боя");
+isBattleLocked = false;
+input.disabled = false;
+// Возвращаем баланс обратно при ошибке
+document.getElementById('bal-val').innerText = user.balance.toLocaleString();
 }
-function closeResult() {
-const card = document.getElementById('result-card');
-card.classList.remove('active');
-setTimeout(() => {
-document.getElementById('result-overlay').style.display = 'none';
-if (!isWatchingMode) auth(); // Обновляем данные после боя (обычного или случайного)
-else {
-// Обновляем UI и состояние кнопки после просмотра боя
-updateUI();
-updateWatchButtonState();
-startCooldownTimer(); // Перезапускаем таймер, если нужно
-nav('scr-main');
 }
-}, 300);
-}
+
 function spawnDmg(container, val) {
 const p = document.createElement('div');
 p.className = 'dmg-popup';
@@ -1778,177 +1554,188 @@ p.style.left = Math.random() * 40 + 30 + "%";
 container.appendChild(p);
 setTimeout(() => p.remove(), 700);
 }
-function startFight(bet) {
+
+// === ГЕНЕРАЦИЯ УДАРОВ С ПРОВЕРКОЙ ПОБЕДИТЕЛЯ ===
+function generateHits(serverResult) {
+const playerSide = selectedSide;
+const opponentSide = selectedSide === 1 ? 2 : 1;
+const playerWins = serverResult?.is_win === true;
+const winningSide = playerWins ? playerSide : opponentSide;
+
+let hits = [];
+let attempts = 0;
+const maxAttempts = 50;
+
+// Генерируем удары пока визуальный победитель не совпадет с серверным
+while (attempts < maxAttempts) {
+hits = [];
+let tempHP1 = 100;
+let tempHP2 = 100;
+let currentTarget = 1; // Начинаем с левого кабана
+
+// Генерируем удары по очереди пока кто-то не умрет
+while (tempHP1 > 0 && tempHP2 > 0) {
+// Урон строго 5-20 HP
+const dmg = Math.floor(Math.random() * 16) + 5;
+
+if (currentTarget === 1) {
+tempHP1 = Math.max(0, tempHP1 - dmg);
+hits.push({ target: 1, dmg, isFinal: tempHP1 <= 0 });
+if (tempHP1 <= 0) break;
+currentTarget = 2;
+} else {
+tempHP2 = Math.max(0, tempHP2 - dmg);
+hits.push({ target: 2, dmg, isFinal: tempHP2 <= 0 });
+if (tempHP2 <= 0) break;
+currentTarget = 1;
+}
+}
+
+// Проверяем, совпадает ли визуальный победитель с серверным
+const visualWinner = tempHP1 > 0 ? 1 : 2;
+if (visualWinner === winningSide) {
+break; // Победитель совпал, выходим из цикла
+}
+
+attempts++;
+}
+
+return hits;
+}
+// === КОНЕЦ ГЕНЕРАЦИИ УДАРОВ ===
+
+function startBattle(bet, serverResult) {
 nav('scr-fight');
+
 let h1 = 100, h2 = 100;
 const log = document.getElementById('fight-log');
+
+// 1. Сразу: "ПОДГОТОВКА К БОЮ..."
+log.innerText = "ПОДГОТОВКА К БОЮ...";
+
 document.getElementById('hp1-f').style.width = "100%";
 document.getElementById('hp2-f').style.width = "100%";
 document.getElementById('hp1-txt').innerText = "100";
 document.getElementById('hp2-txt').innerText = "100";
-log.innerText = "БОЙ НАЧАЛСЯ!";
-// --- ИЗМЕНЕНИЕ: Логика боя с серверным вызовом ---
-let fightFinished = false;
-let serverResult = null;
-let finalIsWin = null; // Для хранения финального результата
-let finalReward = 0; // Для хранения финальной награды/потерь
-const runFightLogic = async () => {
-if (isWatchingMode) {
-// Для просмотра боя используем старый эндпоинт
-const result = await apiFetch('/api/battle/watch', {
-method: 'POST',
-body: JSON.stringify({tg_id: user.tg_id})
-});
-if (result && result.new_balance !== undefined) {
-user.balance = result.new_balance;
-// Показываем уведомление только если награда была выдана
-// (это уже обработано в watchBattle, но на всякий случай оставим комментарий)
-// showToast("Бой посмотрен. +200 кабанкойнов");
-}
-// Просто анимируем бой
-const interval = setInterval(() => {
-if (fightFinished) {
-clearInterval(interval);
-return;
-}
-const dmg = Math.floor(Math.random() * 12) + 6;
-const target = Math.random() > 0.5 ? 1 : 2;
-const cont = document.getElementById(`cont-${target}`);
-cont.classList.add('hit');
-spawnDmg(cont, dmg);
-setTimeout(() => cont.classList.remove('hit'), 250);
-if (target === 1) {
-h1 = Math.max(0, h1 - dmg);
-document.getElementById('hp1-f').style.width = h1 + "%";
-document.getElementById('hp1-txt').innerText = h1;
-} else {
-h2 = Math.max(0, h2 - dmg);
-document.getElementById('hp2-f').style.width = h2 + "%";
-document.getElementById('hp2-txt').innerText = h2;
-}
-tg.HapticFeedback.impactOccurred('medium');
-// Принудительно завершаем бой через 5 секунд (или когда HP одного из бойцов достигает 0)
-if (h1 <= 0 || h2 <= 0) {
-clearInterval(interval);
-fightFinished = true;
-// --- ИСПРАВЛЕНИЕ: Фиксация финальных HP ---
-// После завершения анимации, HP не должны изменяться.
-// Обновляем интерфейс с финальными значениями
-document.getElementById('hp1-f').style.width = h1 + "%";
-document.getElementById('hp1-txt').innerText = h1;
-document.getElementById('hp2-f').style.width = h2 + "%";
-document.getElementById('hp2-txt').innerText = h2;
-// ---
-// Показываем результат просмотра
+
+// Генерируем удары с проверкой победителя
+const hits = generateHits(serverResult);
+
+const playerSide = selectedSide;
+const playerWins = serverResult?.is_win === true;
+
+let hitIndex = 0;
+let battleEnded = false;
+
+// 2. В момент начала анимации: "ИДЕТ БОЙ..."
 setTimeout(() => {
-// --- ИЗМЕНЕНИЕ: Условное отображение награды ---
-if (currentWatchRewardAmount > 0) {
-showResult("БОЙ ПРОСМОТРЕН", `+${currentWatchRewardAmount} <img src="assets/boarcoin.png" class="currency-icon" alt="BC">`, true);
-} else {
-showResult("БОЙ ПРОСМОТРЕН", "", true); // Передаём пустую строку
+if (!battleEnded) {
+log.innerText = "ИДЕТ БОЙ...";
 }
-// ---
-}, 1000);
-}
-}, 700);
-} else { // Обычный бой (включая случайный)
-serverResult = await startBattleServerSide(bet);
-if (!serverResult) {
-fightFinished = true;
-return;
-}
-// Бой завершен на сервере, но анимация продолжается
-// Мы будем симулировать анимацию, но результат уже известен
-// Используем серверный результат для определения конечного состояния HP
-// --- ИЗМЕНЕНИЕ: Учитываем случайный выбор ---
-let simulatedSide = selectedSide;
-if (selectedSide === 0) { // Если "случайный"
-simulatedSide = Math.random() > 0.5 ? 1 : 2; // Выбираем сторону случайно для анимации
-finalIsWin = serverResult.isWin; // Финальный результат - от сервера
-} else {
-// Для обычных выборов результат зависит от совпадения
-finalIsWin = (selectedSide === 1 && serverResult.isWin) || (selectedSide === 2 && !serverResult.isWin);
-}
-finalReward = serverResult.reward;
-// ---
-const targetH1 = (simulatedSide === 1 && serverResult.isWin) || (simulatedSide === 2 && !serverResult.isWin) ? 100 : 0;
-const targetH2 = (simulatedSide === 2 && serverResult.isWin) || (simulatedSide === 1 && !serverResult.isWin) ? 100 : 0;
+}, 500);
+
 const interval = setInterval(() => {
-if (fightFinished) {
+// === ПРОВЕРКА: если бой уже закончен или удары кончились ===
+if (hitIndex >= hits.length || battleEnded) {
 clearInterval(interval);
 return;
 }
-const dmg = Math.floor(Math.random() * 12) + 6;
-const target = Math.random() > 0.5 ? 1 : 2;
-const cont = document.getElementById(`cont-${target}`);
+
+const hit = hits[hitIndex];
+const cont = document.getElementById(`cont-${hit.target}`);
 cont.classList.add('hit');
-spawnDmg(cont, dmg);
+spawnDmg(cont, hit.dmg);
 setTimeout(() => cont.classList.remove('hit'), 250);
-if (target === 1) {
-h1 = Math.max(0, h1 - dmg);
+
+if (hit.target === 1) {
+h1 = Math.max(0, h1 - hit.dmg);
 document.getElementById('hp1-f').style.width = h1 + "%";
 document.getElementById('hp1-txt').innerText = h1;
 } else {
-h2 = Math.max(0, h2 - dmg);
+h2 = Math.max(0, h2 - hit.dmg);
 document.getElementById('hp2-f').style.width = h2 + "%";
 document.getElementById('hp2-txt').innerText = h2;
 }
+
 tg.HapticFeedback.impactOccurred('medium');
-// Принудительно завершаем бой, когда HP одного из бойцов достигает 0
+
+// 3. === МГНОВЕННАЯ ПРОВЕРКА: если HP достигло 0 ===
 if (h1 <= 0 || h2 <= 0) {
-clearInterval(interval);
-fightFinished = true;
-// --- ИСПРАВЛЕНИЕ: Фиксация финальных HP из данных сервера ---
-// Устанавливаем HP в соответствии с серверным результатом
-document.getElementById('hp1-f').style.width = targetH1 + "%";
-document.getElementById('hp1-txt').innerText = targetH1;
-document.getElementById('hp2-f').style.width = targetH2 + "%";
-document.getElementById('hp2-txt').innerText = targetH2;
-// ---
-// Показываем результат
+battleEnded = true;
+clearInterval(interval); // Немедленно останавливаем интервал
+
+// 4. Сразу пишем победителя в лог
+const winnerName = h1 > 0 ? "ЛЕВЫЙ" : "ПРАВЫЙ";
+log.innerText = `ПОБЕДИЛ КАБАН ${winnerName}`;
+
+// Показываем результат через небольшую задержку
 setTimeout(() => {
-if (finalIsWin) {
-tg.HapticFeedback.notificationOccurred('success');
-showResult("ПОБЕДА", `+${finalReward} <img src="assets/boarcoin.png" class="currency-icon" alt="BC">`, true);
+tg.HapticFeedback.notificationOccurred(playerWins ? 'success' : 'error');
+
+const isWin = playerWins;
+
+if (isWin) {
+// При победе показываем выигрыш (ставка * 2)
+showResult("ПОБЕДА", `ВЫИГРЫШ: ${bet} 💰`, true);
 } else {
-tg.HapticFeedback.notificationOccurred('error');
-showResult("ПОРАЖЕНИЕ", `${finalReward} <img src="assets/boarcoin.png" class="currency-icon" alt="BC">`, false);
+// При поражении не пишем про минус (уведомление было в начале)
+showResult("ПОРАЖЕНИЕ", "", false);
 }
+
+isBattleLocked = false;
+document.getElementById('bet-amt').disabled = false;
 }, 1000);
+return;
 }
+
+hitIndex++;
 }, 700);
 }
-};
-runFightLogic();
+
+function showResult(title, sum, isWin) {
+const overlay = document.getElementById('result-overlay');
+const card = document.getElementById('result-card');
+const t = document.getElementById('res-title');
+const s = document.getElementById('res-sum');
+const icon = document.getElementById('res-icon');
+t.innerText = title;
+s.innerText = sum;
+icon.innerText = isWin ? "🏆" : "💀";
+overlay.style.display = 'flex';
+setTimeout(() => card.classList.add('active'), 50);
 }
-// --- НОВЫЙ ЭНДПОИНТ ДЛЯ СТАРТА БОЯ (SERVER-SIDE AUTHORITY) ---
-async function startBattleServerSide(betAmount) {
-const tgUser = tg.initDataUnsafe?.user || {id: "dev_user", username: "kaban", first_name: "Хряк"};
-const response = await fetch('/api/battle/start', {
-method: 'POST',
-headers: {'Content-Type': 'application/json'},
-body: JSON.stringify({
-tg_id: tgUser.id,
-bet_amount: betAmount
-})
-});
-if (!response.ok) {
-const error = await response.json();
-alert(error.error || 'Ошибка начала боя');
-return null;
+
+function closeResult() {
+// === ОБНОВЛЕНИЕ БАЛАНСА ТОЛЬКО ЗДЕСЬ (когда игрок жмет "Продолжить") ===
+if (pendingBalance !== null && !isWatchingMode) {
+user.balance = pendingBalance;
+if (battleResult?.acorns !== undefined) user.acorns = battleResult.acorns;
+if (battleResult?.plant_acorns !== undefined) user.plant_acorns = battleResult.plant_acorns;
+if (battleResult?.max_balance !== undefined) user.max_balance = battleResult.max_balance;
+if (battleResult?.watched_battles !== undefined) user.watched_battles = battleResult.watched_battles;
+
+// Обновляем UI с балансом
+document.getElementById('bal-val').innerText = user.balance.toLocaleString();
+document.getElementById('acorns-val').innerText = user.acorns.toLocaleString();
+
+// Сбрасываем временные переменные
+pendingBalance = null;
+battleResult = null;
 }
-const result = await response.json();
-if (result.success) {
-// Обновляем локальный баланс пользователя
-user.balance = result.new_balance;
-// Возвращаем результат
-return {
-isWin: result.is_win,
-reward: result.reward
-};
+// === КОНЕЦ ОБНОВЛЕНИЯ БАЛАНСА ===
+
+const card = document.getElementById('result-card');
+card.classList.remove('active');
+setTimeout(() => {
+document.getElementById('result-overlay').style.display = 'none';
+if (!isWatchingMode) {
+nav('scr-main');
+} else {
+nav('scr-main');
 }
-return null;
+}, 300);
 }
+
 auth();
 </script>
 </body>
