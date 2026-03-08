@@ -8,9 +8,9 @@ import json
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
-app.config['APPLICATION_ROOT'] = '/boar-game'
-PORT = 3000
-DB_PATH = './database.db'
+app.config['APPLICATION_ROOT'] = os.environ.get('APP_ROOT', '/boar-game')
+PORT = int(os.environ.get('PORT', 3000))
+DB_PATH = os.environ.get('DB_PATH', './database.db')
 STATIC_PATH = os.path.join(os.path.dirname(__file__), 'assets')
 CORS(app)
 WATCH_REWARD = 200

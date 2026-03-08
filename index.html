@@ -7,6 +7,15 @@
 <meta name="mobile-web-app-capable" content="yes">
 <title>WILD TUSK BRAWL</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!--
+  BASE — в репо всегда '/boar-game-dev'. При деплое в прод
+  update.sh делает: sed -i "s|const BASE = '/boar-game-dev'|const BASE = '/boar-game'|g" index.html
+  НЕ менять вручную!
+-->
+<script>
+const APP_VERSION = "1.1";
+const BASE = '/boar-game-dev';
+</script>
 <style>
 :root {
   --bg: #0a0a0c;
@@ -36,7 +45,6 @@ body {
   width: 100vw;
 }
 
-/* --- ИКОНКИ ВАЛЮТЫ --- */
 .coin-icon {
   width: 1.1em; height: 1.1em;
   vertical-align: middle; display: inline-block;
@@ -48,7 +56,6 @@ body {
   object-fit: contain; margin-bottom: 2px;
 }
 
-/* --- ФОНЫ --- */
 .game-bg {
   position: fixed; top: 0; left: 0;
   width: 100%; height: 100%;
@@ -63,7 +70,6 @@ body {
 #bg-farm       { background-image: url('assets/farm.png'); background-color: #1a2a1a; display: none; }
 #bg-mine       { background-image: url('assets/mine.png'); background-color: #1a1a2a; display: none; }
 
-/* Оверлей — менее тёмный, более блюр */
 .bg-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.45); z-index: -1; opacity: 0;
@@ -72,7 +78,6 @@ body {
 body.dimmed .bg-overlay { opacity: 1; backdrop-filter: blur(18px); pointer-events: auto; }
 body.dimmed .game-bg    { filter: brightness(0.7); transform: scale(1.05); }
 
-/* --- ЭКРАНЫ --- */
 .screen {
   display: none; width: 100%; height: 100%;
   flex-direction: column; align-items: center; justify-content: center;
@@ -89,7 +94,6 @@ body.dimmed .game-bg    { filter: brightness(0.7); transform: scale(1.05); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* --- ХЕДЕР БАЛАНСА --- */
 #balance-header {
   position: fixed;
   top: calc(12px + var(--safe-top));
@@ -105,7 +109,6 @@ body.dimmed .game-bg    { filter: brightness(0.7); transform: scale(1.05); }
 #balance-header .sep { opacity: 0.3; font-weight: 400; }
 #acorns-val { color: #c8a96e; }
 
-/* --- АНИМАЦИЯ СПИСАНИЯ --- */
 #bet-deduction-notify {
   position: absolute; top: 100%; left: 50%;
   transform: translateX(-50%) translateY(-10px);
@@ -120,7 +123,6 @@ body.dimmed .game-bg    { filter: brightness(0.7); transform: scale(1.05); }
 }
 #bet-deduction-notify.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(25px); }
 
-/* --- ТОСТ --- */
 .notification-toast {
   position: fixed;
   top: calc(12px + var(--safe-top));
@@ -136,7 +138,6 @@ body.dimmed .game-bg    { filter: brightness(0.7); transform: scale(1.05); }
 }
 .notification-toast.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(40px); }
 
-/* --- КНОПКИ НИЖНЕГО МЕНЮ --- */
 #rank-trigger, #profile-trigger {
   position: fixed;
   bottom: calc(20px + var(--safe-bottom));
@@ -160,14 +161,12 @@ body:not(.show-main-screen) #profile-trigger { display: none; }
 body.show-main-screen #rank-trigger,
 body.show-main-screen #profile-trigger { display: flex; }
 
-/* --- ГЛАВНОЕ МЕНЮ --- */
 .menu-buttons {
   width: 100%; max-width: 300px;
   display: flex; flex-direction: column; gap: 16px;
   margin-bottom: var(--safe-bottom);
 }
 
-/* --- КНОПКИ --- */
 .btn-wood {
   background: #252528;
   border: 1px solid rgba(255,255,255,0.08);
@@ -184,7 +183,6 @@ body.show-main-screen #profile-trigger { display: flex; }
 .btn-play { background: var(--gold); color: #000; border: none; box-shadow: 0 4px 0px #cca300; }
 .btn-play:active  { background: #e6b800; box-shadow: 0 1px 0px #cca300; }
 
-/* --- КАРТОЧКИ --- */
 .card {
   background: var(--card); padding: 32px 24px;
   border-radius: var(--radius);
@@ -201,7 +199,6 @@ body.show-main-screen #profile-trigger { display: flex; }
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* --- СТАТИСТИКА --- */
 .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 24px 0; }
 .stat-item {
   background: rgba(255,255,255,0.04); padding: 16px;
@@ -211,7 +208,6 @@ body.show-main-screen #profile-trigger { display: flex; }
 .stat-val { font-size: 1.2rem; font-weight: 900; display: block; margin-bottom: 4px; }
 .stat-lbl { font-size: 0.7rem; opacity: 0.4; text-transform: uppercase; font-weight: 700; }
 
-/* --- ИНПУТЫ --- */
 input[type="number"], input[type="text"] {
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.1);
@@ -223,7 +219,6 @@ input[type="number"], input[type="text"] {
 input:focus   { border-color: var(--gold); }
 input:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* --- АРЕНА --- */
 .arena {
   position: absolute; bottom: 25%; width: 100%;
   display: flex; justify-content: space-around; align-items: flex-end;
@@ -276,7 +271,6 @@ input:disabled { opacity: 0.5; cursor: not-allowed; }
   max-width: 80%; text-align: center;
 }
 
-/* --- РЕЗУЛЬТАТ --- */
 #result-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.7);
   z-index: 5000; display: none;
@@ -321,7 +315,6 @@ input:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .close-x:active { background: rgba(255,255,255,0.2); }
 
-/* --- РЕЙТИНГ --- */
 .rank-item {
   display: flex; justify-content: space-between; align-items: center;
   padding: 18px; background: rgba(255,255,255,0.04);
@@ -332,7 +325,6 @@ input:disabled { opacity: 0.5; cursor: not-allowed; }
 .rank-item.current-user-highlight { outline: 2px solid var(--gold); outline-offset: -2px; }
 #your-rank { font-size: 0.9rem; opacity: 0.7; margin-bottom: 16px; text-align: center; font-weight: 700; }
 
-/* --- МОДАЛЬНОЕ ОКНО --- */
 #user-modal {
   position: fixed; inset: 0; background: rgba(0,0,0,0.4);
   z-index: 4000; display: none;
@@ -342,7 +334,6 @@ input:disabled { opacity: 0.5; cursor: not-allowed; }
   padding-bottom: calc(24px + var(--safe-bottom));
 }
 
-/* --- ТОГГЛ --- */
 .toggle-switch { position: relative; display: inline-block; width: 120px; height: 40px; }
 .toggle-switch input { opacity: 0; width: 0; height: 0; }
 .slider {
@@ -359,7 +350,7 @@ input:checked + .slider { background-color: var(--win); }
 input:checked + .slider:before { transform: translateX(76px); }
 
 /* ============================================================
-   МАГАЗИН — переработанный
+   МАГАЗИН
    ============================================================ */
 #scr-shop .screen-card {
   background: var(--card);
@@ -396,7 +387,6 @@ input:checked + .slider:before { transform: translateX(76px); }
 .shop-toggle-mini.sell-mode { background: var(--lose); }
 .shop-toggle-mini.sell-mode::after { transform: translateX(28px); }
 
-/* Сетка предметов — прокручивается */
 .shop-items-scroll {
   flex: 0 0 auto;
   display: grid;
@@ -420,16 +410,11 @@ input:checked + .slider:before { transform: translateX(76px); }
 }
 .shop-item:active { transform: scale(0.93); background: rgba(255,255,255,0.1); }
 .shop-item.selected { background: rgba(255,204,0,0.15); border-color: var(--gold); }
-.shop-item-img {
-  width: 36px; height: 36px; margin: 0 auto 6px;
-  display: block; object-fit: contain;
-  image-rendering: pixelated;
-}
+.shop-item-img { width: 36px; height: 36px; margin: 0 auto 6px; display: block; object-fit: contain; image-rendering: pixelated; }
 .shop-item-emoji { font-size: 2rem; display: block; margin-bottom: 4px; line-height: 1; }
 .shop-item-name  { font-size: 0.65rem; font-weight: 700; opacity: 0.9; line-height: 1.2; }
 .shop-item-price { font-size: 0.6rem; opacity: 0.55; margin-top: 2px; display: flex; align-items: center; justify-content: center; gap: 2px; }
 
-/* Детальная панель */
 .shop-detail {
   flex-shrink: 0;
   background: rgba(255,255,255,0.04);
@@ -438,9 +423,7 @@ input:checked + .slider:before { transform: translateX(76px); }
   margin-top: 8px;
   display: flex; flex-direction: column; align-items: center; gap: 8px;
 }
-.shop-detail-top {
-  display: flex; align-items: center; gap: 14px; width: 100%;
-}
+.shop-detail-top { display: flex; align-items: center; gap: 14px; width: 100%; }
 .shop-detail-icon {
   width: 56px; height: 56px; object-fit: contain;
   image-rendering: pixelated; flex-shrink: 0;
@@ -452,225 +435,203 @@ input:checked + .slider:before { transform: translateX(76px); }
 .shop-detail-name  { font-size: 1.1rem; font-weight: 800; margin-bottom: 4px; }
 .shop-detail-price { font-size: 0.85rem; opacity: 0.6; display: flex; align-items: center; gap: 4px; }
 
-.shop-qty-row {
-  display: flex; align-items: center; gap: 10px; width: 100%;
-}
-.shop-qty-row input {
-  flex: 1; padding: 12px; font-size: 1.1rem; margin-bottom: 0;
-  border-radius: 14px;
-}
+.shop-qty-row { display: flex; align-items: center; gap: 10px; width: 100%; }
+.shop-qty-row input { flex: 1; padding: 12px; font-size: 1.1rem; margin-bottom: 0; border-radius: 14px; }
 .shop-total {
   font-size: 0.9rem; font-weight: 700; color: var(--gold);
   text-align: center; display: none;
-  align-items: center; justify-content: center; gap: 4px;
-  flex-wrap: wrap;
+  align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap;
 }
 
+/* Назад слева, Купить/Продать справа */
 .shop-actions { display: flex; gap: 10px; width: 100%; margin-top: 4px; }
-.btn-trade { background: var(--win); color: #000; border: none; box-shadow: 0 4px 0 #2d9a4a; flex: 1; }
-.btn-trade.sell-mode { background: var(--lose); color: #fff; box-shadow: 0 4px 0 #cc2e27; }
-.btn-nav-back { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.1); box-shadow: none; flex: 0 0 auto; padding: 18px 20px; }
+.btn-nav-back {
+  background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7);
+  border: 1px solid rgba(255,255,255,0.1); box-shadow: none;
+  flex: 0 0 auto; padding: 18px 20px; order: 1;
+}
 .btn-nav-back:active { background: rgba(255,255,255,0.14); }
+.btn-trade { background: var(--win); color: #000; border: none; box-shadow: 0 4px 0 #2d9a4a; flex: 1; order: 2; }
+.btn-trade.sell-mode { background: var(--lose); color: #fff; box-shadow: 0 4px 0 #cc2e27; }
 
-/* --- РЕЙТИНГ ЗНАЧЕНИЯ --- */
 .lb-values { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
 .lb-value-row { display: flex; align-items: center; gap: 4px; font-weight: 900; }
 .lb-val-gold  { color: var(--gold); display: flex; align-items: center; gap: 3px; }
 .lb-val-acorn { color: #c8a96e; display: flex; align-items: center; gap: 3px; }
 
-/* --- КНОПКА СТАВКИ --- */
 .bet-btn-row { display: flex; gap: 10px; margin-bottom: 10px; }
 .bet-btn-row .btn-wood { flex: 1; }
 
-/* --- КНОПКА СЛУЧАЙНЫЙ --- */
-.btn-random {
-  background: #d9453b; color: #fff; border: none;
-  box-shadow: 0 4px 0px #a83028; width: 100%; margin-bottom: 10px;
-}
+.btn-random { background: #d9453b; color: #fff; border: none; box-shadow: 0 4px 0px #a83028; width: 100%; margin-bottom: 10px; }
 .btn-random:active { background: #c23c33; box-shadow: 0 1px 0px #a83028; }
 
-/* --- КНОПКА ПОСМОТРЕТЬ БОЙ --- */
 .btn-watch-fight {
-  background: #1c3a1e;
-  border: 1.5px solid rgba(76,217,100,0.5);
-  color: #fff; width: 100%;
-  padding: 14px 18px; border-radius: 20px;
-  font-weight: 800; font-size: 0.85rem;
-  text-transform: uppercase; letter-spacing: 0.8px;
-  cursor: pointer; transition: var(--transition);
-  text-align: center; box-shadow: 0 4px 0px #0f2210, 0 0 20px rgba(76,217,100,0.2);
-  position: relative; top: 0; user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  line-height: 1.4; display: flex; flex-direction: column;
-  align-items: center; gap: 2px;
+  background: #1c3a1e; border: 1.5px solid rgba(76,217,100,0.5);
+  color: #fff; width: 100%; padding: 14px 18px; border-radius: 20px;
+  font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.8px;
+  cursor: pointer; transition: var(--transition); text-align: center;
+  box-shadow: 0 4px 0px #0f2210, 0 0 20px rgba(76,217,100,0.2);
+  position: relative; top: 0; user-select: none; -webkit-tap-highlight-color: transparent;
+  line-height: 1.4; display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
-.btn-watch-fight:active {
-  top: 2px; box-shadow: 0 1px 0px #0f2210;
-  background: #243f26;
-}
-.btn-watch-fight.on-cooldown {
-  background: #1e1e21;
-  border-color: rgba(255,255,255,0.08);
-  box-shadow: 0 4px 0px #111113;
-  opacity: 0.75;
-}
-.watch-reward-line {
-  display: flex; align-items: center; gap: 4px;
-  color: #4cd964; font-size: 0.95rem; font-weight: 900;
-}
-.watch-timer-line { color: rgba(255,255,255,0.5); font-size: 0.75rem; font-weight: 600; }
+.btn-watch-fight:active { top: 2px; box-shadow: 0 1px 0px #0f2210; background: #243f26; }
+.btn-watch-fight.on-cooldown { background: #1e1e21; border-color: rgba(255,255,255,0.08); box-shadow: 0 4px 0px #111113; opacity: 0.75; }
+.watch-reward-line { display: flex; align-items: center; gap: 4px; color: #4cd964; font-size: 0.95rem; font-weight: 900; }
+.watch-timer-line  { color: rgba(255,255,255,0.5); font-size: 0.75rem; font-weight: 600; }
 
 /* ============================================================
-   ИНВЕНТАРЬ — полноценный
+   ИНВЕНТАРЬ — плавающая карточка в стиле магазина
    ============================================================ */
 #scr-inventory {
-  flex-direction: row;
-  align-items: stretch;
-  justify-content: flex-start;
-  padding: 0;
-  overflow: hidden;
-}
-
-/* Левая панель с кнопками локаций */
-.inv-sidebar {
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 64px;
-  display: flex; flex-direction: column;
-  align-items: center;
+  padding: 20px 16px;
   padding-top: calc(20px + var(--safe-top));
   padding-bottom: calc(20px + var(--safe-bottom));
-  gap: 12px;
-  z-index: 10;
+  align-items: center; justify-content: center;
 }
-.inv-loc-btn {
-  width: 48px; height: 48px;
-  background: rgba(20,20,24,0.75);
+
+/* Плавающая карточка — как .screen-card в магазине */
+.inv-card {
+  background: var(--card);
+  border-radius: var(--radius);
   border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 14px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.6rem; transition: all 0.2s;
-  backdrop-filter: blur(10px);
-}
-.inv-loc-btn:active { transform: scale(0.88); background: rgba(40,40,44,0.9); }
-
-/* Основная зона инвентаря */
-.inv-main {
-  position: absolute;
-  left: 64px; top: 0; right: 0; bottom: 0;
-  display: flex; flex-direction: column;
-  padding: calc(16px + var(--safe-top)) 12px calc(16px + var(--safe-bottom)) 8px;
-  box-sizing: border-box; gap: 10px;
+  width: 100%; max-width: 380px;
+  backdrop-filter: blur(30px);
+  box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+  display: flex; flex-direction: row;
+  max-height: calc(100dvh - 100px);
   overflow: hidden;
+  box-sizing: border-box;
+  animation: cardPop 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
 }
 
-/* Верхняя зона: предметы */
+/* Левая панель: кнопки локаций */
+.inv-sidebar {
+  width: 68px;
+  flex-shrink: 0;
+  display: flex; flex-direction: column;
+  align-items: center;
+  padding: 14px 8px;
+  gap: 6px;
+  border-right: 1px solid rgba(255,255,255,0.07);
+  background: rgba(0,0,0,0.15);
+}
+
+/* Кнопки локаций */
+.inv-loc-btn {
+  width: 52px;
+  flex: 1;
+  min-height: 42px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 14px;
+  cursor: pointer;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 3px;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.inv-loc-btn:active { transform: scale(0.88); background: rgba(255,255,255,0.12); }
+.inv-loc-btn.back-btn {
+  flex: 0 0 42px;
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.06);
+}
+.inv-loc-btn.back-btn:active { background: rgba(255,255,255,0.1); }
+
+.inv-loc-icon  { font-size: 1.2rem; line-height: 1; }
+.inv-loc-label {
+  font-size: 0.44rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.3px;
+  opacity: 0.6; text-align: center; line-height: 1.1;
+  padding: 0 2px; word-break: break-word;
+}
+
+/* Основная зона */
+.inv-main {
+  flex: 1;
+  display: flex; flex-direction: column;
+  padding: 14px 12px;
+  gap: 8px; overflow: hidden;
+  min-width: 0;
+}
+
+/* Сетка предметов */
 .inv-items-zone {
   flex: 1;
-  background: rgba(0,0,0,0.35);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 20px;
-  padding: 12px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 18px;
+  padding: 8px;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
   align-content: start;
   overflow-y: auto;
-  backdrop-filter: blur(8px);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.08) transparent;
 }
 
 .inv-slot {
   aspect-ratio: 1;
-  background: rgba(255,255,255,0.05);
-  border: 1.5px solid rgba(255,255,255,0.08);
-  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   position: relative; cursor: pointer; transition: all 0.2s;
 }
-.inv-slot:active { transform: scale(0.9); background: rgba(255,255,255,0.1); }
-.inv-slot.filled { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); }
-.inv-slot img {
-  width: 70%; height: 70%; object-fit: contain;
-  image-rendering: pixelated;
-}
-.inv-slot-emoji { font-size: 1.8rem; line-height: 1; }
+.inv-slot:active { transform: scale(0.88); background: rgba(255,255,255,0.1); }
+.inv-slot.filled { border-color: rgba(255,255,255,0.16); background: rgba(255,255,255,0.07); }
+.inv-slot img { width: 65%; height: 65%; object-fit: contain; image-rendering: pixelated; }
+.inv-slot-emoji { font-size: 1.5rem; line-height: 1; }
 .inv-slot-count {
-  position: absolute; bottom: 3px; right: 5px;
-  font-size: 0.65rem; font-weight: 900; color: #fff;
+  position: absolute; bottom: 2px; right: 4px;
+  font-size: 0.58rem; font-weight: 900; color: #fff;
   text-shadow: 0 1px 3px rgba(0,0,0,0.8);
 }
 
-/* Нижняя зона: экипировка + зелья */
-.inv-bottom-row {
-  display: flex; gap: 8px; flex-shrink: 0;
-  height: 90px;
-}
+/* Нижняя строка */
+.inv-bottom-row { display: flex; gap: 6px; flex-shrink: 0; height: 54px; }
 
-/* Длинный слот экипировки */
 .inv-equip-zone {
-  flex: 2;
-  background: rgba(255,204,0,0.08);
-  border: 1.5px solid rgba(255,204,0,0.25);
-  border-radius: 18px;
-  padding: 10px;
-  display: flex; align-items: center; gap: 8px;
-  backdrop-filter: blur(8px);
+  flex: 2; background: rgba(255,204,0,0.05);
+  border: 1px solid rgba(255,204,0,0.15);
+  border-radius: 14px; padding: 6px 8px;
+  display: flex; align-items: center; gap: 5px;
   overflow: hidden;
 }
-.inv-equip-slot {
-  width: 56px; height: 56px; flex-shrink: 0;
-  background: rgba(255,204,0,0.08);
-  border: 1.5px dashed rgba(255,204,0,0.3);
-  border-radius: 14px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.5rem; color: rgba(255,204,0,0.3);
-}
 .inv-equip-label {
-  font-size: 0.6rem; font-weight: 700; opacity: 0.4;
-  text-transform: uppercase; letter-spacing: 0.5px;
-  writing-mode: vertical-rl; transform: rotate(180deg);
+  font-size: 0.42rem; font-weight: 800; opacity: 0.3;
+  text-transform: uppercase; letter-spacing: 0.4px;
+  writing-mode: vertical-rl; transform: rotate(180deg); flex-shrink: 0;
+}
+.inv-equip-slot {
+  flex: 1; height: 36px;
+  background: rgba(255,204,0,0.04);
+  border: 1.5px dashed rgba(255,204,0,0.2);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; color: rgba(255,204,0,0.2);
 }
 
-/* Зелья */
 .inv-potions-zone {
-  flex: 1;
-  background: rgba(76,217,100,0.07);
-  border: 1.5px solid rgba(76,217,100,0.2);
-  border-radius: 18px;
-  padding: 10px;
+  flex: 1; background: rgba(76,217,100,0.04);
+  border: 1px solid rgba(76,217,100,0.14);
+  border-radius: 14px; padding: 6px;
   display: grid; grid-template-columns: 1fr 1fr;
-  gap: 6px; align-content: start;
-  backdrop-filter: blur(8px);
+  gap: 4px;
 }
 .inv-potion-slot {
   aspect-ratio: 1;
-  background: rgba(255,255,255,0.05);
-  border: 1.5px dashed rgba(76,217,100,0.25);
-  border-radius: 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1.5px dashed rgba(76,217,100,0.16);
+  border-radius: 9px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.2rem; color: rgba(76,217,100,0.3);
+  font-size: 0.85rem; color: rgba(76,217,100,0.2);
 }
 
-/* Кнопка назад в инвентаре */
-.inv-back-btn {
-  position: absolute;
-  bottom: calc(16px + var(--safe-bottom));
-  left: 50%; transform: translateX(-50%);
-  background: rgba(20,20,24,0.85);
-  border: 1px solid rgba(255,255,255,0.12);
-  color: rgba(255,255,255,0.8);
-  padding: 14px 32px; border-radius: 16px;
-  font-weight: 800; font-size: 0.85rem;
-  text-transform: uppercase; letter-spacing: 1px;
-  cursor: pointer; backdrop-filter: blur(12px);
-  box-shadow: 0 4px 0 rgba(0,0,0,0.4);
-  transition: all 0.2s; z-index: 20;
-  white-space: nowrap;
-}
-.inv-back-btn:active { transform: translateX(-50%) translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.4); }
-
-/* --- ЗАГЛУШКА ЛОКАЦИИ --- */
+/* Заглушка локации */
 #scr-location .location-stub {
   background: rgba(0,0,0,0.5); backdrop-filter: blur(20px);
   border: 1px solid rgba(255,255,255,0.12);
@@ -689,7 +650,10 @@ input:checked + .slider:before { transform: translateX(76px); }
   .menu-buttons { max-width: 280px; }
   .res-title { font-size: 1.8rem; }
   .res-icon  { font-size: 4rem; }
-  .inv-items-zone { grid-template-columns: repeat(4, 1fr); }
+  .inv-items-zone { grid-template-columns: repeat(3, 1fr); }
+  .inv-card { max-width: 100%; }
+  .inv-sidebar { width: 60px; padding: 10px 6px; }
+  .inv-loc-btn { width: 46px; }
 }
 </style>
 </head>
@@ -714,7 +678,7 @@ input:checked + .slider:before { transform: translateX(76px); }
 </div>
 
 <div id="notification-toast" class="notification-toast"></div>
-<div style="position:fixed;bottom:8px;left:8px;font-size:0.65rem;opacity:0.3;font-weight:700;z-index:9999;pointer-events:none;">v1.1</div>
+<div id="version-label" style="position:fixed;bottom:8px;left:8px;font-size:0.65rem;opacity:0.3;font-weight:700;z-index:9999;pointer-events:none;"></div>
 
 <!-- КНОПКИ НИЖНЕГО МЕНЮ -->
 <div id="rank-trigger"    onclick="nav('scr-rank')"><span>🏆</span></div>
@@ -788,34 +752,48 @@ input:checked + .slider:before { transform: translateX(76px); }
 </div>
 
 <!-- ============================================================
-     ИНВЕНТАРЬ — новый
+     ИНВЕНТАРЬ
      ============================================================ -->
 <div id="scr-inventory" class="screen">
-
-  <!-- Левая панель: кнопки локаций -->
+  <div class="inv-card">
+  <!-- Левая панель: 5 локаций + кнопка назад (всего 6) -->
   <div class="inv-sidebar">
-    <div class="inv-loc-btn" onclick="navLocation('farm')" title="Ферма">🌾</div>
-    <div class="inv-loc-btn" onclick="navLocation('mine')" title="Шахта">⛏️</div>
+    <div class="inv-loc-btn" onclick="navLocation('farm')">
+      <span class="inv-loc-icon">🌾</span>
+      <span class="inv-loc-label">Ферма</span>
+    </div>
+    <div class="inv-loc-btn" onclick="navLocation('mine')">
+      <span class="inv-loc-icon">⛏️</span>
+      <span class="inv-loc-label">Шахта</span>
+    </div>
+    <div class="inv-loc-btn" onclick="navLocation('forest')">
+      <span class="inv-loc-icon">🌲</span>
+      <span class="inv-loc-label">Лес</span>
+    </div>
+    <div class="inv-loc-btn" onclick="navLocation('cave')">
+      <span class="inv-loc-icon">🕳️</span>
+      <span class="inv-loc-label">Пещера</span>
+    </div>
+    <div class="inv-loc-btn" onclick="navLocation('market')">
+      <span class="inv-loc-icon">🏪</span>
+      <span class="inv-loc-label">Рынок</span>
+    </div>
+    <div class="inv-loc-btn back-btn" onclick="nav('scr-main')">
+      <span class="inv-loc-icon">←</span>
+      <span class="inv-loc-label">Назад</span>
+    </div>
   </div>
 
   <!-- Основная зона -->
   <div class="inv-main">
-
-    <!-- Сетка предметов -->
-    <div class="inv-items-zone" id="inv-items-grid">
-      <!-- Заполняется JS -->
-    </div>
-
-    <!-- Нижняя зона: экипировка + зелья -->
+    <div class="inv-items-zone" id="inv-items-grid"></div>
     <div class="inv-bottom-row">
-      <!-- Экипировка -->
       <div class="inv-equip-zone">
-        <span class="inv-equip-label">Экипировка</span>
+        <span class="inv-equip-label">Экип.</span>
         <div class="inv-equip-slot">⚔️</div>
         <div class="inv-equip-slot">🛡️</div>
         <div class="inv-equip-slot">💍</div>
       </div>
-      <!-- Зелья -->
       <div class="inv-potions-zone">
         <div class="inv-potion-slot">🧪</div>
         <div class="inv-potion-slot">🧪</div>
@@ -823,19 +801,15 @@ input:checked + .slider:before { transform: translateX(76px); }
         <div class="inv-potion-slot">🧪</div>
       </div>
     </div>
-
   </div>
-
-  <!-- Кнопка Назад -->
-  <button class="inv-back-btn" onclick="nav('scr-main')">← НАЗАД</button>
+  </div><!-- /.inv-card -->
 </div>
 
 <!-- ============================================================
-     МАГАЗИН — переработанный
+     МАГАЗИН
      ============================================================ -->
 <div id="scr-shop" class="screen">
   <div class="screen-card">
-    <!-- Шапка -->
     <div class="shop-header">
       <h3>МАГАЗИН</h3>
       <div class="shop-toggle-wrap">
@@ -844,11 +818,7 @@ input:checked + .slider:before { transform: translateX(76px); }
         <span style="opacity:0.5;">ПРОДАТЬ</span>
       </div>
     </div>
-
-    <!-- Сетка предметов -->
     <div class="shop-items-scroll" id="shop-items-container"></div>
-
-    <!-- Детальная панель -->
     <div class="shop-detail">
       <div class="shop-detail-top">
         <div id="detail-icon-wrap" style="display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:14px;background:rgba(255,255,255,0.05);flex-shrink:0;">
@@ -860,15 +830,14 @@ input:checked + .slider:before { transform: translateX(76px); }
           <div class="shop-detail-price" id="detail-price">Цена: —</div>
         </div>
       </div>
-
       <div class="shop-qty-row">
         <input type="number" id="qty-input" value="1" min="1" inputmode="numeric" oninput="onQtyInput(this.value)">
       </div>
       <div class="shop-total" id="total-cost"></div>
-
+      <!-- Назад слева, Купить справа -->
       <div class="shop-actions">
-        <button class="btn-wood btn-trade" id="shop-trade-btn" onclick="performTransaction()">КУПИТЬ</button>
         <button class="btn-wood btn-nav-back" onclick="nav('scr-main')">←</button>
+        <button class="btn-wood btn-trade" id="shop-trade-btn" onclick="performTransaction()">КУПИТЬ</button>
       </div>
     </div>
   </div>
@@ -941,7 +910,7 @@ input:checked + .slider:before { transform: translateX(76px); }
   <div id="fight-log">ПОДГОТОВКА...</div>
 </div>
 
-<!-- ЛОКАЦИЯ (ферма/шахта) — заглушка -->
+<!-- ЛОКАЦИЯ (заглушка) -->
 <div id="scr-location" class="screen">
   <div class="location-stub">
     <div id="loc-icon" style="font-size:5rem;margin-bottom:16px;">🌾</div>
@@ -952,6 +921,9 @@ input:checked + .slider:before { transform: translateX(76px); }
 </div>
 
 <script>
+// Версия из конфига вверху файла
+document.getElementById('version-label').textContent = 'v' + APP_VERSION;
+
 const tg = window.Telegram.WebApp;
 tg.expand();
 
@@ -973,8 +945,6 @@ let watchCooldownTimer = null;
 // ============================================================
 // API
 // ============================================================
-const BASE = '/boar-game-dev';
-
 async function apiFetch(endpoint, options = {}) {
   try {
     const res = await fetch(BASE + endpoint, {
@@ -994,10 +964,7 @@ async function loadPrices() {
     if (!response.ok) throw new Error('prices.json not found');
     prices = await response.json();
   } catch (error) {
-    prices = {
-      "plant_acorn": {"buy": 1000, "sell": 800},
-      "acorn": {"buy": 200, "sell": 150}
-    };
+    prices = { "plant_acorn": {"buy": 1000, "sell": 800}, "acorn": {"buy": 200, "sell": 150} };
   }
 }
 
@@ -1045,7 +1012,6 @@ function nav(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 
-  // Скрываем все фоны
   ['bg-main','bg-fight','bg-inventory','bg-shop','bg-farm','bg-mine'].forEach(bg => {
     document.getElementById(bg).style.display = 'none';
   });
@@ -1074,22 +1040,22 @@ function nav(id) {
 }
 
 function navLocation(type) {
-  // Показываем нужный фон
   ['bg-main','bg-fight','bg-inventory','bg-shop','bg-farm','bg-mine'].forEach(bg => {
     document.getElementById(bg).style.display = 'none';
   });
 
-  if (type === 'farm') {
-    document.getElementById('bg-farm').style.display = 'block';
-    document.getElementById('loc-icon').innerText = '🌾';
-    document.getElementById('loc-title').innerText = 'ФЕРМА';
-    document.getElementById('loc-desc').innerText = 'Здесь можно будет выращивать желуди и другие ресурсы. Скоро!';
-  } else if (type === 'mine') {
-    document.getElementById('bg-mine').style.display = 'block';
-    document.getElementById('loc-icon').innerText = '⛏️';
-    document.getElementById('loc-title').innerText = 'ШАХТА';
-    document.getElementById('loc-desc').innerText = 'Здесь можно будет добывать руду и редкие ресурсы. Скоро!';
-  }
+  const locs = {
+    farm:   { bg: 'bg-farm',  icon: '🌾', title: 'ФЕРМА',   desc: 'Здесь можно будет выращивать желуди и другие ресурсы. Скоро!' },
+    mine:   { bg: 'bg-mine',  icon: '⛏️', title: 'ШАХТА',   desc: 'Здесь можно будет добывать руду и редкие ресурсы. Скоро!' },
+    forest: { bg: 'bg-main',  icon: '🌲', title: 'ЛЕС',     desc: 'Здесь можно будет охотиться и собирать ресурсы. Скоро!' },
+    cave:   { bg: 'bg-main',  icon: '🕳️', title: 'ПЕЩЕРА',  desc: 'Таинственная пещера с сокровищами. Скоро!' },
+    market: { bg: 'bg-shop',  icon: '🏪', title: 'РЫНОК',   desc: 'Рынок для торговли с другими игроками. Скоро!' },
+  };
+  const loc = locs[type] || locs.farm;
+  document.getElementById(loc.bg).style.display = 'block';
+  document.getElementById('loc-icon').innerText = loc.icon;
+  document.getElementById('loc-title').innerText = loc.title;
+  document.getElementById('loc-desc').innerText = loc.desc;
 
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('scr-location').classList.add('active');
@@ -1101,8 +1067,8 @@ function navLocation(type) {
 // ИНВЕНТАРЬ
 // ============================================================
 const ITEM_DEFS = {
-  acorn:       { name: 'Желудь',  icon: 'assets/acorn.png',       emoji: '🌰' },
-  plant_acorn: { name: 'Росток',  icon: 'assets/plant_acorn.png', emoji: '🌱' },
+  acorn:       { name: 'Желудь', icon: 'assets/acorn.png',       emoji: '🌰' },
+  plant_acorn: { name: 'Росток', icon: 'assets/plant_acorn.png', emoji: '🌱' },
 };
 const TOTAL_SLOTS = 20;
 
@@ -1110,49 +1076,39 @@ function renderInventory() {
   const grid = document.getElementById('inv-items-grid');
   if (!grid || !user) return;
   grid.innerHTML = '';
-
-  // Собираем предметы пользователя
   const items = [];
   if (user.acorns > 0)       items.push({ id: 'acorn',       count: user.acorns });
   if (user.plant_acorns > 0) items.push({ id: 'plant_acorn', count: user.plant_acorns });
-
   for (let i = 0; i < TOTAL_SLOTS; i++) {
     const slot = document.createElement('div');
     slot.className = 'inv-slot';
-
     if (i < items.length) {
       const item = items[i];
       const def = ITEM_DEFS[item.id];
       slot.classList.add('filled');
-
       const img = document.createElement('img');
-      img.src = def.icon;
-      img.alt = def.name;
+      img.src = def.icon; img.alt = def.name;
       img.onerror = () => {
         img.style.display = 'none';
         const em = document.createElement('span');
-        em.className = 'inv-slot-emoji';
-        em.innerText = def.emoji;
+        em.className = 'inv-slot-emoji'; em.innerText = def.emoji;
         slot.appendChild(em);
       };
       slot.appendChild(img);
-
       if (item.count > 1) {
         const cnt = document.createElement('span');
         cnt.className = 'inv-slot-count';
         cnt.innerText = item.count > 999 ? '999+' : item.count;
         slot.appendChild(cnt);
       }
-
       slot.title = def.name;
     }
-
     grid.appendChild(slot);
   }
 }
 
 // ============================================================
-// ТАЙМЕР КУЛДАУНА ПРОСМОТРА
+// ТАЙМЕР КУЛДАУНА
 // ============================================================
 function formatCooldown(seconds) {
   const h = Math.floor(seconds / 3600);
@@ -1164,7 +1120,6 @@ function formatCooldown(seconds) {
 function updateWatchButton() {
   const btn = document.getElementById('watch-btn');
   const rewardLine = document.getElementById('watch-reward-line');
-
   if (watchCooldownRemaining > 0) {
     btn.classList.add('on-cooldown');
     rewardLine.innerHTML = `<span class="watch-timer-line">до отката: ${formatCooldown(watchCooldownRemaining)}</span>`;
@@ -1180,20 +1135,11 @@ function startWatchCooldownTick() {
   if (watchCooldownTimer) clearInterval(watchCooldownTimer);
   if (watchCooldownRemaining <= 0) return;
   watchCooldownTimer = setInterval(() => {
-    if (watchCooldownRemaining > 0) {
-      watchCooldownRemaining--;
-      updateWatchButton();
-    } else {
-      clearInterval(watchCooldownTimer);
-      watchCooldownTimer = null;
-      updateWatchButton();
-    }
+    if (watchCooldownRemaining > 0) { watchCooldownRemaining--; updateWatchButton(); }
+    else { clearInterval(watchCooldownTimer); watchCooldownTimer = null; updateWatchButton(); }
   }, 1000);
 }
 
-// ============================================================
-// АНИМАЦИЯ СПИСАНИЯ
-// ============================================================
 function showBetDeduction(amount) {
   const notify = document.getElementById('bet-deduction-notify');
   document.getElementById('deduction-amount').innerText = amount.toLocaleString();
@@ -1201,9 +1147,6 @@ function showBetDeduction(amount) {
   setTimeout(() => notify.classList.remove('show'), 2000);
 }
 
-// ============================================================
-// ТОСТ
-// ============================================================
 function showToast(message) {
   const toast = document.getElementById('notification-toast');
   toast.textContent = message;
@@ -1212,33 +1155,21 @@ function showToast(message) {
 }
 
 // ============================================================
-// ПРОСМОТР БОЯ
+// БОЙ
 // ============================================================
 async function watchBattle() {
   if (isBattleLocked) return;
-  isBattleLocked = true;
-  isWatchingMode = true;
+  isBattleLocked = true; isWatchingMode = true;
   startBattle(0, null);
-  const response = await apiFetch('/api/battle/watch', {
-    method: 'POST',
-    body: JSON.stringify({tg_id: user.tg_id})
-  });
+  const response = await apiFetch('/api/battle/watch', { method: 'POST', body: JSON.stringify({tg_id: user.tg_id}) });
   if (response && response.success) {
-    battleResult = response;
-    battleResult._isWatch = true;
+    battleResult = response; battleResult._isWatch = true;
     watchCooldownRemaining = response.watch_cooldown_remaining || 0;
-    updateWatchButton();
-    clearInterval(watchCooldownTimer);
-    watchCooldownTimer = null;
+    updateWatchButton(); clearInterval(watchCooldownTimer); watchCooldownTimer = null;
     if (watchCooldownRemaining > 0) startWatchCooldownTick();
-  } else {
-    battleResult = null;
-  }
+  } else { battleResult = null; }
 }
 
-// ============================================================
-// НАЧАЛО БОЯ С СТАВКОЙ
-// ============================================================
 async function preStart(side) {
   if (isBattleLocked) return;
   const input = document.getElementById('bet-amt');
@@ -1247,36 +1178,28 @@ async function preStart(side) {
   if (amt > user.balance)     { tg.HapticFeedback.notificationOccurred('error'); showToast("Недостаточно золота"); return; }
 
   const actualSide = side === 0 ? (Math.random() < 0.5 ? 1 : 2) : side;
-  selectedSide = actualSide;
-  isWatchingMode = false;
-  isBattleLocked = true;
-  input.disabled = true;
+  selectedSide = actualSide; isWatchingMode = false;
+  isBattleLocked = true; input.disabled = true;
 
   document.getElementById('bal-val').innerText = (user.balance - amt).toLocaleString();
   showBetDeduction(amt);
 
   try {
     const response = await apiFetch('/api/battle/init', {
-      method: 'POST',
-      body: JSON.stringify({tg_id: user.tg_id, bet_amount: amt})
+      method: 'POST', body: JSON.stringify({tg_id: user.tg_id, bet_amount: amt})
     });
     if (!response || response.error) throw new Error(response?.error || 'Ошибка инициализации боя');
-    battleResult = response;
-    battleResult._betAmount = amt;
+    battleResult = response; battleResult._betAmount = amt;
     startBattle(amt, response);
   } catch (error) {
     console.error("Ошибка начала боя:", error);
     tg.HapticFeedback.notificationOccurred('error');
     showToast(error.message || "Ошибка начала боя");
-    isBattleLocked = false;
-    input.disabled = false;
+    isBattleLocked = false; input.disabled = false;
     document.getElementById('bal-val').innerText = user.balance.toLocaleString();
   }
 }
 
-// ============================================================
-// ГЕНЕРАЦИЯ УДАРОВ
-// ============================================================
 function generateHits(serverResult) {
   let winningSide;
   if (!serverResult || isWatchingMode) {
@@ -1288,38 +1211,25 @@ function generateHits(serverResult) {
   }
   let hits = [];
   for (let attempt = 0; attempt < 50; attempt++) {
-    hits = [];
-    let hp1 = 100, hp2 = 100, currentTarget = 1;
+    hits = []; let hp1 = 100, hp2 = 100, currentTarget = 1;
     while (hp1 > 0 && hp2 > 0) {
       const dmg = Math.floor(Math.random() * 16) + 5;
       if (currentTarget === 1) {
-        hp1 = Math.max(0, hp1 - dmg);
-        hits.push({target: 1, dmg, isFinal: hp1 <= 0});
-        if (hp1 <= 0) break;
-        currentTarget = 2;
+        hp1 = Math.max(0, hp1 - dmg); hits.push({target: 1, dmg, isFinal: hp1 <= 0}); if (hp1 <= 0) break; currentTarget = 2;
       } else {
-        hp2 = Math.max(0, hp2 - dmg);
-        hits.push({target: 2, dmg, isFinal: hp2 <= 0});
-        if (hp2 <= 0) break;
-        currentTarget = 1;
+        hp2 = Math.max(0, hp2 - dmg); hits.push({target: 2, dmg, isFinal: hp2 <= 0}); if (hp2 <= 0) break; currentTarget = 1;
       }
     }
-    const visualWinner = hp1 > 0 ? 1 : 2;
-    if (visualWinner === winningSide) break;
+    if ((hp1 > 0 ? 1 : 2) === winningSide) break;
   }
   return hits;
 }
 
-// ============================================================
-// АНИМАЦИЯ БОЯ
-// ============================================================
 function spawnDmg(container, val) {
   const p = document.createElement('div');
-  p.className = 'dmg-popup';
-  p.innerText = `-${val}`;
+  p.className = 'dmg-popup'; p.innerText = `-${val}`;
   p.style.left = (Math.random() * 40 + 30) + "%";
-  container.appendChild(p);
-  setTimeout(() => p.remove(), 700);
+  container.appendChild(p); setTimeout(() => p.remove(), 700);
 }
 
 function startBattle(bet, serverResult) {
@@ -1335,15 +1245,13 @@ function startBattle(bet, serverResult) {
   const hits = generateHits(serverResult);
   const playerWins = serverResult?.is_win === true;
   let hitIndex = 0, battleEnded = false;
-
   setTimeout(() => { if (!battleEnded) log.innerText = "ИДЕТ БОЙ..."; }, 500);
 
   const interval = setInterval(() => {
     if (hitIndex >= hits.length || battleEnded) { clearInterval(interval); return; }
     const hit = hits[hitIndex];
     const cont = document.getElementById(`cont-${hit.target}`);
-    cont.classList.add('hit');
-    spawnDmg(cont, hit.dmg);
+    cont.classList.add('hit'); spawnDmg(cont, hit.dmg);
     setTimeout(() => cont.classList.remove('hit'), 250);
 
     if (hit.target === 1) {
@@ -1355,55 +1263,39 @@ function startBattle(bet, serverResult) {
       document.getElementById('hp2-f').style.width = h2 + "%";
       document.getElementById('hp2-txt').innerText = h2;
     }
-
     tg.HapticFeedback.impactOccurred('medium');
 
     if (h1 <= 0 || h2 <= 0) {
-      battleEnded = true;
-      clearInterval(interval);
-      const winnerName = h1 > 0 ? "ЛЕВЫЙ" : "ПРАВЫЙ";
-      log.innerText = `ПОБЕДИЛ КАБАН ${winnerName}`;
-
+      battleEnded = true; clearInterval(interval);
+      log.innerText = `ПОБЕДИЛ КАБАН ${h1 > 0 ? "ЛЕВЫЙ" : "ПРАВЫЙ"}`;
       setTimeout(() => {
         tg.HapticFeedback.notificationOccurred(playerWins && !isWatchingMode ? 'success' : isWatchingMode ? 'success' : 'error');
         if (isWatchingMode) {
-          const rewardGiven = battleResult?.reward_given;
-          const reward = battleResult?.reward || 0;
-          showResult(rewardGiven && reward > 0 ? "БОЙ ОКОНЧЕН" : "БОЙ ОКОНЧЕН",
-                     reward,
-                     rewardGiven && reward > 0 ? 'watch_reward' : 'watch_no_reward');
+          const rewardGiven = battleResult?.reward_given, reward = battleResult?.reward || 0;
+          showResult("БОЙ ОКОНЧЕН", reward, rewardGiven && reward > 0 ? 'watch_reward' : 'watch_no_reward');
         } else {
           showResult(playerWins ? "ПОБЕДА" : "ПОРАЖЕНИЕ", bet, playerWins ? 'win' : 'lose');
         }
-        isBattleLocked = false;
-        document.getElementById('bet-amt').disabled = false;
+        isBattleLocked = false; document.getElementById('bet-amt').disabled = false;
       }, 1000);
     }
     hitIndex++;
   }, 700);
 }
 
-// ============================================================
-// РЕЗУЛЬТАТ БОЯ
-// ============================================================
 function coinImg(size = '1.2em') {
   return `<img src="assets/boarcoin.png" style="width:${size};height:${size};vertical-align:middle;margin-bottom:2px;" alt="">`;
 }
 
 function showResult(title, amount, type) {
-  const overlay = document.getElementById('result-overlay');
-  const card = document.getElementById('result-card');
-  const t    = document.getElementById('res-title');
-  const s    = document.getElementById('res-sum');
-  const icon = document.getElementById('res-icon');
-
+  const overlay = document.getElementById('result-overlay'), card = document.getElementById('result-card');
+  const t = document.getElementById('res-title'), s = document.getElementById('res-sum'), icon = document.getElementById('res-icon');
   t.innerText = title;
   if (type === 'win') {
     icon.innerText = '🏆'; t.style.color = 'var(--win)';
     s.innerHTML = `+${amount.toLocaleString()} ${coinImg()}`; s.style.color = 'var(--win)';
   } else if (type === 'lose') {
-    icon.innerText = '💀'; t.style.color = 'var(--lose)';
-    s.innerHTML = ''; s.style.color = '';
+    icon.innerText = '💀'; t.style.color = 'var(--lose)'; s.innerHTML = ''; s.style.color = '';
   } else if (type === 'watch_reward') {
     icon.innerText = '👁'; t.style.color = '#fff';
     s.innerHTML = `+${amount.toLocaleString()} ${coinImg()}`; s.style.color = 'var(--win)';
@@ -1411,48 +1303,49 @@ function showResult(title, amount, type) {
     icon.innerText = '👁'; t.style.color = '#aaa';
     s.innerHTML = `<span style="font-size:0.9rem;opacity:0.6;">Награда будет после отката</span>`; s.style.color = '';
   }
-
   overlay.style.display = 'flex';
   setTimeout(() => card.classList.add('active'), 50);
 }
 
 function closeResult() {
   if (battleResult) {
-    if (battleResult.new_balance !== undefined) user.balance = battleResult.new_balance;
-    if (battleResult.acorns      !== undefined) user.acorns = battleResult.acorns;
-    if (battleResult.plant_acorns !== undefined) user.plant_acorns = battleResult.plant_acorns;
-    if (battleResult.max_balance !== undefined) user.max_balance = battleResult.max_balance;
+    if (battleResult.new_balance     !== undefined) user.balance         = battleResult.new_balance;
+    if (battleResult.acorns          !== undefined) user.acorns          = battleResult.acorns;
+    if (battleResult.plant_acorns    !== undefined) user.plant_acorns    = battleResult.plant_acorns;
+    if (battleResult.max_balance     !== undefined) user.max_balance     = battleResult.max_balance;
     if (battleResult.watched_battles !== undefined) user.watched_battles = battleResult.watched_battles;
-    document.getElementById('bal-val').innerText = user.balance.toLocaleString();
+    document.getElementById('bal-val').innerText    = user.balance.toLocaleString();
     document.getElementById('acorns-val').innerText = user.acorns.toLocaleString();
     battleResult = null;
   }
-  const card = document.getElementById('result-card');
-  card.classList.remove('active');
+  document.getElementById('result-card').classList.remove('active');
   setTimeout(() => { document.getElementById('result-overlay').style.display = 'none'; nav('scr-main'); }, 300);
 }
 
 // ============================================================
-// ИМЕНА
+// ИМЕНА / ПРОФИЛЬ
 // ============================================================
 async function updateName() {
   const name = document.getElementById('edit-name').value.trim();
   if (!name) return;
-  await apiFetch('/api/user/update-name', {
-    method: 'POST', body: JSON.stringify({tg_id: user.tg_id, display_name: name})
-  });
+  await apiFetch('/api/user/update-name', { method: 'POST', body: JSON.stringify({tg_id: user.tg_id, display_name: name}) });
   user.display_name = name;
   tg.HapticFeedback.notificationOccurred('success');
   nav('scr-main');
+}
+
+async function togglePrivateProfile() {
+  const toggle = document.getElementById('private-profile-toggle');
+  const isChecked = toggle.checked;
+  const response = await apiFetch('/api/user/set-private', { method: 'POST', body: JSON.stringify({tg_id: user.tg_id, is_private: isChecked}) });
+  if (response && response.success) { user.private_profile = isChecked; } else { toggle.checked = !isChecked; }
 }
 
 // ============================================================
 // РЕЙТИНГ
 // ============================================================
 function findUserRank(data) {
-  for (let i = 0; i < data.length; i++) {
-    if (data[i].tg_id === user.tg_id) return i + 1;
-  }
+  for (let i = 0; i < data.length; i++) { if (data[i].tg_id === user.tg_id) return i + 1; }
   return '?';
 }
 
@@ -1462,14 +1355,12 @@ async function loadRank() {
   document.getElementById('your-rank').textContent = 'Твое место — ?';
   document.getElementById('rank-loading').style.display = 'flex';
   document.getElementById('rank-list').style.display = 'none';
-
   const data = await apiFetch('/api/leaderboard');
   const list = document.getElementById('rank-list');
   list.innerHTML = "";
   if (!data || !Array.isArray(data)) {
     document.getElementById('rank-loading').style.display = 'none';
-    document.getElementById('rank-list').style.display = 'block';
-    return;
+    document.getElementById('rank-list').style.display = 'block'; return;
   }
   let userIndex = data.findIndex(u => u.tg_id === user?.tg_id);
   userRank = userIndex !== -1 ? userIndex + 1 : '?';
@@ -1491,14 +1382,9 @@ async function toggleFullLeaderboard() {
       userRank = findUserRank(data);
       document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
       renderLeaderboard(data); button.textContent = 'Свернуть';
-    } else {
-      button.textContent = 'Ошибка';
-      setTimeout(() => button.textContent = 'Развернуть', 2000);
-    }
+    } else { button.textContent = 'Ошибка'; setTimeout(() => button.textContent = 'Развернуть', 2000); }
     button.disabled = false;
-  } else {
-    fullLeaderboardLoaded = false; loadRank();
-  }
+  } else { fullLeaderboardLoaded = false; loadRank(); }
 }
 
 function renderLeaderboard(data) {
@@ -1522,9 +1408,6 @@ function renderLeaderboard(data) {
   });
 }
 
-// ============================================================
-// МОДАЛЬНОЕ ОКНО ИГРОКА
-// ============================================================
 function showUserDetail(u) {
   tg.HapticFeedback.selectionChanged();
   document.getElementById('modal-user-name').innerText = u.display_name || u.username;
@@ -1545,28 +1428,11 @@ function showUserDetail(u) {
       btn.style.background = '#0088cc'; btn.style.boxShadow = '0 4px 0 #006699';
       btn.onclick = () => tg.openTelegramLink(`https://t.me/${u.username}`);
     }
-  } else {
-    btn.style.display = 'none'; btn.onclick = null;
-  }
+  } else { btn.style.display = 'none'; btn.onclick = null; }
   document.getElementById('user-modal').style.display = 'flex';
 }
 
-function closeModal() {
-  document.getElementById('user-modal').style.display = 'none';
-}
-
-async function togglePrivateProfile() {
-  const toggle = document.getElementById('private-profile-toggle');
-  const isChecked = toggle.checked;
-  const response = await apiFetch('/api/user/set-private', {
-    method: 'POST', body: JSON.stringify({tg_id: user.tg_id, is_private: isChecked})
-  });
-  if (response && response.success) {
-    user.private_profile = isChecked;
-  } else {
-    toggle.checked = !isChecked;
-  }
-}
+function closeModal() { document.getElementById('user-modal').style.display = 'none'; }
 
 // ============================================================
 // МАГАЗИН
@@ -1580,10 +1446,8 @@ function resetShopState() {
   document.getElementById('detail-price').innerHTML = 'Цена: —';
   document.getElementById('total-cost').style.display = 'none';
   document.querySelectorAll('#shop-items-container .shop-item').forEach(el => el.classList.remove('selected'));
-
   currentAction = 'buy';
-  const toggle = document.getElementById('shop-toggle-mini');
-  toggle.classList.remove('sell-mode');
+  document.getElementById('shop-toggle-mini').classList.remove('sell-mode');
   document.getElementById('shop-action-label').style.color = 'var(--win)';
   document.getElementById('shop-action-label').innerText = 'КУПИТЬ';
   updateTradeButton();
@@ -1593,31 +1457,21 @@ async function loadShopItems() {
   await loadPrices();
   const container = document.getElementById('shop-items-container');
   container.innerHTML = "";
-
   const itemDefs = [
     {id: "acorn",       name: "Желудь", icon: "assets/acorn.png",       emoji: "🌰"},
     {id: "plant_acorn", name: "Росток", icon: "assets/plant_acorn.png", emoji: "🌱"},
   ];
-
   for (const def of itemDefs) {
-    const item = {
-      ...def,
-      price:      prices[def.id]?.buy  || 0,
-      sell_price: prices[def.id]?.sell || 0,
-    };
+    const item = { ...def, price: prices[def.id]?.buy || 0, sell_price: prices[def.id]?.sell || 0 };
     const div = document.createElement('div');
     div.className = 'shop-item';
     div.onclick = (e) => selectShopItem(item, e.currentTarget);
-
     const displayPrice = currentAction === 'buy' ? item.price : item.sell_price;
-
     div.innerHTML = `
-      <img class="shop-item-img" src="${item.icon}" alt="${item.name}"
-           onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <img class="shop-item-img" src="${item.icon}" alt="${item.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
       <span class="shop-item-emoji" style="display:none">${item.emoji}</span>
       <div class="shop-item-name">${item.name}</div>
-      <div class="shop-item-price">${displayPrice} <img src="assets/boarcoin.png" class="coin-icon" alt=""></div>
-    `;
+      <div class="shop-item-price">${displayPrice} <img src="assets/boarcoin.png" class="coin-icon" alt=""></div>`;
     container.appendChild(div);
   }
 }
@@ -1646,26 +1500,18 @@ function toggleActionMini() {
   const label = document.getElementById('shop-action-label');
   label.innerText = currentAction === 'buy' ? 'КУПИТЬ' : 'ПРОДАТЬ';
   label.style.color = currentAction === 'buy' ? 'var(--win)' : 'var(--lose)';
-  updatePriceDisplay();
-  updateShopItemPrices();
-  updateTradeButton();
+  updatePriceDisplay(); updateShopItemPrices(); updateTradeButton();
 }
 
 function updateTradeButton() {
   const button = document.getElementById('shop-trade-btn');
-  if (button) {
-    button.innerText = currentAction === 'buy' ? 'КУПИТЬ' : 'ПРОДАТЬ';
-    button.classList.toggle('sell-mode', currentAction === 'sell');
-  }
+  if (button) { button.innerText = currentAction === 'buy' ? 'КУПИТЬ' : 'ПРОДАТЬ'; button.classList.toggle('sell-mode', currentAction === 'sell'); }
 }
 
 function updateShopItemPrices() {
-  const itemDefs = [
-    {id: "acorn"}, {id: "plant_acorn"},
-  ];
+  const itemDefs = [{id: "acorn"}, {id: "plant_acorn"}];
   document.querySelectorAll('#shop-items-container .shop-item').forEach((el, index) => {
-    const def = itemDefs[index];
-    if (!def) return;
+    const def = itemDefs[index]; if (!def) return;
     const price = currentAction === 'buy' ? (prices[def.id]?.buy || 0) : (prices[def.id]?.sell || 0);
     const priceEl = el.querySelector('.shop-item-price');
     if (priceEl) priceEl.innerHTML = `${price} <img src="assets/boarcoin.png" class="coin-icon" alt="">`;
@@ -1674,10 +1520,7 @@ function updateShopItemPrices() {
 
 function updatePriceDisplay() {
   const totalCostEl = document.getElementById('total-cost');
-  if (!currentShopItem) {
-    document.getElementById('detail-price').innerHTML = 'Цена: —';
-    totalCostEl.style.display = 'none'; return;
-  }
+  if (!currentShopItem) { document.getElementById('detail-price').innerHTML = 'Цена: —'; totalCostEl.style.display = 'none'; return; }
   const price = currentAction === 'buy' ? currentShopItem.price : currentShopItem.sell_price;
   const total = price * currentShopQuantity;
   document.getElementById('detail-price').innerHTML = `${price} <img src="assets/boarcoin.png" class="coin-icon" alt=""> / шт.`;
@@ -1687,10 +1530,8 @@ function updatePriceDisplay() {
 
 function onQtyInput(value) {
   let newQty = parseInt(value) || 1;
-  if (newQty < 1)      newQty = 1;
-  if (newQty > 999999) newQty = 999999;
-  currentShopQuantity = newQty;
-  updatePriceDisplay();
+  if (newQty < 1) newQty = 1; if (newQty > 999999) newQty = 999999;
+  currentShopQuantity = newQty; updatePriceDisplay();
 }
 
 async function performTransaction() {
@@ -1701,16 +1542,10 @@ async function performTransaction() {
     body: JSON.stringify({tg_id: user.tg_id, item_id: currentShopItem.id, quantity: currentShopQuantity})
   });
   if (response && response.success) {
-    user.balance = response.new_balance;
-    user.acorns  = response.new_acorns;
-    user.plant_acorns = response.new_plant_acorns;
-    updateUI();
-    tg.HapticFeedback.notificationOccurred('success');
+    user.balance = response.new_balance; user.acorns = response.new_acorns; user.plant_acorns = response.new_plant_acorns;
+    updateUI(); tg.HapticFeedback.notificationOccurred('success');
     showToast(`${currentAction === 'buy' ? 'Куплено' : 'Продано'} ${currentShopQuantity}x ${currentShopItem.name}`);
-  } else {
-    tg.HapticFeedback.notificationOccurred('error');
-    showToast(response?.error || "Ошибка операции");
-  }
+  } else { tg.HapticFeedback.notificationOccurred('error'); showToast(response?.error || "Ошибка операции"); }
 }
 
 // ============================================================
