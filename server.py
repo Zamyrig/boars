@@ -6,9 +6,12 @@ from datetime import datetime, timedelta
 from flask_cors import CORS
 import json
 
+APP_ROOT = os.environ.get('APP_ROOT', '/boar-game-dev')
+
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
-app.config['APPLICATION_ROOT'] = '/boar-game'
+
+
 PORT = 3000
 DB_PATH = './database.db'
 STATIC_PATH = os.path.join(os.path.dirname(__file__), 'assets')
@@ -164,7 +167,9 @@ def check_update_max_balance(cursor, tg_id, new_balance):
 def index():
     frontend_path = os.path.join(os.path.dirname(__file__), 'index.html')
     if os.path.exists(frontend_path):
-        return send_file(frontend_path)
+        with open(frontend_path, 'r', encoding='utf-8') as f:
+            html = f.read().replace('__APP_BASE__', APP_ROOT)
+        return html
     return 'Сервер КАБАНОВ запущен!'
 
 
@@ -212,7 +217,6 @@ def auth():
 
     conn.close()
 
-    # Вычисляем секунды до конца кулдауна просмотра
     watch_cooldown_remaining = 0
     if user['last_watch_reward_at']:
         try:
@@ -285,10 +289,6 @@ def set_private():
 
 @app.route('/api/battle/watch', methods=['POST'])
 def watch_battle():
-    """
-    Просмотр боя. Всегда разрешен.
-    Награда 200 монет выдается только если прошло 2 часа с последнего вознаграждения.
-    """
     data = request.get_json()
     tg_id = str(data.get('tg_id'))
 
@@ -309,7 +309,6 @@ def watch_battle():
         reward_given = False
         reward = 0
 
-        # Проверяем кулдаун
         can_reward = True
         if user['last_watch_reward_at']:
             try:
@@ -346,7 +345,6 @@ def watch_battle():
 
         conn.commit()
 
-        # Вычисляем новый кулдаун
         watch_cooldown_remaining = 0
         if new_last_watch:
             try:
@@ -382,14 +380,6 @@ def watch_battle():
 
 @app.route('/api/battle/init', methods=['POST'])
 def battle_init():
-    """
-    Инициализация боя:
-    1. Проверяем баланс
-    2. Списываем ставку АТОМАРНО
-    3. Считаем результат
-    4. Начисляем выигрыш если победа
-    5. Возвращаем результат клиенту
-    """
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No data provided'}), 400
@@ -421,10 +411,8 @@ def battle_init():
             conn.close()
             return jsonify({'error': 'Insufficient balance'}), 400
 
-        # Списываем ставку сразу
         new_balance = user['balance'] - bet_amount
 
-        # Считаем результат
         is_win = random.choice([True, False])
         reward = 0
         opponent = "Клыкач"
@@ -731,6 +719,7 @@ if __name__ == '__main__':
     init_db()
     migrate_from_json_on_startup()
     print(f'Сервер запущен: http://localhost:{PORT}')
+    print(f'APP_ROOT: {APP_ROOT}')
     print(f'База данных: {DB_PATH}')
     print(f'Статика: {STATIC_PATH}')
     app.run(host='0.0.0.0', port=PORT, debug=True)
