@@ -1,9 +1,0 @@
-services:
-  boar-game-dev:
-    build: .
-    container_name: boar-game-dev
-    ports:
-      - "3001:3000"
-    volumes:
-      - ./database.db:/app/database.db
-    restart: unless-stopped
