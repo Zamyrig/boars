@@ -7,6 +7,8 @@ from routes.user import auth_bp, user_bp
 from routes.battle import battle_bp
 from routes.shop import shop_bp
 from routes.leaderboard import leaderboard_bp
+from routes.farm import farm_bp
+
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 PORT        = int(os.environ.get('PORT', 3000))
@@ -22,6 +24,7 @@ app.register_blueprint(user_bp)
 app.register_blueprint(battle_bp)
 app.register_blueprint(shop_bp)
 app.register_blueprint(leaderboard_bp)
+app.register_blueprint(farm_bp)
 
 # ── STATIC / MISC ─────────────────────────────────────────────────────────────
 

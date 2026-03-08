@@ -443,7 +443,6 @@ input:checked + .slider:before { transform: translateX(76px); }
   align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap;
 }
 
-/* Назад слева, Купить/Продать справа */
 .shop-actions { display: flex; gap: 10px; width: 100%; margin-top: 4px; }
 .btn-nav-back {
   background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7);
@@ -480,81 +479,102 @@ input:checked + .slider:before { transform: translateX(76px); }
 .watch-timer-line  { color: rgba(255,255,255,0.5); font-size: 0.75rem; font-weight: 600; }
 
 /* ============================================================
-   ИНВЕНТАРЬ — плавающая карточка в стиле магазина
+   ИНВЕНТАРЬ — стиль как у магазина, вкладки слева
    ============================================================ */
 #scr-inventory {
-  padding: 20px 16px;
-  padding-top: calc(20px + var(--safe-top));
-  padding-bottom: calc(20px + var(--safe-bottom));
+  padding: 16px 12px;
+  padding-top: calc(16px + var(--safe-top));
+  padding-bottom: calc(16px + var(--safe-bottom));
   align-items: center; justify-content: center;
 }
 
-/* Плавающая карточка — как .screen-card в магазине */
+/* Плавающая карточка */
 .inv-card {
   background: var(--card);
   border-radius: var(--radius);
   border: 1px solid rgba(255,255,255,0.12);
-  width: 100%; max-width: 380px;
+  width: 100%; max-width: 400px;
   backdrop-filter: blur(30px);
   box-shadow: 0 25px 50px rgba(0,0,0,0.5);
   display: flex; flex-direction: row;
-  max-height: calc(100dvh - 100px);
+  height: calc(100dvh - 80px);
+  max-height: 680px;
   overflow: hidden;
   box-sizing: border-box;
   animation: cardPop 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
 }
 
-/* Левая панель: кнопки локаций */
+/* Левый сайдбар — вкладки */
 .inv-sidebar {
-  width: 68px;
-  flex-shrink: 0;
+  width: 64px; flex-shrink: 0;
   display: flex; flex-direction: column;
   align-items: center;
-  padding: 14px 8px;
-  gap: 6px;
+  padding: 12px 6px;
+  gap: 5px;
   border-right: 1px solid rgba(255,255,255,0.07);
-  background: rgba(0,0,0,0.15);
+  background: rgba(0,0,0,0.18);
 }
 
-/* Кнопки локаций */
-.inv-loc-btn {
+.inv-tab {
   width: 52px;
-  flex: 1;
-  min-height: 42px;
+  flex-shrink: 0;
   background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.09);
+  border: 1.5px solid rgba(255,255,255,0.08);
   border-radius: 14px;
-  cursor: pointer;
+  padding: 9px 4px;
+  cursor: pointer; transition: all 0.2s;
   display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 3px;
-  transition: all 0.2s;
+  align-items: center; gap: 3px;
   -webkit-tap-highlight-color: transparent;
 }
-.inv-loc-btn:active { transform: scale(0.88); background: rgba(255,255,255,0.12); }
-.inv-loc-btn.back-btn {
-  flex: 0 0 42px;
-  background: rgba(255,255,255,0.03);
-  border-color: rgba(255,255,255,0.06);
+.inv-tab:active { transform: scale(0.88); background: rgba(255,255,255,0.1); }
+.inv-tab.active-tab {
+  background: rgba(255,204,0,0.15);
+  border-color: var(--gold);
 }
-.inv-loc-btn.back-btn:active { background: rgba(255,255,255,0.1); }
+.inv-tab-icon  { font-size: 1.35rem; line-height: 1; }
+.inv-tab-label {
+  font-size: 0.5rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.2px;
+  opacity: 0.5; text-align: center; line-height: 1.1;
+}
+.inv-tab.active-tab .inv-tab-label { opacity: 1; color: var(--gold); }
 
-.inv-loc-icon  { font-size: 1.2rem; line-height: 1; }
-.inv-loc-label {
-  font-size: 0.44rem; font-weight: 800;
-  text-transform: uppercase; letter-spacing: 0.3px;
-  opacity: 0.6; text-align: center; line-height: 1.1;
-  padding: 0 2px; word-break: break-word;
+/* Кнопка назад — в самом низу сайдбара */
+.inv-back-tab {
+  margin-top: auto;
+  width: 52px; flex-shrink: 0;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  padding: 10px 4px;
+  cursor: pointer; transition: all 0.2s;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 3px;
+  -webkit-tap-highlight-color: transparent;
+}
+.inv-back-tab:active { background: rgba(255,255,255,0.12); transform: scale(0.9); }
+.inv-back-tab-icon { font-size: 1.2rem; line-height: 1; }
+.inv-back-tab-label {
+  font-size: 0.48rem; font-weight: 800; opacity: 0.45;
+  text-transform: uppercase; letter-spacing: 0.2px; text-align: center;
 }
 
-/* Основная зона */
+/* Правая зона контента */
 .inv-main {
   flex: 1;
   display: flex; flex-direction: column;
-  padding: 14px 12px;
+  padding: 12px 12px 12px;
   gap: 8px; overflow: hidden;
   min-width: 0;
 }
+
+/* Заголовок */
+.inv-header {
+  display: flex; align-items: center;
+  flex-shrink: 0; margin-bottom: 2px;
+}
+.inv-header h3 { margin: 0; font-size: 1.15rem; font-weight: 800; opacity: 0.9; }
 
 /* Сетка предметов */
 .inv-items-zone {
@@ -565,71 +585,234 @@ input:checked + .slider:before { transform: translateX(76px); }
   padding: 8px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  gap: 7px;
   align-content: start;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.08) transparent;
+  scrollbar-color: rgba(255,204,0,0.3) transparent;
 }
+.inv-items-zone::-webkit-scrollbar { width: 3px; }
+.inv-items-zone::-webkit-scrollbar-thumb { background: rgba(255,204,0,0.3); border-radius: 4px; }
 
+/* Слот предмета */
 .inv-slot {
   aspect-ratio: 1;
   background: rgba(255,255,255,0.04);
   border: 1.5px solid rgba(255,255,255,0.06);
-  border-radius: 12px;
+  border-radius: 13px;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   position: relative; cursor: pointer; transition: all 0.2s;
 }
 .inv-slot:active { transform: scale(0.88); background: rgba(255,255,255,0.1); }
-.inv-slot.filled { border-color: rgba(255,255,255,0.16); background: rgba(255,255,255,0.07); }
-.inv-slot img { width: 65%; height: 65%; object-fit: contain; image-rendering: pixelated; }
-.inv-slot-emoji { font-size: 1.5rem; line-height: 1; }
+.inv-slot.filled {
+  border-color: rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.08);
+}
+.inv-slot img { width: 60%; height: 60%; object-fit: contain; image-rendering: pixelated; }
+.inv-slot-emoji { font-size: 1.6rem; line-height: 1; }
 .inv-slot-count {
-  position: absolute; bottom: 2px; right: 4px;
-  font-size: 0.58rem; font-weight: 900; color: #fff;
+  position: absolute; bottom: 3px; right: 5px;
+  font-size: 0.62rem; font-weight: 900; color: #fff;
   text-shadow: 0 1px 3px rgba(0,0,0,0.8);
 }
 
-/* Нижняя строка */
-.inv-bottom-row { display: flex; gap: 6px; flex-shrink: 0; height: 54px; }
+/* Нижняя панель — как shop-detail */
+.inv-bottom-row {
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 9px 10px;
+  display: flex; gap: 8px; align-items: stretch;
+}
 
-.inv-equip-zone {
-  flex: 2; background: rgba(255,204,0,0.05);
-  border: 1px solid rgba(255,204,0,0.15);
-  border-radius: 14px; padding: 6px 8px;
-  display: flex; align-items: center; gap: 5px;
-  overflow: hidden;
-}
+.inv-equip-zone { flex: 2; display: flex; flex-direction: column; gap: 5px; }
 .inv-equip-label {
-  font-size: 0.42rem; font-weight: 800; opacity: 0.3;
-  text-transform: uppercase; letter-spacing: 0.4px;
-  writing-mode: vertical-rl; transform: rotate(180deg); flex-shrink: 0;
+  font-size: 0.5rem; font-weight: 800; opacity: 0.3;
+  text-transform: uppercase; letter-spacing: 0.5px;
 }
+.inv-equip-slots-row { display: flex; gap: 4px; }
 .inv-equip-slot {
-  flex: 1; height: 36px;
-  background: rgba(255,204,0,0.04);
-  border: 1.5px dashed rgba(255,204,0,0.2);
+  flex: 1; height: 38px;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px dashed rgba(255,255,255,0.1);
   border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 1rem; color: rgba(255,204,0,0.2);
+  font-size: 1rem; color: rgba(255,255,255,0.15);
 }
 
-.inv-potions-zone {
-  flex: 1; background: rgba(76,217,100,0.04);
-  border: 1px solid rgba(76,217,100,0.14);
-  border-radius: 14px; padding: 6px;
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 4px;
+.inv-potions-zone { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.inv-potions-label {
+  font-size: 0.5rem; font-weight: 800; opacity: 0.3;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.inv-potions-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
 }
 .inv-potion-slot {
-  aspect-ratio: 1;
-  background: rgba(255,255,255,0.03);
-  border: 1.5px dashed rgba(76,217,100,0.16);
+  height: 38px;
+  background: rgba(76,217,100,0.03);
+  border: 1.5px dashed rgba(76,217,100,0.12);
   border-radius: 9px;
   display: flex; align-items: center; justify-content: center;
   font-size: 0.85rem; color: rgba(76,217,100,0.2);
 }
+
+/* ── ФЕРМА ── */
+.farm-slots-row {
+  display: flex; gap: 10px;
+  padding: 4px 0;
+}
+.farm-slot {
+  flex: 1;
+  aspect-ratio: 1;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 5px; cursor: pointer; transition: all 0.2s;
+  position: relative; overflow: hidden;
+  padding: 6px;
+  -webkit-tap-highlight-color: transparent;
+}
+.farm-slot:active { transform: scale(0.94); }
+.farm-slot.locked {
+  background: rgba(0,0,0,0.25);
+  border-color: rgba(255,255,255,0.06);
+  cursor: pointer;
+}
+.farm-slot.unlocked-empty {
+  background: rgba(76,217,100,0.05);
+  border-color: rgba(76,217,100,0.2);
+  border-style: dashed;
+}
+.farm-slot.planted {
+  background: rgba(100,180,80,0.1);
+  border-color: rgba(76,217,100,0.35);
+}
+.farm-slot.ready {
+  background: rgba(255,204,0,0.12);
+  border-color: var(--gold);
+  animation: farmReady 1.5s ease-in-out infinite;
+}
+@keyframes farmReady {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,204,0,0); }
+  50% { box-shadow: 0 0 14px 3px rgba(255,204,0,0.3); }
+}
+.farm-slot-icon { font-size: 1.8rem; line-height: 1; }
+.farm-slot-label {
+  font-size: 0.52rem; font-weight: 800; text-transform: uppercase;
+  opacity: 0.6; text-align: center; letter-spacing: 0.2px; line-height: 1.2;
+}
+.farm-slot-cost {
+  font-size: 0.48rem; font-weight: 700; opacity: 0.45;
+  text-align: center; line-height: 1.3;
+}
+.farm-slot-timer {
+  font-size: 0.7rem; font-weight: 900; color: var(--win);
+  letter-spacing: 0.5px;
+}
+.farm-slot.ready .farm-slot-timer { color: var(--gold); }
+
+/* Модальное окно фермы */
+#farm-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 4500; display: none;
+  flex-direction: column; align-items: center; justify-content: center;
+  backdrop-filter: blur(12px);
+  padding: 16px;
+  padding-bottom: calc(16px + var(--safe-bottom));
+  box-sizing: border-box;
+}
+.farm-modal-card {
+  background: rgba(20,20,24,0.97);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 28px;
+  width: 100%; max-width: 380px;
+  max-height: calc(100dvh - 80px);
+  display: flex; flex-direction: column;
+  padding: 20px 18px 18px;
+  box-sizing: border-box;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+  animation: cardPop 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  overflow: hidden;
+}
+.farm-modal-body-scroll {
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+.farm-modal-title {
+  font-size: 1.1rem; font-weight: 800; margin: 0 0 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.farm-modal-title .close-x { position: static; margin-left: auto; }
+
+/* Пикер предметов в ферме */
+.farm-item-picker {
+  display: flex; gap: 8px; margin-bottom: 14px;
+}
+.farm-pick-item {
+  flex: 1; background: rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(255,255,255,0.08);
+  border-radius: 14px; padding: 10px 6px;
+  text-align: center; cursor: pointer; transition: all 0.2s;
+}
+.farm-pick-item.selected {
+  background: rgba(76,217,100,0.15);
+  border-color: var(--win);
+}
+.farm-pick-item:active { transform: scale(0.93); }
+.farm-pick-icon { font-size: 1.8rem; display: block; margin-bottom: 4px; }
+.farm-pick-name { font-size: 0.65rem; font-weight: 700; opacity: 0.8; }
+.farm-pick-count { font-size: 0.58rem; opacity: 0.5; margin-top: 2px; }
+
+/* Информация о дропах */
+.farm-drop-info {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px; padding: 10px 12px;
+  margin-bottom: 12px; font-size: 0.72rem;
+  max-height: 130px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+.farm-drop-info::-webkit-scrollbar { width: 3px; }
+.farm-drop-row {
+  display: flex; justify-content: space-between;
+  padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  align-items: center;
+}
+.farm-drop-row:last-child { border-bottom: none; }
+.farm-drop-chance { opacity: 0.4; font-weight: 700; font-size: 0.65rem; }
+.farm-drop-reward { font-weight: 700; color: rgba(255,255,255,0.85); }
+
+.farm-grow-time {
+  font-size: 0.78rem; opacity: 0.6; margin-bottom: 12px;
+  text-align: center; font-weight: 700;
+}
+
+/* Кнопки подтверждения */
+.farm-confirm-row { display: flex; gap: 8px; }
+.farm-confirm-row .btn-wood { flex: 1; font-size: 0.85rem; padding: 15px; }
+
+/* Unlock modal */
+.farm-unlock-cost {
+  background: rgba(255,204,0,0.07);
+  border: 1px solid rgba(255,204,0,0.2);
+  border-radius: 14px; padding: 12px;
+  margin-bottom: 14px;
+}
+.farm-unlock-cost-row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.82rem; font-weight: 700; padding: 3px 0;
+}
+.farm-unlock-cost-row span { opacity: 0.5; font-size: 0.7rem; margin-left: auto; }
 
 /* Заглушка локации */
 #scr-location .location-stub {
@@ -652,8 +835,8 @@ input:checked + .slider:before { transform: translateX(76px); }
   .res-icon  { font-size: 4rem; }
   .inv-items-zone { grid-template-columns: repeat(3, 1fr); }
   .inv-card { max-width: 100%; }
-  .inv-sidebar { width: 60px; padding: 10px 6px; }
-  .inv-loc-btn { width: 46px; }
+  .inv-sidebar { width: 56px; }
+  .inv-tab, .inv-back-tab { width: 44px; }
 }
 </style>
 </head>
@@ -756,53 +939,109 @@ input:checked + .slider:before { transform: translateX(76px); }
      ============================================================ -->
 <div id="scr-inventory" class="screen">
   <div class="inv-card">
-  <!-- Левая панель: 5 локаций + кнопка назад (всего 6) -->
-  <div class="inv-sidebar">
-    <div class="inv-loc-btn" onclick="navLocation('farm')">
-      <span class="inv-loc-icon">🌾</span>
-      <span class="inv-loc-label">Ферма</span>
-    </div>
-    <div class="inv-loc-btn" onclick="navLocation('mine')">
-      <span class="inv-loc-icon">⛏️</span>
-      <span class="inv-loc-label">Шахта</span>
-    </div>
-    <div class="inv-loc-btn" onclick="navLocation('forest')">
-      <span class="inv-loc-icon">🌲</span>
-      <span class="inv-loc-label">Лес</span>
-    </div>
-    <div class="inv-loc-btn" onclick="navLocation('cave')">
-      <span class="inv-loc-icon">🕳️</span>
-      <span class="inv-loc-label">Пещера</span>
-    </div>
-    <div class="inv-loc-btn" onclick="navLocation('market')">
-      <span class="inv-loc-icon">🏪</span>
-      <span class="inv-loc-label">Рынок</span>
-    </div>
-    <div class="inv-loc-btn back-btn" onclick="nav('scr-main')">
-      <span class="inv-loc-icon">←</span>
-      <span class="inv-loc-label">Назад</span>
-    </div>
-  </div>
 
-  <!-- Основная зона -->
-  <div class="inv-main">
-    <div class="inv-items-zone" id="inv-items-grid"></div>
-    <div class="inv-bottom-row">
-      <div class="inv-equip-zone">
-        <span class="inv-equip-label">Экип.</span>
-        <div class="inv-equip-slot">⚔️</div>
-        <div class="inv-equip-slot">🛡️</div>
-        <div class="inv-equip-slot">💍</div>
+    <!-- Левый сайдбар: вкладки + кнопка назад внизу -->
+    <div class="inv-sidebar">
+      <div class="inv-tab active-tab" onclick="switchInvTab(this,'bag')" data-tab="bag">
+        <span class="inv-tab-icon">🎒</span>
+        <span class="inv-tab-label">Сумка</span>
       </div>
-      <div class="inv-potions-zone">
-        <div class="inv-potion-slot">🧪</div>
-        <div class="inv-potion-slot">🧪</div>
-        <div class="inv-potion-slot">🧪</div>
-        <div class="inv-potion-slot">🧪</div>
+      <div class="inv-tab" onclick="switchInvTab(this,'farm')" data-tab="farm">
+        <span class="inv-tab-icon">🌾</span>
+        <span class="inv-tab-label">Ферма</span>
+      </div>
+      <div class="inv-tab" onclick="switchInvTab(this,'mine')" data-tab="mine">
+        <span class="inv-tab-icon">⛏️</span>
+        <span class="inv-tab-label">Шахта</span>
+      </div>
+      <div class="inv-tab" onclick="switchInvTab(this,'forest')" data-tab="forest">
+        <span class="inv-tab-icon">🌲</span>
+        <span class="inv-tab-label">Лес</span>
+      </div>
+      <div class="inv-tab" onclick="switchInvTab(this,'cave')" data-tab="cave">
+        <span class="inv-tab-icon">🕳️</span>
+        <span class="inv-tab-label">Пещера</span>
+      </div>
+
+      <!-- НАЗАД внизу сайдбара -->
+      <div class="inv-back-tab" onclick="nav('scr-main')">
+        <span class="inv-back-tab-icon">←</span>
+        <span class="inv-back-tab-label">Назад</span>
       </div>
     </div>
-  </div>
+
+    <!-- Основной контент -->
+    <div class="inv-main">
+
+      <!-- Заголовок -->
+      <div class="inv-header">
+        <h3 id="inv-tab-title">СУМКА</h3>
+      </div>
+
+      <!-- Контент: Сумка -->
+      <div id="inv-content-bag" class="inv-tab-content" style="display:flex;flex-direction:column;flex:1;gap:8px;overflow:hidden;">
+        <div class="inv-items-zone" id="inv-items-grid"></div>
+        <div class="inv-bottom-row">
+          <div class="inv-equip-zone">
+            <div class="inv-equip-label">Экипировка</div>
+            <div class="inv-equip-slots-row">
+              <div class="inv-equip-slot">⚔️</div>
+              <div class="inv-equip-slot">🛡️</div>
+              <div class="inv-equip-slot">💍</div>
+            </div>
+          </div>
+          <div class="inv-potions-zone">
+            <div class="inv-potions-label">Зелья</div>
+            <div class="inv-potions-grid">
+              <div class="inv-potion-slot">🧪</div>
+              <div class="inv-potion-slot">🧪</div>
+              <div class="inv-potion-slot">🧪</div>
+              <div class="inv-potion-slot">🧪</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Контент: Ферма -->
+      <div id="inv-content-farm" class="inv-tab-content" style="display:none;flex-direction:column;flex:1;gap:10px;overflow:hidden;">
+        <div class="farm-slots-row" id="farm-slots-row"></div>
+        <div style="flex:1;background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.05);border-radius:16px;padding:12px;font-size:0.75rem;opacity:0.45;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.6;">
+          Нажми на слот чтобы<br>посадить росток или собрать урожай
+        </div>
+      </div>
+
+      <!-- Заглушки для других вкладок -->
+      <div id="inv-content-mine" class="inv-tab-content" style="display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:10px;opacity:0.4;font-size:0.85rem;text-align:center;">
+        <span style="font-size:3rem;">⛏️</span>
+        <span>Шахта<br>в разработке</span>
+      </div>
+      <div id="inv-content-forest" class="inv-tab-content" style="display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:10px;opacity:0.4;font-size:0.85rem;text-align:center;">
+        <span style="font-size:3rem;">🌲</span>
+        <span>Лес<br>в разработке</span>
+      </div>
+      <div id="inv-content-cave" class="inv-tab-content" style="display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:10px;opacity:0.4;font-size:0.85rem;text-align:center;">
+        <span style="font-size:3rem;">🕳️</span>
+        <span>Пещера<br>в разработке</span>
+      </div>
+
+    </div><!-- /.inv-main -->
   </div><!-- /.inv-card -->
+</div>
+
+<!-- ============================================================
+     МОДАЛКА ФЕРМЫ
+     ============================================================ -->
+<div id="farm-modal" onclick="if(event.target===this)closeFarmModal()">
+  <div class="farm-modal-card">
+    <div class="farm-modal-title">
+      <span id="farm-modal-icon">🌾</span>
+      <span id="farm-modal-title-text">Слот фермы</span>
+      <button class="close-x" onclick="closeFarmModal()">&times;</button>
+    </div>
+    <div class="farm-modal-body-scroll">
+      <div id="farm-modal-body"></div>
+    </div>
+  </div>
 </div>
 
 <!-- ============================================================
@@ -834,7 +1073,6 @@ input:checked + .slider:before { transform: translateX(76px); }
         <input type="number" id="qty-input" value="1" min="1" inputmode="numeric" oninput="onQtyInput(this.value)">
       </div>
       <div class="shop-total" id="total-cost"></div>
-      <!-- Назад слева, Купить справа -->
       <div class="shop-actions">
         <button class="btn-wood btn-nav-back" onclick="nav('scr-main')">←</button>
         <button class="btn-wood btn-trade" id="shop-trade-btn" onclick="performTransaction()">КУПИТЬ</button>
@@ -921,7 +1159,6 @@ input:checked + .slider:before { transform: translateX(76px); }
 </div>
 
 <script>
-// Версия из конфига вверху файла
 document.getElementById('version-label').textContent = 'v' + APP_VERSION;
 
 const tg = window.Telegram.WebApp;
@@ -1021,6 +1258,9 @@ function nav(id) {
   } else if (id === 'scr-inventory') {
     document.getElementById('bg-inventory').style.display = 'block';
     renderInventory();
+    // сбрасываем на сумку при открытии
+    const bagTab = document.querySelector('.inv-tab[data-tab="bag"]');
+    if (bagTab) switchInvTab(bagTab, 'bag');
   } else if (id === 'scr-shop') {
     document.getElementById('bg-shop').style.display = 'block';
     resetShopState();
@@ -1061,6 +1301,356 @@ function navLocation(type) {
   document.getElementById('scr-location').classList.add('active');
   document.body.classList.add('dimmed');
   tg.HapticFeedback.impactOccurred('light');
+}
+
+// ============================================================
+// ИНВЕНТАРЬ — вкладки
+// ============================================================
+const INV_TAB_TITLES = { bag:'СУМКА', farm:'ФЕРМА', mine:'ШАХТА', forest:'ЛЕС', cave:'ПЕЩЕРА' };
+const INV_TAB_BG = { bag:'bg-inventory', farm:'bg-farm', mine:'bg-mine', forest:'bg-main', cave:'bg-main' };
+
+function switchInvTab(el, tab) {
+  document.querySelectorAll('.inv-tab').forEach(t => t.classList.remove('active-tab'));
+  el.classList.add('active-tab');
+  document.querySelectorAll('.inv-tab-content').forEach(c => c.style.display = 'none');
+  const content = document.getElementById('inv-content-' + tab);
+  if (content) content.style.display = 'flex';
+  document.getElementById('inv-tab-title').innerText = INV_TAB_TITLES[tab] || tab.toUpperCase();
+
+  // Переключаем фон
+  ['bg-main','bg-inventory','bg-farm','bg-mine'].forEach(bg => {
+    document.getElementById(bg).style.display = 'none';
+  });
+  document.getElementById(INV_TAB_BG[tab] || 'bg-inventory').style.display = 'block';
+
+  tg.HapticFeedback.selectionChanged();
+  if (tab === 'farm') loadFarmState();
+}
+
+// ============================================================
+// ФЕРМА
+// ============================================================
+const FARM_SLOT_CONFIGS = [
+  { slot: 1, unlock_cost: { acorns: 10,   coins: 100,   plant_acorns: 0  } },
+  { slot: 2, unlock_cost: { acorns: 100,  coins: 1000,  plant_acorns: 1  } },
+  { slot: 3, unlock_cost: { acorns: 1000, coins: 10000, plant_acorns: 10 } },
+];
+
+let farmState = null;
+let farmDropTable = null;
+let farmTimerInterval = null;
+let activeFarmSlot = null;
+let selectedFarmItem = null;
+let farmConfirmMode = false;
+
+async function loadFarmState() {
+  if (!user) return;
+  const data = await apiFetch(`/api/farm/state?tg_id=${user.tg_id}`);
+  if (!data || !data.slots) return;
+  farmState = data;
+  renderFarmSlots();
+  startFarmTimers();
+}
+
+function renderFarmSlots() {
+  const row = document.getElementById('farm-slots-row');
+  if (!row || !farmState) return;
+  row.innerHTML = '';
+
+  for (const cfg of FARM_SLOT_CONFIGS) {
+    const slotData = farmState.slots.find(s => s.slot_num === cfg.slot) || {};
+    const div = document.createElement('div');
+    div.className = 'farm-slot';
+    div.dataset.slot = cfg.slot;
+
+    if (!slotData.unlocked) {
+      div.classList.add('locked');
+      div.innerHTML = `
+        <span class="farm-slot-icon">🔒</span>
+        <span class="farm-slot-label">Слот ${cfg.slot}</span>
+        <span class="farm-slot-cost">${cfg.unlock_cost.acorns}🌰<br>${cfg.unlock_cost.coins}🪙${cfg.unlock_cost.plant_acorns ? `<br>${cfg.unlock_cost.plant_acorns}🌱` : ''}</span>`;
+      div.onclick = () => openFarmUnlockModal(cfg.slot);
+    } else if (!slotData.planted_item) {
+      div.classList.add('unlocked-empty');
+      div.innerHTML = `
+        <span class="farm-slot-icon">🌱</span>
+        <span class="farm-slot-label">Пустой<br>слот</span>`;
+      div.onclick = () => openFarmPlantModal(cfg.slot);
+    } else if (slotData.is_ready) {
+      div.classList.add('ready');
+      div.innerHTML = `
+        <span class="farm-slot-icon">✨</span>
+        <span class="farm-slot-label">Готово!</span>
+        <span class="farm-slot-timer">Собрать</span>`;
+      div.onclick = () => openFarmHarvestModal(cfg.slot, slotData);
+    } else {
+      div.classList.add('planted');
+      const timeLeft = slotData.seconds_left || 0;
+      div.innerHTML = `
+        <span class="farm-slot-icon">🌿</span>
+        <span class="farm-slot-label">Растёт</span>
+        <span class="farm-slot-timer" id="farm-timer-${cfg.slot}">${formatFarmTime(timeLeft)}</span>`;
+      div.onclick = () => openFarmGrowingModal(cfg.slot, slotData);
+    }
+    row.appendChild(div);
+  }
+}
+
+function startFarmTimers() {
+  if (farmTimerInterval) clearInterval(farmTimerInterval);
+  farmTimerInterval = setInterval(() => {
+    if (!farmState) return;
+    let anyPlanted = false;
+    for (const s of farmState.slots) {
+      if (s.planted_item && !s.is_ready && s.seconds_left > 0) {
+        s.seconds_left = Math.max(0, s.seconds_left - 1);
+        const el = document.getElementById(`farm-timer-${s.slot_num}`);
+        if (el) {
+          if (s.seconds_left === 0) {
+            s.is_ready = true;
+            renderFarmSlots();
+          } else {
+            el.textContent = formatFarmTime(s.seconds_left);
+          }
+        }
+        anyPlanted = true;
+      }
+    }
+    if (!anyPlanted) { clearInterval(farmTimerInterval); farmTimerInterval = null; }
+  }, 1000);
+}
+
+function formatFarmTime(sec) {
+  if (sec <= 0) return 'Готово!';
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) return `${h}ч ${String(m).padStart(2,'0')}м`;
+  if (m > 0) return `${m}м ${String(s).padStart(2,'0')}с`;
+  return `${s}с`;
+}
+
+function openFarmModal(icon, title, bodyHtml) {
+  document.getElementById('farm-modal-icon').innerText = icon;
+  document.getElementById('farm-modal-title-text').innerText = title;
+  document.getElementById('farm-modal-body').innerHTML = bodyHtml;
+  document.getElementById('farm-modal').style.display = 'flex';
+  tg.HapticFeedback.impactOccurred('medium');
+}
+
+function closeFarmModal() {
+  document.getElementById('farm-modal').style.display = 'none';
+  farmConfirmMode = false; selectedFarmItem = null; activeFarmSlot = null;
+}
+
+// --- Разблокировка слота ---
+function openFarmUnlockModal(slotNum) {
+  const cfg = FARM_SLOT_CONFIGS.find(c => c.slot === slotNum);
+  const cost = cfg.unlock_cost;
+  const hasEnough = user.acorns >= cost.acorns && user.balance >= cost.coins && user.plant_acorns >= cost.plant_acorns;
+
+  const body = `
+    <p style="font-size:0.8rem;opacity:0.55;margin:0 0 12px;">Разблокируй слот ${slotNum} чтобы выращивать ресурсы</p>
+    <div class="farm-unlock-cost">
+      <div class="farm-unlock-cost-row">🌰 Желуди <span>${user.acorns} / ${cost.acorns}</span></div>
+      <div class="farm-unlock-cost-row">🪙 Монеты <span>${user.balance.toLocaleString()} / ${cost.coins.toLocaleString()}</span></div>
+      ${cost.plant_acorns ? `<div class="farm-unlock-cost-row">🌱 Ростки <span>${user.plant_acorns} / ${cost.plant_acorns}</span></div>` : ''}
+    </div>
+    <div class="farm-confirm-row">
+      <button class="btn-wood" style="opacity:0.5;" onclick="closeFarmModal()">Отмена</button>
+      <button class="btn-wood btn-play" ${hasEnough ? '' : 'disabled'} onclick="doFarmUnlock(${slotNum})">
+        ${hasEnough ? 'Разблокировать' : 'Не хватает'}
+      </button>
+    </div>`;
+
+  openFarmModal('🔒', `Слот ${slotNum}`, body);
+}
+
+async function doFarmUnlock(slotNum) {
+  const resp = await apiFetch('/api/farm/unlock', { method:'POST', body: JSON.stringify({ tg_id: user.tg_id, slot_num: slotNum }) });
+  if (resp && resp.success) {
+    user.acorns = resp.new_acorns;
+    user.plant_acorns = resp.new_plant_acorns;
+    user.balance = resp.new_balance;
+    document.getElementById('bal-val').innerText = user.balance.toLocaleString();
+    document.getElementById('acorns-val').innerText = user.acorns.toLocaleString();
+    tg.HapticFeedback.notificationOccurred('success');
+    showToast(`Слот ${slotNum} разблокирован!`);
+    closeFarmModal();
+    await loadFarmState();
+  } else {
+    tg.HapticFeedback.notificationOccurred('error');
+    showToast(resp?.error || 'Ошибка');
+  }
+}
+
+// --- Посадка ---
+async function openFarmPlantModal(slotNum) {
+  activeFarmSlot = slotNum;
+  farmConfirmMode = false;
+  selectedFarmItem = null;
+
+  // Загружаем таблицу дропов
+  if (!farmDropTable) {
+    farmDropTable = await apiFetch('/api/farm/drops?item_id=plant_acorn');
+  }
+
+  renderFarmPlantModal();
+}
+
+function renderFarmPlantModal() {
+  const dt = farmDropTable;
+  const hasPlant = user.plant_acorns > 0;
+
+  let dropRows = '';
+  if (dt && dt.drops) {
+    for (const d of dt.drops) {
+      dropRows += `<div class="farm-drop-row">
+        <span class="farm-drop-reward">🌰 ${d.acorns} + 🪙 ${d.coins_min}-${d.coins_max}</span>
+        <span class="farm-drop-chance">${d.chance}%</span>
+      </div>`;
+    }
+    if (dt.plant_acorn_chance) {
+      dropRows += `<div class="farm-drop-row">
+        <span class="farm-drop-reward">🌱 +1 Росток (бонус)</span>
+        <span class="farm-drop-chance">${dt.plant_acorn_chance}%</span>
+      </div>`;
+    }
+  }
+
+  const body = `
+    <p style="font-size:0.75rem;opacity:0.5;margin:0 0 10px;">Выбери что посадить:</p>
+    <div class="farm-item-picker">
+      <div class="farm-pick-item ${selectedFarmItem==='plant_acorn'?'selected':''}" onclick="selectFarmItem('plant_acorn')">
+        <span class="farm-pick-icon">🌱</span>
+        <div class="farm-pick-name">Росток</div>
+        <div class="farm-pick-count">${user.plant_acorns} шт.</div>
+      </div>
+    </div>
+    ${dt ? `<div class="farm-grow-time">⏱ Время роста: ${dt.grow_time_hours} ч.</div>` : ''}
+    ${selectedFarmItem ? `<div class="farm-drop-info">${dropRows}</div>` : ''}
+    <div class="farm-confirm-row">
+      <button class="btn-wood" style="opacity:0.5;" onclick="closeFarmModal()">Отмена</button>
+      <button class="btn-wood" style="background:var(--win);color:#000;border:none;box-shadow:0 4px 0 #2d9a4a;"
+        ${selectedFarmItem && hasPlant ? '' : 'disabled'}
+        onclick="doFarmPlantConfirm()">Посадить</button>
+    </div>`;
+
+  document.getElementById('farm-modal-icon').innerText = '🌱';
+  document.getElementById('farm-modal-title-text').innerText = `Слот ${activeFarmSlot}`;
+  document.getElementById('farm-modal-body').innerHTML = body;
+  document.getElementById('farm-modal').style.display = 'flex';
+}
+
+function selectFarmItem(itemId) {
+  selectedFarmItem = itemId;
+  tg.HapticFeedback.selectionChanged();
+  renderFarmPlantModal();
+}
+
+function doFarmPlantConfirm() {
+  if (!selectedFarmItem) return;
+  if (!farmConfirmMode) {
+    farmConfirmMode = true;
+    // Меняем кнопку на подтверждение
+    const btn = document.querySelector('#farm-modal-body .farm-confirm-row .btn-wood:last-child');
+    if (btn) {
+      btn.textContent = '✓ Подтвердить';
+      btn.style.background = '#e6b800';
+      btn.onclick = doFarmPlant;
+    }
+    tg.HapticFeedback.impactOccurred('light');
+    return;
+  }
+  doFarmPlant();
+}
+
+async function doFarmPlant() {
+  const resp = await apiFetch('/api/farm/plant', {
+    method: 'POST',
+    body: JSON.stringify({ tg_id: user.tg_id, slot_num: activeFarmSlot, item_id: selectedFarmItem })
+  });
+  if (resp && resp.success) {
+    user.plant_acorns = resp.new_plant_acorns;
+    document.getElementById('acorns-val').innerText = user.acorns.toLocaleString();
+    tg.HapticFeedback.notificationOccurred('success');
+    showToast('Росток посажен! Ждёт 1 час 🌱');
+    closeFarmModal();
+    await loadFarmState();
+  } else {
+    tg.HapticFeedback.notificationOccurred('error');
+    showToast(resp?.error || 'Ошибка');
+  }
+}
+
+// --- Просмотр растущего слота ---
+function openFarmGrowingModal(slotNum, slotData) {
+  const body = `
+    <div style="text-align:center;padding:10px 0;">
+      <div style="font-size:3rem;margin-bottom:10px;">🌿</div>
+      <div style="font-size:1.1rem;font-weight:800;margin-bottom:6px;">Росток растёт</div>
+      <div style="font-size:0.8rem;opacity:0.5;margin-bottom:16px;">До сбора урожая:</div>
+      <div style="font-size:1.8rem;font-weight:900;color:var(--win);margin-bottom:20px;" id="farm-modal-countdown">
+        ${formatFarmTime(slotData.seconds_left)}
+      </div>
+    </div>
+    <div class="farm-confirm-row">
+      <button class="btn-wood" style="width:100%;opacity:0.5;" onclick="closeFarmModal()">Закрыть</button>
+    </div>`;
+  openFarmModal('🌿', `Слот ${slotNum}`, body);
+
+  // Обновляем таймер внутри модалки
+  const modalTimer = setInterval(() => {
+    const el = document.getElementById('farm-modal-countdown');
+    if (!el || document.getElementById('farm-modal').style.display === 'none') {
+      clearInterval(modalTimer); return;
+    }
+    slotData.seconds_left = Math.max(0, slotData.seconds_left - 1);
+    el.textContent = formatFarmTime(slotData.seconds_left);
+    if (slotData.seconds_left === 0) {
+      clearInterval(modalTimer);
+      slotData.is_ready = true;
+      openFarmHarvestModal(slotNum, slotData);
+    }
+  }, 1000);
+}
+
+// --- Сбор урожая ---
+function openFarmHarvestModal(slotNum, slotData) {
+  const body = `
+    <div style="text-align:center;padding:8px 0 16px;">
+      <div style="font-size:3rem;margin-bottom:8px;">✨</div>
+      <div style="font-size:1rem;font-weight:800;margin-bottom:4px;">Урожай готов!</div>
+      <div style="font-size:0.75rem;opacity:0.5;">Собери что выросло</div>
+    </div>
+    <div class="farm-confirm-row">
+      <button class="btn-wood" style="opacity:0.5;" onclick="closeFarmModal()">Позже</button>
+      <button class="btn-wood btn-play" onclick="doFarmHarvest(${slotNum})">🌾 Собрать</button>
+    </div>`;
+  openFarmModal('✨', `Слот ${slotNum}`, body);
+}
+
+async function doFarmHarvest(slotNum) {
+  const resp = await apiFetch('/api/farm/harvest', { method:'POST', body: JSON.stringify({ tg_id: user.tg_id, slot_num: slotNum }) });
+  if (resp && resp.success) {
+    user.balance = resp.new_balance;
+    user.acorns = resp.new_acorns;
+    user.plant_acorns = resp.new_plant_acorns;
+    user.max_balance = resp.new_max_balance;
+    document.getElementById('bal-val').innerText = user.balance.toLocaleString();
+    document.getElementById('acorns-val').innerText = user.acorns.toLocaleString();
+    closeFarmModal();
+
+    const d = resp.drops;
+    let msg = `Урожай: 🌰${d.acorns} + 🪙${d.coins}`;
+    if (d.plant_acorn) msg += ' + 🌱1';
+    tg.HapticFeedback.notificationOccurred('success');
+    showToast(msg);
+    await loadFarmState();
+  } else {
+    tg.HapticFeedback.notificationOccurred('error');
+    showToast(resp?.error || 'Ошибка');
+  }
 }
 
 // ============================================================
@@ -1352,19 +1942,37 @@ function findUserRank(data) {
 async function loadRank() {
   fullLeaderboardLoaded = false; fullLeaderboardData = [];
   document.getElementById('toggle-full-leaderboard').style.display = 'none';
-  document.getElementById('your-rank').textContent = 'Твое место — ?';
+  document.getElementById('your-rank').textContent = 'Твое место — ...';
   document.getElementById('rank-loading').style.display = 'flex';
   document.getElementById('rank-list').style.display = 'none';
+
   const data = await apiFetch('/api/leaderboard');
   const list = document.getElementById('rank-list');
   list.innerHTML = "";
+
   if (!data || !Array.isArray(data)) {
     document.getElementById('rank-loading').style.display = 'none';
     document.getElementById('rank-list').style.display = 'block'; return;
   }
-  let userIndex = data.findIndex(u => u.tg_id === user?.tg_id);
-  userRank = userIndex !== -1 ? userIndex + 1 : '?';
-  document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
+
+  const userInTop = data.findIndex(u => u.tg_id === user?.tg_id);
+
+  if (userInTop !== -1) {
+    // Пользователь в топ-10 — сразу показываем позицию
+    userRank = userInTop + 1;
+    document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
+  } else {
+    // Пользователь не в топ-10 — показываем топ и грузим позицию в фоне
+    document.getElementById('your-rank').textContent = 'Твое место — ...';
+    apiFetch('/api/leaderboard/full').then(fullData => {
+      if (fullData && Array.isArray(fullData)) {
+        fullLeaderboardData = fullData;
+        userRank = findUserRank(fullData);
+        document.getElementById('your-rank').textContent = `Твое место — ${userRank}`;
+      }
+    });
+  }
+
   renderLeaderboard(data);
   document.getElementById('rank-loading').style.display = 'none';
   document.getElementById('rank-list').style.display = 'block';
@@ -1376,7 +1984,10 @@ async function toggleFullLeaderboard() {
   const button = document.getElementById('toggle-full-leaderboard');
   if (!fullLeaderboardLoaded) {
     button.textContent = 'Загрузка...'; button.disabled = true;
-    const data = await apiFetch('/api/leaderboard/full');
+    // Используем кеш если уже грузили в фоне
+    const data = fullLeaderboardData.length > 0
+      ? fullLeaderboardData
+      : await apiFetch('/api/leaderboard/full');
     if (data) {
       fullLeaderboardData = data; fullLeaderboardLoaded = true;
       userRank = findUserRank(data);
