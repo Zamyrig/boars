@@ -69,6 +69,7 @@ body {
 #bg-shop       { background-image: url('assets/shop.png'); background-color: #0a0a0c; display: none; }
 #bg-farm       { background-image: url('assets/farm.png'); background-color: #1a2a1a; display: none; }
 #bg-mine       { background-image: url('assets/mine.png'); background-color: #1a1a2a; display: none; }
+#bg-forest     { background-image: url('assets/forest.png'); background-color: #0d1f0d; display: none; }
 
 .bg-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -848,6 +849,7 @@ input:checked + .slider:before { transform: translateX(76px); }
 <div id="bg-shop" class="game-bg"></div>
 <div id="bg-farm" class="game-bg"></div>
 <div id="bg-mine" class="game-bg"></div>
+<div id="bg-forest" class="game-bg"></div>
 <div class="bg-overlay"></div>
 
 <!-- БАЛАНС -->
@@ -908,7 +910,7 @@ input:checked + .slider:before { transform: translateX(76px); }
 <!-- ГЛАВНОЕ МЕНЮ -->
 <div id="scr-main" class="screen">
   <div class="menu-buttons">
-    <button class="btn-wood btn-play" onclick="nav('scr-bet')">В БОЙ</button>
+    <button class="btn-wood btn-play" onclick="tryStartBattle()">В БОЙ</button>
     <button class="btn-wood" onclick="nav('scr-inventory')">ИНВЕНТАРЬ</button>
     <button class="btn-wood" onclick="nav('scr-shop')">МАГАЗИН</button>
   </div>
@@ -950,13 +952,13 @@ input:checked + .slider:before { transform: translateX(76px); }
         <span class="inv-tab-icon">🌾</span>
         <span class="inv-tab-label">Ферма</span>
       </div>
-      <div class="inv-tab" onclick="switchInvTab(this,'mine')" data-tab="mine">
-        <span class="inv-tab-icon">⛏️</span>
-        <span class="inv-tab-label">Шахта</span>
-      </div>
       <div class="inv-tab" onclick="switchInvTab(this,'forest')" data-tab="forest">
         <span class="inv-tab-icon">🌲</span>
         <span class="inv-tab-label">Лес</span>
+      </div>
+      <div class="inv-tab" onclick="switchInvTab(this,'mine')" data-tab="mine">
+        <span class="inv-tab-icon">⛏️</span>
+        <span class="inv-tab-label">Шахта</span>
       </div>
       <div class="inv-tab" onclick="switchInvTab(this,'cave')" data-tab="cave">
         <span class="inv-tab-icon">🕳️</span>
@@ -1011,13 +1013,15 @@ input:checked + .slider:before { transform: translateX(76px); }
       </div>
 
       <!-- Заглушки для других вкладок -->
+      <!-- Контент: Лес — поход -->
+      <div id="inv-content-forest" class="inv-tab-content" style="display:none;flex-direction:column;flex:1;gap:10px;overflow:hidden;">
+        <div id="forest-state-area" style="flex:1;display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+
+      <!-- Контент: Шахта -->
       <div id="inv-content-mine" class="inv-tab-content" style="display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:10px;opacity:0.4;font-size:0.85rem;text-align:center;">
         <span style="font-size:3rem;">⛏️</span>
         <span>Шахта<br>в разработке</span>
-      </div>
-      <div id="inv-content-forest" class="inv-tab-content" style="display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:10px;opacity:0.4;font-size:0.85rem;text-align:center;">
-        <span style="font-size:3rem;">🌲</span>
-        <span>Лес<br>в разработке</span>
       </div>
       <div id="inv-content-cave" class="inv-tab-content" style="display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:10px;opacity:0.4;font-size:0.85rem;text-align:center;">
         <span style="font-size:3rem;">🕳️</span>
@@ -1249,8 +1253,9 @@ function nav(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 
-  ['bg-main','bg-fight','bg-inventory','bg-shop','bg-farm','bg-mine'].forEach(bg => {
-    document.getElementById(bg).style.display = 'none';
+  ['bg-main','bg-fight','bg-inventory','bg-shop','bg-farm','bg-mine','bg-forest'].forEach(bg => {
+    const el = document.getElementById(bg);
+    if (el) el.style.display = 'none';
   });
 
   if (id === 'scr-fight') {
@@ -1280,8 +1285,9 @@ function nav(id) {
 }
 
 function navLocation(type) {
-  ['bg-main','bg-fight','bg-inventory','bg-shop','bg-farm','bg-mine'].forEach(bg => {
-    document.getElementById(bg).style.display = 'none';
+  ['bg-main','bg-fight','bg-inventory','bg-shop','bg-farm','bg-mine','bg-forest'].forEach(bg => {
+    const el = document.getElementById(bg);
+    if (el) el.style.display = 'none';
   });
 
   const locs = {
@@ -1306,8 +1312,8 @@ function navLocation(type) {
 // ============================================================
 // ИНВЕНТАРЬ — вкладки
 // ============================================================
-const INV_TAB_TITLES = { bag:'СУМКА', farm:'ФЕРМА', mine:'ШАХТА', forest:'ЛЕС', cave:'ПЕЩЕРА' };
-const INV_TAB_BG = { bag:'bg-inventory', farm:'bg-farm', mine:'bg-mine', forest:'bg-main', cave:'bg-main' };
+const INV_TAB_TITLES = { bag:'СУМКА', farm:'ФЕРМА', forest:'ЛЕС', mine:'ШАХТА', cave:'ПЕЩЕРА' };
+const INV_TAB_BG = { bag:'bg-inventory', farm:'bg-farm', forest:'bg-forest', mine:'bg-mine', cave:'bg-main' };
 
 function switchInvTab(el, tab) {
   document.querySelectorAll('.inv-tab').forEach(t => t.classList.remove('active-tab'));
@@ -1317,14 +1323,19 @@ function switchInvTab(el, tab) {
   if (content) content.style.display = 'flex';
   document.getElementById('inv-tab-title').innerText = INV_TAB_TITLES[tab] || tab.toUpperCase();
 
-  // Переключаем фон
-  ['bg-main','bg-inventory','bg-farm','bg-mine'].forEach(bg => {
-    document.getElementById(bg).style.display = 'none';
+  // Переключаем фон только внутри инвентарных экранов
+  const invBgs = ['bg-inventory','bg-farm','bg-mine','bg-forest'];
+  invBgs.forEach(bg => {
+    const el = document.getElementById(bg);
+    if (el) el.style.display = 'none';
   });
-  document.getElementById(INV_TAB_BG[tab] || 'bg-inventory').style.display = 'block';
+  const targetBg = INV_TAB_BG[tab] || 'bg-inventory';
+  const bgEl = document.getElementById(targetBg);
+  if (bgEl) bgEl.style.display = 'block';
 
   tg.HapticFeedback.selectionChanged();
   if (tab === 'farm') loadFarmState();
+  if (tab === 'forest') loadForestState();
 }
 
 // ============================================================
@@ -1657,8 +1668,8 @@ async function doFarmHarvest(slotNum) {
 // ИНВЕНТАРЬ
 // ============================================================
 const ITEM_DEFS = {
-  acorn:       { name: 'Желудь', icon: 'assets/acorn.png',       emoji: '🌰' },
-  plant_acorn: { name: 'Росток', icon: 'assets/plant_acorn.png', emoji: '🌱' },
+  acorn:       { name: 'Желудь',  icon: 'assets/acorn.png',        emoji: '🌰' },
+  plant_acorn: { name: 'Росток',  icon: 'assets/plant_acorns.png', emoji: '🌱' },
 };
 const TOTAL_SLOTS = 20;
 
@@ -2070,7 +2081,7 @@ async function loadShopItems() {
   container.innerHTML = "";
   const itemDefs = [
     {id: "acorn",       name: "Желудь", icon: "assets/acorn.png",       emoji: "🌰"},
-    {id: "plant_acorn", name: "Росток", icon: "assets/plant_acorn.png", emoji: "🌱"},
+    {id: "plant_acorn", name: "Росток", icon: "assets/plant_acorns.png", emoji: "🌱"},
   ];
   for (const def of itemDefs) {
     const item = { ...def, price: prices[def.id]?.buy || 0, sell_price: prices[def.id]?.sell || 0 };
@@ -2157,6 +2168,182 @@ async function performTransaction() {
     updateUI(); tg.HapticFeedback.notificationOccurred('success');
     showToast(`${currentAction === 'buy' ? 'Куплено' : 'Продано'} ${currentShopQuantity}x ${currentShopItem.name}`);
   } else { tg.HapticFeedback.notificationOccurred('error'); showToast(response?.error || "Ошибка операции"); }
+}
+
+function tryStartBattle() {
+  if (forestState && forestState.state === 'raiding') {
+    tg.HapticFeedback.notificationOccurred('warning');
+    showToast('Кабан в походе! Зайди в Лес чтобы отозвать его 🌲');
+    return;
+  }
+  nav('scr-bet');
+}
+
+// ============================================================
+// ЛЕС — ПОХОД
+// ============================================================
+const RAID_MAX_HOURS  = 10;
+const RAID_REST_HOURS = 4;
+
+let forestState   = null;
+let forestTimerInterval = null;
+
+async function loadForestState() {
+  if (!user) return;
+  const data = await apiFetch(`/api/forest/state?tg_id=${user.tg_id}`);
+  if (!data) return;
+  forestState = data;
+  renderForestUI();
+  startForestTimer();
+}
+
+function renderForestUI() {
+  const area = document.getElementById('forest-state-area');
+  if (!area || !forestState) return;
+  const s = forestState;
+
+  if (s.state === 'idle') {
+    area.innerHTML = `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:20px 10px;">
+        <div style="font-size:3.5rem;">🐗</div>
+        <div style="font-weight:800;font-size:1rem;">Кабан дома</div>
+        <div style="font-size:0.75rem;opacity:0.5;line-height:1.6;">Отправь кабана в поход — он найдёт желуди.<br>Максимум ${RAID_MAX_HOURS} часов, потом вернётся сам.</div>
+      </div>
+      <button class="btn-wood btn-play" style="width:100%;font-size:0.9rem;" onclick="startRaid()">
+        🌲 Отправить в поход
+      </button>`;
+
+  } else if (s.state === 'raiding') {
+    area.innerHTML = `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:16px 10px;">
+        <div style="font-size:3rem;">🐗💨</div>
+        <div style="font-weight:800;font-size:1rem;">Кабан в походе</div>
+        <div style="font-size:0.75rem;opacity:0.5;">В лесу уже <span id="forest-hours-away">${s.hours_away}</span> ч.</div>
+        <div style="font-size:0.72rem;opacity:0.4;margin-top:4px;">Авто-возврат через:</div>
+        <div style="font-size:1.8rem;font-weight:900;color:var(--gold);" id="forest-timer">${formatFarmTime(s.seconds_left)}</div>
+        <div style="font-size:0.7rem;opacity:0.35;margin-top:4px;">~0.5 желудя/час в среднем</div>
+      </div>
+      <button class="btn-wood" style="width:100%;font-size:0.85rem;opacity:0.85;" onclick="returnRaid()">
+        🏡 Вернуть на поляну
+      </button>`;
+
+  } else if (s.state === 'raid_done') {
+    area.innerHTML = `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:16px 10px;">
+        <div style="font-size:3rem;">🐗✨</div>
+        <div style="font-weight:800;font-size:1rem;">Кабан вернулся!</div>
+        <div style="font-size:0.8rem;opacity:0.6;">Нашёл <b>${s.acorns_found}</b> 🌰 желудей</div>
+      </div>
+      <button class="btn-wood btn-play" style="width:100%;font-size:0.9rem;" onclick="collectRaid()">
+        🌰 Забрать находки
+      </button>`;
+
+  } else if (s.state === 'resting') {
+    area.innerHTML = `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:16px 10px;">
+        <div style="font-size:3rem;">😴</div>
+        <div style="font-weight:800;font-size:1rem;">Кабан отдыхает</div>
+        <div style="font-size:0.75rem;opacity:0.5;">После похода нужно восстановиться</div>
+        <div style="font-size:1.8rem;font-weight:900;color:var(--lose);" id="forest-timer">${formatFarmTime(s.rest_seconds_left)}</div>
+        ${s.acorns_found ? `<div style="font-size:0.75rem;opacity:0.55;margin-top:4px;">С похода принёс: 🌰 ${s.acorns_found} желудей</div>` : ''}
+      </div>
+      <button class="btn-wood" style="width:100%;opacity:0.35;cursor:not-allowed;" disabled>
+        😴 Кабан устал
+      </button>`;
+  }
+}
+
+function startForestTimer() {
+  if (forestTimerInterval) clearInterval(forestTimerInterval);
+  if (!forestState) return;
+  if (!['raiding','resting'].includes(forestState.state)) return;
+
+  forestTimerInterval = setInterval(() => {
+    const timerEl = document.getElementById('forest-timer');
+    if (!timerEl) { clearInterval(forestTimerInterval); return; }
+
+    if (forestState.state === 'raiding') {
+      forestState.seconds_left = Math.max(0, (forestState.seconds_left || 0) - 1);
+      timerEl.textContent = formatFarmTime(forestState.seconds_left);
+      // обновляем часы в лесу
+      const hoursEl = document.getElementById('forest-hours-away');
+      if (hoursEl) hoursEl.textContent = Math.floor((RAID_MAX_HOURS * 3600 - forestState.seconds_left) / 3600);
+      if (forestState.seconds_left === 0) {
+        clearInterval(forestTimerInterval);
+        forestState = { state: 'raid_done', acorns_found: 0 };
+        renderForestUI();
+      }
+    } else if (forestState.state === 'resting') {
+      forestState.rest_seconds_left = Math.max(0, (forestState.rest_seconds_left || 0) - 1);
+      timerEl.textContent = formatFarmTime(forestState.rest_seconds_left);
+      if (forestState.rest_seconds_left === 0) {
+        clearInterval(forestTimerInterval);
+        forestState = { state: 'idle' };
+        renderForestUI();
+      }
+    }
+  }, 1000);
+}
+
+async function startRaid() {
+  tg.HapticFeedback.impactOccurred('medium');
+  const resp = await apiFetch('/api/forest/raid/start', {
+    method: 'POST',
+    body: JSON.stringify({ tg_id: user.tg_id })
+  });
+  if (resp && resp.success) {
+    forestState = { state: 'raiding', seconds_left: resp.seconds_left, hours_away: 0 };
+    renderForestUI();
+    startForestTimer();
+    tg.HapticFeedback.notificationOccurred('success');
+    showToast('Кабан ушёл в поход! 🌲');
+  } else {
+    tg.HapticFeedback.notificationOccurred('error');
+    showToast(resp?.error || 'Ошибка');
+  }
+}
+
+async function returnRaid() {
+  tg.HapticFeedback.impactOccurred('medium');
+  const resp = await apiFetch('/api/forest/raid/return', {
+    method: 'POST',
+    body: JSON.stringify({ tg_id: user.tg_id })
+  });
+  if (resp && resp.success) {
+    user.acorns = resp.new_acorns;
+    document.getElementById('acorns-val').innerText = user.acorns.toLocaleString();
+    forestState = { state: 'resting', rest_seconds_left: resp.rest_seconds, acorns_found: resp.acorns_found };
+    renderForestUI();
+    startForestTimer();
+    tg.HapticFeedback.notificationOccurred('success');
+    const msg = resp.acorns_found > 0
+      ? `Вернулся! Нашёл 🌰 ${resp.acorns_found} за ${resp.hours_away} ч.`
+      : `Вернулся с пустыми руками 😔`;
+    showToast(msg);
+  } else {
+    tg.HapticFeedback.notificationOccurred('error');
+    showToast(resp?.error || 'Ошибка');
+  }
+}
+
+// collectRaid — для случая когда кабан вернулся сам (raid_done)
+async function collectRaid() {
+  tg.HapticFeedback.impactOccurred('medium');
+  // Сервер уже начислил при авто-возврате, просто обновляем стейт
+  const resp = await apiFetch(`/api/forest/state?tg_id=${user.tg_id}`);
+  if (resp) {
+    // Обновляем баланс с сервера
+    const userResp = await apiFetch(`/api/user/info?tg_id=${user.tg_id}`);
+    if (userResp) {
+      user.acorns = userResp.acorns || user.acorns;
+      document.getElementById('acorns-val').innerText = user.acorns.toLocaleString();
+    }
+    forestState = { state: 'resting', rest_seconds_left: RAID_REST_HOURS * 3600, acorns_found: resp.acorns_found || 0 };
+    renderForestUI();
+    startForestTimer();
+    tg.HapticFeedback.notificationOccurred('success');
+    showToast('Желуди забраны! Кабан отдыхает 😴');
+  }
 }
 
 // ============================================================

@@ -1,13 +1,13 @@
 import os
 from flask import Flask, send_file, send_from_directory, jsonify
 from flask_cors import CORS
-
 from db.database import init_db, migrate_from_json_on_startup, migrate_from_json_manual_call
 from routes.user import auth_bp, user_bp
 from routes.battle import battle_bp
 from routes.shop import shop_bp
 from routes.leaderboard import leaderboard_bp
 from routes.farm import farm_bp
+from routes.forest import forest_bp
 
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
@@ -25,6 +25,7 @@ app.register_blueprint(battle_bp)
 app.register_blueprint(shop_bp)
 app.register_blueprint(leaderboard_bp)
 app.register_blueprint(farm_bp)
+app.register_blueprint(forest_bp)
 
 # ── STATIC / MISC ─────────────────────────────────────────────────────────────
 
