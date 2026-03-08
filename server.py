@@ -2,24 +2,26 @@ from flask import Flask, request, jsonify, send_file, send_from_directory
 import os
 import sqlite3
 import random
-from datetime import datetime
-# Включение CORS
+from datetime import datetime, timedelta
 from flask_cors import CORS
 import json
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
+app.config['APPLICATION_ROOT'] = '/boar-game'
 PORT = 3000
 DB_PATH = './database.db'
 STATIC_PATH = os.path.join(os.path.dirname(__file__), 'assets')
 
 CORS(app)
 
-# --- НАЧАЛО: ОПРЕДЕЛЕНИЕ ФУНКЦИЙ ---
+WATCH_REWARD = 200
+WATCH_COOLDOWN_HOURS = 2
+
+# --- ФУНКЦИИ ---
 
 def migrate_from_json_manual_call():
-    """Миграция данных из старого database.json в SQLite (для внутреннего использования)."""
-    import json
+    """Миграция данных из старого database.json в SQLite."""
     json_path = './database.json'
     if not os.path.exists(json_path):
         return {'error': 'database.json not found'}
@@ -54,33 +56,22 @@ def migrate_from_json_manual_call():
                     balance
                 ))
                 migrated += 1
-            else:
-                print(f"Пользователь {tg_id_clean} уже существует в базе данных, пропускаем.")
 
         conn.commit()
         conn.close()
 
-        if migrated > 0:
-            return {
-                'success': True,
-                'migrated': migrated,
-                'message': f'Успешно перенесено {migrated} новых пользователей'
-            }
-        else:
-            return {
-                'success': True,
-                'migrated': 0,
-                'message': 'Все пользователи из JSON уже существовали в базе данных.'
-            }
+        return {
+            'success': True,
+            'migrated': migrated,
+            'message': f'Успешно перенесено {migrated} новых пользователей'
+        }
 
     except Exception as e:
         print(f"Ошибка миграции: {e}")
         return {'error': str(e)}
 
+
 def migrate_from_json_on_startup():
-    """
-    Функция для автоматического вызова миграции при запуске сервера.
-    """
     json_path = './database.json'
     if os.path.exists(json_path):
         print("Найден старый файл database.json, запускаем миграцию...")
@@ -97,18 +88,17 @@ def migrate_from_json_on_startup():
     else:
         print("Файл database.json не найден, миграция не требуется.")
 
+
 def get_db_connection():
-    """Получение подключения к базе данных"""
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
+
 def init_db():
-    """Инициализация базы данных и создание/обновление таблиц"""
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # --- СОЗДАНИЕ ТАБЛИЦЫ USERS ---
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             tg_id TEXT PRIMARY KEY,
@@ -124,25 +114,24 @@ def init_db():
         )
     ''')
 
-    # --- ПРОВЕРКА И ДОБАВЛЕНИЕ НОВЫХ СТОЛБЦОВ ---
     cursor.execute("PRAGMA table_info(users)")
     columns = [column[1] for column in cursor.fetchall()]
 
-    if 'acorns' not in columns:
-        cursor.execute('ALTER TABLE users ADD COLUMN acorns INTEGER DEFAULT 0')
-        print("Столбец 'acorns' добавлен.")
-    if 'plant_acorns' not in columns:
-        cursor.execute('ALTER TABLE users ADD COLUMN plant_acorns INTEGER DEFAULT 0')
-        print("Столбец 'plant_acorns' добавлен.")
-    if 'max_balance' not in columns:
-        cursor.execute('ALTER TABLE users ADD COLUMN max_balance INTEGER DEFAULT 1000')
-        cursor.execute('UPDATE users SET max_balance = balance WHERE max_balance = 1000 AND balance > 1000')
-        print("Столбец 'max_balance' добавлен.")
-    if 'watched_battles' not in columns:
-        cursor.execute('ALTER TABLE users ADD COLUMN watched_battles INTEGER DEFAULT 0')
-        print("Столбец 'watched_battles' добавлен.")
+    new_columns = {
+        'acorns': 'INTEGER DEFAULT 0',
+        'plant_acorns': 'INTEGER DEFAULT 0',
+        'max_balance': 'INTEGER DEFAULT 1000',
+        'watched_battles': 'INTEGER DEFAULT 0',
+        'last_watch_reward_at': 'TIMESTAMP DEFAULT NULL',
+    }
 
-    # --- СОЗДАНИЕ ТАБЛИЦЫ battle_history ---
+    for col, col_def in new_columns.items():
+        if col not in columns:
+            cursor.execute(f'ALTER TABLE users ADD COLUMN {col} {col_def}')
+            print(f"Столбец '{col}' добавлен.")
+            if col == 'max_balance':
+                cursor.execute('UPDATE users SET max_balance = balance WHERE max_balance = 1000 AND balance > 1000')
+
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS battle_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -160,44 +149,36 @@ def init_db():
     conn.close()
     print("База данных инициализирована/обновлена.")
 
-def update_user_timestamp(tg_id):
-    """Обновление времени последнего обновления пользователя"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE tg_id = ?', (tg_id,))
-    conn.commit()
-    conn.close()
 
 def check_update_max_balance(cursor, tg_id, new_balance):
-    """Вспомогательная функция для проверки и обновления максимального баланса"""
     cursor.execute('SELECT max_balance FROM users WHERE tg_id = ?', (tg_id,))
     res = cursor.fetchone()
     current_max = res['max_balance'] if res else 0
-    
     if new_balance > current_max:
         cursor.execute('UPDATE users SET max_balance = ? WHERE tg_id = ?', (new_balance, tg_id))
 
-# --- КОНЕЦ: ОПРЕДЕЛЕНИЕ ФУНКЦИЙ ---
 
-# 1. Корневой путь
+# --- РОУТЫ ---
+
 @app.route('/')
 def index():
     frontend_path = os.path.join(os.path.dirname(__file__), 'index.html')
     if os.path.exists(frontend_path):
         return send_file(frontend_path)
-    return 'Сервер КАБАНОВ запущен! API доступно по адресу /api/...'
+    return 'Сервер КАБАНОВ запущен!'
 
-# 2. Статические файлы (assets папка) - Подтверждена корректная конфигурация
+
 @app.route('/assets/<path:filename>')
 def serve_static(filename):
-    """
-    Отдача статических файлов из папки assets.
-    STATIC_PATH = os.path.join(os.path.dirname(__file__), 'assets')
-    Файлы типа boarcoing.png будут доступны по пути /assets/boarcoing.png
-    """
     return send_from_directory(STATIC_PATH, filename)
 
-# 3. Авторизация
+
+@app.route('/prices.json')
+def serve_prices():
+    prices_path = os.path.join(os.path.dirname(__file__), 'prices.json')
+    return send_file(prices_path)
+
+
 @app.route('/api/auth', methods=['POST'])
 def auth():
     data = request.get_json()
@@ -213,8 +194,8 @@ def auth():
     if user is None:
         display_name = first_name or username or 'Аноним'
         cursor.execute('''
-            INSERT INTO users (tg_id, username, display_name, balance, total_games, wins, lose, private_profile, acorns, plant_acorns, max_balance, watched_battles)
-            VALUES (?, ?, ?, 1000, 0, 0, 0, 0, 0, 0, 1000, 0)
+            INSERT INTO users (tg_id, username, display_name, balance, total_games, wins, lose, private_profile, acorns, plant_acorns, max_balance, watched_battles, last_watch_reward_at)
+            VALUES (?, ?, ?, 1000, 0, 0, 0, 0, 0, 0, 1000, 0, NULL)
         ''', (tg_id, username or '', display_name))
         conn.commit()
         cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
@@ -231,6 +212,17 @@ def auth():
 
     conn.close()
 
+    # Вычисляем секунды до конца кулдауна просмотра
+    watch_cooldown_remaining = 0
+    if user['last_watch_reward_at']:
+        try:
+            last_watch = datetime.fromisoformat(str(user['last_watch_reward_at']))
+            cooldown_end = last_watch + timedelta(hours=WATCH_COOLDOWN_HOURS)
+            remaining = (cooldown_end - datetime.utcnow()).total_seconds()
+            watch_cooldown_remaining = max(0, int(remaining))
+        except Exception:
+            watch_cooldown_remaining = 0
+
     return jsonify({
         'tg_id': user['tg_id'],
         'username': user['username'],
@@ -243,10 +235,12 @@ def auth():
         'acorns': user['acorns'],
         'plant_acorns': user['plant_acorns'],
         'max_balance': user['max_balance'],
-        'watched_battles': user['watched_battles']
+        'watched_battles': user['watched_battles'],
+        'watch_cooldown_remaining': watch_cooldown_remaining,
+        'watch_reward': WATCH_REWARD,
     })
 
-# 4. Обновление имени
+
 @app.route('/api/user/update-name', methods=['POST'])
 def update_name():
     data = request.get_json()
@@ -255,14 +249,11 @@ def update_name():
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
+    cursor.execute('SELECT tg_id FROM users WHERE tg_id = ?', (tg_id,))
     user = cursor.fetchone()
 
     if user is not None:
-        cursor.execute('''
-            UPDATE users SET display_name = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE tg_id = ?
-        ''', (display_name, tg_id))
+        cursor.execute('UPDATE users SET display_name = ?, updated_at = CURRENT_TIMESTAMP WHERE tg_id = ?', (display_name, tg_id))
         conn.commit()
         conn.close()
         return jsonify({'success': True, 'display_name': display_name})
@@ -270,7 +261,7 @@ def update_name():
         conn.close()
         return jsonify({'error': 'User not found'}), 404
 
-# 4.1 Установка приватности профиля
+
 @app.route('/api/user/set-private', methods=['POST'])
 def set_private():
     data = request.get_json()
@@ -279,15 +270,11 @@ def set_private():
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
+    cursor.execute('SELECT tg_id FROM users WHERE tg_id = ?', (tg_id,))
     user = cursor.fetchone()
 
     if user is not None:
-        private_int = 1 if is_private else 0
-        cursor.execute('''
-            UPDATE users SET private_profile = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE tg_id = ?
-        ''', (private_int, tg_id))
+        cursor.execute('UPDATE users SET private_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE tg_id = ?', (1 if is_private else 0, tg_id))
         conn.commit()
         conn.close()
         return jsonify({'success': True, 'is_private': is_private})
@@ -295,78 +282,21 @@ def set_private():
         conn.close()
         return jsonify({'error': 'User not found'}), 404
 
-# 5. Просмотр боя (PVE/Ad reward logic kept separate)
+
 @app.route('/api/battle/watch', methods=['POST'])
 def watch_battle():
+    """
+    Просмотр боя. Всегда разрешен.
+    Награда 200 монет выдается только если прошло 2 часа с последнего вознаграждения.
+    """
     data = request.get_json()
     tg_id = str(data.get('tg_id'))
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
-    user = cursor.fetchone()
 
-    if user is not None:
-        reward = 1
-        new_balance = user['balance'] + reward
-        
-        cursor.execute('''
-            UPDATE users
-            SET balance = ?,
-                watched_battles = watched_battles + 1,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE tg_id = ?
-        ''', (new_balance, tg_id))
-        
-        check_update_max_balance(cursor, tg_id, new_balance)
-
-        cursor.execute('''
-            INSERT INTO battle_history (tg_id, opponent_display_name, bet_amount, is_win, reward_given)
-            VALUES (?, ?, 0, 1, 1)
-        ''', (tg_id, f"Оппонент_{datetime.now().strftime('%S')}"))
-        
-        conn.commit()
-        
-        cursor.execute('SELECT balance, acorns, plant_acorns, max_balance, watched_battles FROM users WHERE tg_id = ?', (tg_id,))
-        updated_user = cursor.fetchone()
-        conn.close()
-        return jsonify({
-            'success': True,
-            'new_balance': updated_user['balance'],
-            'acorns': updated_user['acorns'],
-            'plant_acorns': updated_user['plant_acorns'],
-            'max_balance': updated_user['max_balance'],
-            'watched_battles': updated_user['watched_battles'],
-            'reward': reward
-        })
-    else:
-        conn.close()
-        return jsonify({'error': 'User not found'}), 404
-
-# 6. Инициализация и расчет боя (СЕРВЕРНЫЙ РАСЧЕТ - ЗАЩИЩЕННЫЙ ЭНДПОИНТ)
-@app.route('/api/battle/init', methods=['POST'])
-def battle_init():
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
-        
-    tg_id = str(data.get('tg_id'))
     try:
-        bet_amount = int(data.get('bet_amount', 0))
-    except (ValueError, TypeError):
-        return jsonify({'error': 'Invalid bet amount'}), 400
-
-    if bet_amount <= 0:
-        return jsonify({'error': 'Bet must be positive'}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    try:
-        # Начинаем транзакцию
         cursor.execute('BEGIN IMMEDIATE')
-
-        # Получаем пользователя
         cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
         user = cursor.fetchone()
 
@@ -375,54 +305,156 @@ def battle_init():
             conn.close()
             return jsonify({'error': 'User not found'}), 404
 
-        # Проверка баланса (кабанкойны)
+        now = datetime.utcnow()
+        reward_given = False
+        reward = 0
+
+        # Проверяем кулдаун
+        can_reward = True
+        if user['last_watch_reward_at']:
+            try:
+                last_watch = datetime.fromisoformat(str(user['last_watch_reward_at']))
+                cooldown_end = last_watch + timedelta(hours=WATCH_COOLDOWN_HOURS)
+                if now < cooldown_end:
+                    can_reward = False
+            except Exception:
+                can_reward = True
+
+        new_balance = user['balance']
+        new_last_watch = user['last_watch_reward_at']
+
+        if can_reward:
+            reward = WATCH_REWARD
+            new_balance += reward
+            new_last_watch = now.isoformat()
+            reward_given = True
+            check_update_max_balance(cursor, tg_id, new_balance)
+
+        cursor.execute('''
+            UPDATE users
+            SET balance = ?,
+                watched_battles = watched_battles + 1,
+                last_watch_reward_at = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE tg_id = ?
+        ''', (new_balance, new_last_watch, tg_id))
+
+        cursor.execute('''
+            INSERT INTO battle_history (tg_id, opponent_display_name, bet_amount, is_win, reward_given)
+            VALUES (?, ?, 0, 1, ?)
+        ''', (tg_id, f"Оппонент_{now.strftime('%S')}", int(reward_given)))
+
+        conn.commit()
+
+        # Вычисляем новый кулдаун
+        watch_cooldown_remaining = 0
+        if new_last_watch:
+            try:
+                last_watch_dt = datetime.fromisoformat(str(new_last_watch))
+                cooldown_end = last_watch_dt + timedelta(hours=WATCH_COOLDOWN_HOURS)
+                remaining = (cooldown_end - now).total_seconds()
+                watch_cooldown_remaining = max(0, int(remaining))
+            except Exception:
+                watch_cooldown_remaining = 0
+
+        cursor.execute('SELECT balance, acorns, plant_acorns, max_balance, watched_battles FROM users WHERE tg_id = ?', (tg_id,))
+        updated_user = cursor.fetchone()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'new_balance': updated_user['balance'],
+            'acorns': updated_user['acorns'],
+            'plant_acorns': updated_user['plant_acorns'],
+            'max_balance': updated_user['max_balance'],
+            'watched_battles': updated_user['watched_battles'],
+            'reward': reward,
+            'reward_given': reward_given,
+            'watch_cooldown_remaining': watch_cooldown_remaining,
+        })
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        print(f"Watch battle error: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/battle/init', methods=['POST'])
+def battle_init():
+    """
+    Инициализация боя:
+    1. Проверяем баланс
+    2. Списываем ставку АТОМАРНО
+    3. Считаем результат
+    4. Начисляем выигрыш если победа
+    5. Возвращаем результат клиенту
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    tg_id = str(data.get('tg_id'))
+    try:
+        bet_amount = int(data.get('bet_amount', 0))
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Invalid bet amount'}), 400
+
+    if bet_amount < 10:
+        return jsonify({'error': 'Minimum bet is 10'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('BEGIN IMMEDIATE')
+        cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
+        user = cursor.fetchone()
+
+        if not user:
+            conn.rollback()
+            conn.close()
+            return jsonify({'error': 'User not found'}), 404
+
         if user['balance'] < bet_amount:
             conn.rollback()
             conn.close()
             return jsonify({'error': 'Insufficient balance'}), 400
 
-        # МГНОВЕННОЕ СПИСАНИЕ: Сразу вычитаем ставку из баланса (до расчета!)
+        # Списываем ставку сразу
         new_balance = user['balance'] - bet_amount
-        
-        # РАСЧЕТ: Шанс победы 50/50
+
+        # Считаем результат
         is_win = random.choice([True, False])
         reward = 0
         opponent = "Клыкач"
-        
+
         if is_win:
-            # НАЧИСЛЕНИЕ: При победе прибавляем ставку * 2
             reward = bet_amount * 2
             new_balance += reward
-            # Обновляем статистику: победа
             cursor.execute('''
-                UPDATE users 
+                UPDATE users
                 SET balance = ?, total_games = total_games + 1, wins = wins + 1, updated_at = CURRENT_TIMESTAMP
                 WHERE tg_id = ?
             ''', (new_balance, tg_id))
         else:
-            # Обновляем статистику: поражение (ставка уже списана)
             cursor.execute('''
-                UPDATE users 
+                UPDATE users
                 SET balance = ?, total_games = total_games + 1, lose = lose + 1, updated_at = CURRENT_TIMESTAMP
                 WHERE tg_id = ?
             ''', (new_balance, tg_id))
 
-        # Обновляем max_balance если нужно
         check_update_max_balance(cursor, tg_id, new_balance)
 
-        # Сохраняем историю боя
         cursor.execute('''
             INSERT INTO battle_history (tg_id, opponent_display_name, bet_amount, is_win, reward_given)
             VALUES (?, ?, ?, ?, ?)
         ''', (tg_id, opponent, bet_amount, int(is_win), int(is_win)))
 
-        # Фиксируем транзакцию
         conn.commit()
-        
-        # Получаем актуальные данные для ответа
-        cursor.execute('SELECT balance, max_balance FROM users WHERE tg_id = ?', (tg_id,))
+
+        cursor.execute('SELECT balance, acorns, plant_acorns, max_balance, watched_battles FROM users WHERE tg_id = ?', (tg_id,))
         updated_user = cursor.fetchone()
-        
         conn.close()
 
         return jsonify({
@@ -430,7 +462,11 @@ def battle_init():
             'is_win': is_win,
             'reward': reward,
             'new_balance': updated_user['balance'],
-            'opponent': opponent
+            'acorns': updated_user['acorns'],
+            'plant_acorns': updated_user['plant_acorns'],
+            'max_balance': updated_user['max_balance'],
+            'watched_battles': updated_user['watched_battles'],
+            'opponent': opponent,
         })
 
     except Exception as e:
@@ -439,68 +475,33 @@ def battle_init():
         print(f"Battle init error: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
-# 7. Рейтинг (Топ 10)
+
 @app.route('/api/leaderboard', methods=['GET'])
 def leaderboard():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
         SELECT tg_id, username, display_name, balance, total_games, wins, lose, private_profile, acorns, plant_acorns, max_balance, watched_battles
-        FROM users
-        ORDER BY balance DESC
-        LIMIT 10
+        FROM users ORDER BY balance DESC LIMIT 10
     ''')
     players = cursor.fetchall()
     conn.close()
+    return jsonify([dict(row) | {'private_profile': bool(row['private_profile'])} for row in players])
 
-    result = [{
-        'tg_id': row['tg_id'],
-        'username': row['username'],
-        'display_name': row['display_name'],
-        'balance': row['balance'],
-        'total_games': row['total_games'],
-        'wins': row['wins'],
-        'lose': row['lose'],
-        'private_profile': bool(row['private_profile']),
-        'acorns': row['acorns'],
-        'plant_acorns': row['plant_acorns'],
-        'max_balance': row['max_balance'],
-        'watched_battles': row['watched_battles']
-    } for row in players]
 
-    return jsonify(result)
-
-# 8. Полный рейтинг
 @app.route('/api/leaderboard/full', methods=['GET'])
 def full_leaderboard():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
         SELECT tg_id, username, display_name, balance, total_games, wins, lose, private_profile, acorns, plant_acorns, max_balance, watched_battles
-        FROM users
-        ORDER BY balance DESC
+        FROM users ORDER BY balance DESC
     ''')
     players = cursor.fetchall()
     conn.close()
+    return jsonify([dict(row) | {'private_profile': bool(row['private_profile'])} for row in players])
 
-    result = [{
-        'tg_id': row['tg_id'],
-        'username': row['username'],
-        'display_name': row['display_name'],
-        'balance': row['balance'],
-        'total_games': row['total_games'],
-        'wins': row['wins'],
-        'lose': row['lose'],
-        'private_profile': bool(row['private_profile']),
-        'acorns': row['acorns'],
-        'plant_acorns': row['plant_acorns'],
-        'max_balance': row['max_balance'],
-        'watched_battles': row['watched_battles']
-    } for row in players]
 
-    return jsonify(result)
-
-# 9. Получение информации о пользователе
 @app.route('/api/user/<tg_id>', methods=['GET'])
 def get_user(tg_id):
     conn = get_db_connection()
@@ -510,6 +511,16 @@ def get_user(tg_id):
     conn.close()
 
     if user is not None:
+        watch_cooldown_remaining = 0
+        if user['last_watch_reward_at']:
+            try:
+                last_watch = datetime.fromisoformat(str(user['last_watch_reward_at']))
+                cooldown_end = last_watch + timedelta(hours=WATCH_COOLDOWN_HOURS)
+                remaining = (cooldown_end - datetime.utcnow()).total_seconds()
+                watch_cooldown_remaining = max(0, int(remaining))
+            except Exception:
+                pass
+
         return jsonify({
             'tg_id': user['tg_id'],
             'username': user['username'],
@@ -523,13 +534,14 @@ def get_user(tg_id):
             'plant_acorns': user['plant_acorns'],
             'max_balance': user['max_balance'],
             'watched_battles': user['watched_battles'],
+            'watch_cooldown_remaining': watch_cooldown_remaining,
             'created_at': user['created_at'],
-            'updated_at': user['updated_at']
+            'updated_at': user['updated_at'],
         })
     else:
         return jsonify({'error': 'User not found'}), 404
 
-# 10. Миграция из JSON (API)
+
 @app.route('/api/migrate', methods=['POST'])
 def migrate_from_json():
     result = migrate_from_json_manual_call()
@@ -538,21 +550,15 @@ def migrate_from_json():
     else:
         return jsonify(result), 500
 
-# === ЭНДПОИНТЫ ДЛЯ МАГАЗИНА ===
 
-# 11. Получение списка предметов магазина
 @app.route('/api/shop/items', methods=['GET'])
 def shop_items():
     try:
         with open('prices.json', 'r', encoding='utf-8') as f:
             prices = json.load(f)
-    except FileNotFoundError:
-        print("Файл prices.json не найден.")
+    except Exception:
         prices = {}
-    except json.JSONDecodeError:
-        print("Ошибка чтения prices.json.")
-        prices = {}
-    
+
     def_prices = {
         "plant_acorn": {"buy": 1000, "sell": 800},
         "acorn": {"buy": 200, "sell": 150}
@@ -565,7 +571,6 @@ def shop_items():
             "icon": "acorn.png",
             "price": prices.get("acorn", {}).get("buy", def_prices["acorn"]["buy"]),
             "sell_price": prices.get("acorn", {}).get("sell", def_prices["acorn"]["sell"]),
-            "description": "Основной ресурс для выращивания."
         },
         {
             "id": "plant_acorn",
@@ -573,12 +578,11 @@ def shop_items():
             "icon": "plant_acorn.png",
             "price": prices.get("plant_acorn", {}).get("buy", def_prices["plant_acorn"]["buy"]),
             "sell_price": prices.get("plant_acorn", {}).get("sell", def_prices["plant_acorn"]["sell"]),
-            "description": "Готовый к посадке росток."
         }
     ]
     return jsonify(items)
 
-# 12. Получение инвентаря пользователя
+
 @app.route('/api/user/inventory', methods=['GET'])
 def user_inventory():
     tg_id = request.args.get('tg_id')
@@ -592,14 +596,11 @@ def user_inventory():
     conn.close()
 
     if user:
-        return jsonify({
-            'acorns': user['acorns'],
-            'plant_acorns': user['plant_acorns']
-        })
+        return jsonify({'acorns': user['acorns'], 'plant_acorns': user['plant_acorns']})
     else:
         return jsonify({'error': 'User not found'}), 404
 
-# 13. Покупка предмета
+
 @app.route('/api/shop/buy', methods=['POST'])
 def shop_buy():
     data = request.get_json()
@@ -613,11 +614,8 @@ def shop_buy():
     try:
         with open('prices.json', 'r', encoding='utf-8') as f:
             prices = json.load(f)
-    except:
-        prices = {
-            "plant_acorn": {"buy": 1000, "sell": 800},
-            "acorn": {"buy": 200, "sell": 150}
-        }
+    except Exception:
+        prices = {"plant_acorn": {"buy": 1000, "sell": 800}, "acorn": {"buy": 200, "sell": 150}}
 
     price_per_unit = prices.get(item_id, {}).get("buy", 0)
     if price_per_unit == 0:
@@ -639,18 +637,18 @@ def shop_buy():
         return jsonify({'error': 'Not enough gold'}), 400
 
     new_balance = user['balance'] - total_cost
+    new_acorns = user['acorns']
+    new_plant_acorns = user['plant_acorns']
+
     if item_id == 'acorn':
-        new_acorns = user['acorns'] + quantity
-        cursor.execute('''
-            UPDATE users SET balance = ?, acorns = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE tg_id = ?
-        ''', (new_balance, new_acorns, tg_id))
+        new_acorns += quantity
+        cursor.execute('UPDATE users SET balance = ?, acorns = ?, updated_at = CURRENT_TIMESTAMP WHERE tg_id = ?', (new_balance, new_acorns, tg_id))
     elif item_id == 'plant_acorn':
-        new_plant_acorns = user['plant_acorns'] + quantity
-        cursor.execute('''
-            UPDATE users SET balance = ?, plant_acorns = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE tg_id = ?
-        ''', (new_balance, new_plant_acorns, tg_id))
+        new_plant_acorns += quantity
+        cursor.execute('UPDATE users SET balance = ?, plant_acorns = ?, updated_at = CURRENT_TIMESTAMP WHERE tg_id = ?', (new_balance, new_plant_acorns, tg_id))
+    else:
+        conn.close()
+        return jsonify({'error': 'Unknown item'}), 400
 
     conn.commit()
     conn.close()
@@ -658,11 +656,11 @@ def shop_buy():
     return jsonify({
         'success': True,
         'new_balance': new_balance,
-        'new_acorns': new_acorns if item_id == 'acorn' else user['acorns'],
-        'new_plant_acorns': new_plant_acorns if item_id == 'plant_acorn' else user['plant_acorns']
+        'new_acorns': new_acorns,
+        'new_plant_acorns': new_plant_acorns,
     })
 
-# 14. Продажа предмета
+
 @app.route('/api/shop/sell', methods=['POST'])
 def shop_sell():
     data = request.get_json()
@@ -676,11 +674,8 @@ def shop_sell():
     try:
         with open('prices.json', 'r', encoding='utf-8') as f:
             prices = json.load(f)
-    except:
-        prices = {
-            "plant_acorn": {"buy": 1000, "sell": 800},
-            "acorn": {"buy": 200, "sell": 150}
-        }
+    except Exception:
+        prices = {"plant_acorn": {"buy": 1000, "sell": 800}, "acorn": {"buy": 200, "sell": 150}}
 
     sell_price_per_unit = prices.get(item_id, {}).get("sell", 0)
     if sell_price_per_unit == 0:
@@ -705,22 +700,21 @@ def shop_sell():
         return jsonify({'error': 'Not enough plant_acorns'}), 400
 
     new_balance = user['balance'] + total_reward
-    
+    new_acorns = user['acorns']
+    new_plant_acorns = user['plant_acorns']
+
     if new_balance > user['max_balance']:
-         cursor.execute('UPDATE users SET max_balance = ? WHERE tg_id = ?', (new_balance, tg_id))
+        cursor.execute('UPDATE users SET max_balance = ? WHERE tg_id = ?', (new_balance, tg_id))
 
     if item_id == 'acorn':
-        new_acorns = user['acorns'] - quantity
-        cursor.execute('''
-            UPDATE users SET balance = ?, acorns = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE tg_id = ?
-        ''', (new_balance, new_acorns, tg_id))
+        new_acorns -= quantity
+        cursor.execute('UPDATE users SET balance = ?, acorns = ?, updated_at = CURRENT_TIMESTAMP WHERE tg_id = ?', (new_balance, new_acorns, tg_id))
     elif item_id == 'plant_acorn':
-        new_plant_acorns = user['plant_acorns'] - quantity
-        cursor.execute('''
-            UPDATE users SET balance = ?, plant_acorns = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE tg_id = ?
-        ''', (new_balance, new_plant_acorns, tg_id))
+        new_plant_acorns -= quantity
+        cursor.execute('UPDATE users SET balance = ?, plant_acorns = ?, updated_at = CURRENT_TIMESTAMP WHERE tg_id = ?', (new_balance, new_plant_acorns, tg_id))
+    else:
+        conn.close()
+        return jsonify({'error': 'Unknown item'}), 400
 
     conn.commit()
     conn.close()
@@ -728,16 +722,15 @@ def shop_sell():
     return jsonify({
         'success': True,
         'new_balance': new_balance,
-        'new_acorns': new_acorns if item_id == 'acorn' else user['acorns'],
-        'new_plant_acorns': new_plant_acorns if item_id == 'plant_acorn' else user['plant_acorns']
+        'new_acorns': new_acorns,
+        'new_plant_acorns': new_plant_acorns,
     })
 
-# --- ИНИЦИАЛИЗАЦИЯ И ЗАПУСК ПРИЛОЖЕНИЯ ---
+
 if __name__ == '__main__':
     init_db()
     migrate_from_json_on_startup()
     print(f'Сервер запущен: http://localhost:{PORT}')
     print(f'База данных: {DB_PATH}')
-    print(f'Статика раздается из: {STATIC_PATH}')
-    print(f'Папка существует? {os.path.exists(STATIC_PATH)}')
+    print(f'Статика: {STATIC_PATH}')
     app.run(host='0.0.0.0', port=PORT, debug=True)
