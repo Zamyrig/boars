@@ -1,0 +1,65 @@
+// ============================================================
+// state.js — общее состояние приложения
+// Единственный источник правды для всех модулей.
+// ============================================================
+
+export const RAID_MAX_HOURS  = 10;
+export const RAID_REST_HOURS = 4;
+export const TOTAL_SLOTS     = 20;
+
+export const FARM_SLOT_CONFIGS = [
+  { slot: 1, unlock_cost: { acorns: 10,   coins: 100,   plant_acorns: 0  } },
+  { slot: 2, unlock_cost: { acorns: 100,  coins: 1000,  plant_acorns: 1  } },
+  { slot: 3, unlock_cost: { acorns: 1000, coins: 10000, plant_acorns: 10 } },
+];
+
+export const ITEM_DEFS_LOCAL = {
+  acorn:       { icon: 'assets/acorn.png',           emoji: '🌰' },
+  plant_acorn: { icon: 'assets/acorn_planter_1.png', emoji: '🌱' },
+};
+
+export const INV_TAB_TITLES = {
+  bag: 'СУМКА', farm: 'ФЕРМА', forest: 'ЛЕС', mine: 'ШАХТА', cave: 'ПЕЩЕРА',
+};
+export const INV_TAB_BG = {
+  bag: 'bg-inventory', farm: 'bg-farm', forest: 'bg-forest', mine: 'bg-mine', cave: 'bg-main',
+};
+
+// ── Мутируемое состояние ─────────────────────────────────────
+// Используем один объект, чтобы модули могли читать/писать одни данные.
+
+export const state = {
+  user: null,
+  prices: {},
+  itemDefs: {},
+
+  // бой
+  selectedSide: 0,
+  isWatchingMode: false,
+  isBattleLocked: false,
+  battleResult: null,
+  watchCooldownRemaining: 0,
+  watchCooldownTimer: null,
+
+  // магазин
+  currentShopItem: null,
+  currentShopQuantity: 1,
+  currentAction: 'buy',
+
+  // рейтинг
+  fullLeaderboardLoaded: false,
+  fullLeaderboardData: [],
+  userRank: '?',
+
+  // ферма
+  farmState: null,
+  farmDropTable: null,
+  farmTimerInterval: null,
+  activeFarmSlot: null,
+  selectedFarmItem: null,
+  farmConfirmMode: false,
+
+  // лес
+  forestState: null,
+  forestTimerInterval: null,
+};

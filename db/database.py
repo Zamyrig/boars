@@ -36,7 +36,7 @@ def init_db():
 
     new_columns = {
         'acorns': 'INTEGER DEFAULT 0',
-        'plant_acorns': 'INTEGER DEFAULT 0',
+        'plant_acorns': 'INTEGER DEFAULT 1',
         'max_balance': 'INTEGER DEFAULT 1000',
         'watched_battles': 'INTEGER DEFAULT 0',
         'last_watch_reward_at': 'TIMESTAMP DEFAULT NULL',

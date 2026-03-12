@@ -1,0 +1,16 @@
+{
+  "acorn": {
+    "name": "Желудь",
+    "description": "Основная валюта леса. Собирается с фермы или добывается кабаном в походе. Можно продать в магазине.",
+    "icon": "assets/acorn.png",
+    "emoji": "🌰",
+    "category": "resource"
+  },
+  "plant_acorn": {
+    "name": "Росток",
+    "description": "Живой росток дуба. Посади на ферме и через час собери урожай желудей. Редкий и ценный предмет.",
+    "icon": "assets/acorn_planter_1.png",
+    "emoji": "🌱",
+    "category": "seed"
+  }
+}
