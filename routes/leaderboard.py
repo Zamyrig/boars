@@ -3,7 +3,7 @@ from db.database import get_db_connection
 
 leaderboard_bp = Blueprint('leaderboard', __name__)
 
-_FIELDS = 'tg_id, username, display_name, balance, total_games, wins, lose, private_profile, acorns, plant_acorns, max_balance, watched_battles'
+_FIELDS = 'tg_id, username, display_name, balance, total_games, wins, lose, private_profile, acorns, plant_acorns, max_balance, watched_battles, last_seen'
 
 
 def _serialize(rows):

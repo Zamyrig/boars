@@ -7,26 +7,18 @@ farm_bp = Blueprint('farm', __name__)
 
 # ── Конфиг слотов фермы ───────────────────────────────────────────────────
 FARM_SLOTS = [
-    {
-        "slot": 1,
-        "unlock_cost": {"acorns": 10, "coins": 100, "plant_acorns": 0},
-    },
-    {
-        "slot": 2,
-        "unlock_cost": {"acorns": 100, "coins": 1000, "plant_acorns": 1},
-    },
-    {
-        "slot": 3,
-        "unlock_cost": {"acorns": 1000, "coins": 10000, "plant_acorns": 10},
-    },
+    { "slot": 1, "unlock_cost": { "acorns": 3,    "coins": 30,    "plant_acorns": 0  } },
+    { "slot": 2, "unlock_cost": { "acorns": 5,    "coins": 50,    "plant_acorns": 0  } },
+    { "slot": 3, "unlock_cost": { "acorns": 10,   "coins": 100,   "plant_acorns": 0  } },
+    { "slot": 4, "unlock_cost": { "acorns": 100,  "coins": 1000,  "plant_acorns": 1  } },
+    { "slot": 5, "unlock_cost": { "acorns": 300,  "coins": 3000,  "plant_acorns": 3  } },
+    { "slot": 6, "unlock_cost": { "acorns": 1000, "coins": 10000, "plant_acorns": 10 } },
 ]
 
 DROPS_CFG_PATH = './acorn_drops.cfg'
 
 
 def _load_drops(item_id: str) -> dict:
-    """Загружает таблицу дропов из acorn_drops.cfg.
-    Читает вручную — configparser не поддерживает дублирующиеся ключи drop."""
     try:
         with open(DROPS_CFG_PATH, 'r', encoding='utf-8') as f:
             lines = f.readlines()
@@ -73,7 +65,6 @@ def _load_drops(item_id: str) -> dict:
 
 
 def _roll_drops(item_id: str) -> dict:
-    """Случайно выбирает дроп по таблице шансов."""
     table = _load_drops(item_id)
     if not table or not table['drops']:
         return {'acorns': 0, 'coins': 0, 'plant_acorn': 0}
@@ -93,7 +84,6 @@ def _roll_drops(item_id: str) -> dict:
     acorns = chosen[0]
     coins = random.randint(chosen[2], chosen[3])
 
-    # Проверяем бонусный росток
     bonus_plant = 0
     if random.uniform(0, 100) <= table['plant_acorn_chance']:
         bonus_plant = 1
@@ -102,7 +92,6 @@ def _roll_drops(item_id: str) -> dict:
 
 
 def _get_drop_table_display(item_id: str) -> list:
-    """Возвращает таблицу дропов для отображения в UI."""
     table = _load_drops(item_id)
     if not table:
         return []
@@ -143,7 +132,6 @@ def _ensure_farm_tables(conn):
 
 
 def _get_or_create_farm(cursor, tg_id: str) -> list:
-    """Возвращает список слотов фермы для пользователя."""
     rows = []
     for slot_cfg in FARM_SLOTS:
         sn = slot_cfg['slot']
@@ -252,7 +240,6 @@ def farm_unlock():
             conn.rollback(); conn.close()
             return jsonify({'error': f'Нужно {cost["plant_acorns"]} ростков'}), 400
 
-        # Проверяем что слот ещё не разблокирован
         slots = _get_or_create_farm(cursor, tg_id)
         conn.commit()
         slot = next((s for s in slots if s['slot_num'] == slot_num), None)
@@ -260,7 +247,6 @@ def farm_unlock():
             conn.close()
             return jsonify({'error': 'Слот уже разблокирован'}), 400
 
-        # Списываем стоимость
         cursor.execute('''
             UPDATE users SET
                 acorns = acorns - ?,
@@ -298,7 +284,7 @@ def farm_plant():
     data = request.get_json()
     tg_id = str(data.get('tg_id'))
     slot_num = int(data.get('slot_num'))
-    item_id = str(data.get('item_id'))  # пока только 'plant_acorn'
+    item_id = str(data.get('item_id'))
 
     drop_table = _load_drops(item_id)
     if not drop_table:
@@ -328,12 +314,10 @@ def farm_plant():
             conn.rollback(); conn.close()
             return jsonify({'error': 'Слот уже занят'}), 400
 
-        # Проверяем наличие ростка
         if item_id == 'plant_acorn' and user['plant_acorns'] < 1:
             conn.rollback(); conn.close()
             return jsonify({'error': 'Нет ростков'}), 400
 
-        # Списываем росток
         cursor.execute('''
             UPDATE users SET plant_acorns = plant_acorns - 1, updated_at = CURRENT_TIMESTAMP
             WHERE tg_id = ?
@@ -395,11 +379,9 @@ def farm_harvest():
             conn.rollback(); conn.close()
             return jsonify({'error': 'Ещё не готово'}), 400
 
-        # Роллим дроп
         item_id = slot['planted_item']
         drops = _roll_drops(item_id)
 
-        # Начисляем награду
         cursor.execute('SELECT balance FROM users WHERE tg_id = ?', (tg_id,))
         user = cursor.fetchone()
 
@@ -415,7 +397,6 @@ def farm_harvest():
 
         check_update_max_balance(cursor, tg_id, new_balance)
 
-        # Очищаем слот
         cursor.execute('''
             UPDATE farm_slots SET planted_item = NULL, planted_at = NULL, ready_at = NULL
             WHERE tg_id = ? AND slot_num = ?
@@ -447,7 +428,6 @@ def farm_harvest():
 
 @farm_bp.route('/api/farm/drops', methods=['GET'])
 def farm_drops():
-    """Возвращает таблицу дропов для отображения."""
     item_id = request.args.get('item_id', 'plant_acorn')
     table = _get_drop_table_display(item_id)
     if not table:

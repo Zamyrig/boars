@@ -12,6 +12,20 @@ export async function loadForestState() {
   if (!state.user) return;
   const data = await apiFetch(`/api/forest/state?tg_id=${state.user.tg_id}`);
   if (!data) return;
+
+  // Показываем тост если кабан только что вернулся из похода пока нас не было
+  if (data.just_returned) {
+    const acorns = data.acorns_found || 0;
+    tg.HapticFeedback.notificationOccurred('success');
+    showToast(acorns > 0
+      ? `Кабан вернулся пока тебя не было! Нашёл 🌰 ${acorns} желудей за ${RAID_MAX_HOURS} ч.`
+      : 'Кабан вернулся пока тебя не было, но ничего не нашёл 😔'
+    );
+    // Обновляем баланс желудей
+    state.user.acorns = (state.user.acorns || 0) + acorns;
+    document.getElementById('acorns-val').innerText = state.user.acorns.toLocaleString();
+  }
+
   state.forestState = data;
   const forestContent = document.getElementById('inv-content-forest');
   if (forestContent && forestContent.style.display !== 'none') {
@@ -83,8 +97,8 @@ export function startForestTimer() {
       if (hoursEl) hoursEl.textContent = Math.floor((RAID_MAX_HOURS * 3600 - state.forestState.seconds_left) / 3600);
       if (state.forestState.seconds_left === 0) {
         clearInterval(state.forestTimerInterval);
-        state.forestState = { state: 'raid_done', acorns_found: 0 };
-        renderForestUI();
+        // Перезагружаем состояние с сервера — там уже будет resting с честным таймером
+        loadForestState();
       }
     } else if (state.forestState.state === 'resting') {
       state.forestState.rest_seconds_left = Math.max(0, (state.forestState.rest_seconds_left || 0) - 1);
@@ -140,17 +154,20 @@ export async function returnRaid() {
 
 export async function collectRaid() {
   tg.HapticFeedback.impactOccurred('medium');
-  const resp = await apiFetch(`/api/forest/state?tg_id=${state.user.tg_id}`);
-  if (resp) {
-    const userResp = await apiFetch(`/api/user/info?tg_id=${state.user.tg_id}`);
-    if (userResp) {
-      state.user.acorns = userResp.acorns || state.user.acorns;
-      document.getElementById('acorns-val').innerText = state.user.acorns.toLocaleString();
-    }
-    state.forestState = { state: 'resting', rest_seconds_left: RAID_REST_HOURS * 3600, acorns_found: resp.acorns_found || 0 };
+  const resp = await apiFetch('/api/forest/raid/return', {
+    method: 'POST',
+    body: JSON.stringify({ tg_id: state.user.tg_id }),
+  });
+  if (resp?.success) {
+    state.user.acorns = resp.new_acorns;
+    document.getElementById('acorns-val').innerText = state.user.acorns.toLocaleString();
+    state.forestState = { state: 'resting', rest_seconds_left: resp.rest_seconds, acorns_found: resp.acorns_found };
     renderForestUI();
     startForestTimer();
     tg.HapticFeedback.notificationOccurred('success');
-    showToast('Желуди забраны! Кабан отдыхает 😴');
+    showToast(`Желуди забраны! 🌰 ${resp.acorns_found} Кабан отдыхает 😴`);
+  } else {
+    tg.HapticFeedback.notificationOccurred('error');
+    showToast(resp?.error || 'Ошибка');
   }
 }

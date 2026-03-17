@@ -657,7 +657,7 @@ input:checked + .slider:before { transform: translateX(76px); }
 .item-detail-actions .btn-wood { flex: 1; padding: 14px; font-size: 0.8rem; }
 
 /* ── ФЕРМА ── */
-.farm-slots-row { display: flex; gap: 10px; padding: 4px 0; }
+.farm-slots-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 4px 0; }
 .farm-slot {
   flex: 1; aspect-ratio: 1;
   background: rgba(255,255,255,0.04);

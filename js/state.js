@@ -8,9 +8,12 @@ export const RAID_REST_HOURS = 4;
 export const TOTAL_SLOTS     = 20;
 
 export const FARM_SLOT_CONFIGS = [
-  { slot: 1, unlock_cost: { acorns: 10,   coins: 100,   plant_acorns: 0  } },
-  { slot: 2, unlock_cost: { acorns: 100,  coins: 1000,  plant_acorns: 1  } },
-  { slot: 3, unlock_cost: { acorns: 1000, coins: 10000, plant_acorns: 10 } },
+  { slot: 1, unlock_cost: { acorns: 3,    coins: 30,    plant_acorns: 0  } },
+  { slot: 2, unlock_cost: { acorns: 5,    coins: 50,    plant_acorns: 0  } },
+  { slot: 3, unlock_cost: { acorns: 10,   coins: 100,   plant_acorns: 0  } },
+  { slot: 4, unlock_cost: { acorns: 100,  coins: 1000,  plant_acorns: 1  } },
+  { slot: 5, unlock_cost: { acorns: 300,  coins: 3000,  plant_acorns: 3  } },
+  { slot: 6, unlock_cost: { acorns: 1000, coins: 10000, plant_acorns: 10 } },
 ];
 
 export const ITEM_DEFS_LOCAL = {
@@ -26,8 +29,6 @@ export const INV_TAB_BG = {
 };
 
 // ── Мутируемое состояние ─────────────────────────────────────
-// Используем один объект, чтобы модули могли читать/писать одни данные.
-
 export const state = {
   user: null,
   prices: {},

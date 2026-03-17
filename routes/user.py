@@ -10,7 +10,6 @@ user_bp = Blueprint('user', __name__)
 
 
 def _calc_watch_cooldown(last_watch_reward_at):
-    """Вернуть оставшиеся секунды кулдауна просмотра (0 если нет)."""
     if not last_watch_reward_at:
         return 0
     try:
@@ -23,7 +22,6 @@ def _calc_watch_cooldown(last_watch_reward_at):
 
 
 def _user_to_dict(user, watch_cooldown_remaining=None):
-    """Сериализация строки пользователя в словарь для ответа."""
     if watch_cooldown_remaining is None:
         watch_cooldown_remaining = _calc_watch_cooldown(user['last_watch_reward_at'])
     return {
@@ -41,6 +39,7 @@ def _user_to_dict(user, watch_cooldown_remaining=None):
         'watched_battles': user['watched_battles'],
         'watch_cooldown_remaining': watch_cooldown_remaining,
         'watch_reward': WATCH_REWARD,
+        'last_seen': user['last_seen'],
     }
 
 
@@ -58,21 +57,31 @@ def auth():
     cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
     user = cursor.fetchone()
 
+    now = datetime.utcnow().isoformat()
+
     if user is None:
         display_name = first_name or username or 'Аноним'
         cursor.execute('''
             INSERT INTO users
             (tg_id, username, display_name, balance, total_games, wins, lose,
-             private_profile, acorns, plant_acorns, max_balance, watched_battles, last_watch_reward_at)
-            VALUES (?, ?, ?, 1000, 0, 0, 0, 0, 0, 0, 1000, 0, NULL)
-        ''', (tg_id, username or '', display_name))
+             private_profile, acorns, plant_acorns, max_balance, watched_battles, last_watch_reward_at, last_seen)
+            VALUES (?, ?, ?, 1000, 0, 0, 0, 0, 0, 0, 1000, 0, NULL, ?)
+        ''', (tg_id, username or '', display_name, now))
         conn.commit()
         cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
         user = cursor.fetchone()
-    elif username and user['username'] != username:
-        cursor.execute('''
-            UPDATE users SET username = ?, updated_at = CURRENT_TIMESTAMP WHERE tg_id = ?
-        ''', (username, tg_id))
+    else:
+        # Обновляем last_seen и username при каждом входе
+        update_fields = ['last_seen = ?', 'updated_at = CURRENT_TIMESTAMP']
+        update_values = [now]
+        if username and user['username'] != username:
+            update_fields.append('username = ?')
+            update_values.append(username)
+        update_values.append(tg_id)
+        cursor.execute(
+            f'UPDATE users SET {", ".join(update_fields)} WHERE tg_id = ?',
+            update_values
+        )
         conn.commit()
         cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
         user = cursor.fetchone()
@@ -160,3 +169,21 @@ def user_inventory():
         return jsonify({'error': 'User not found'}), 404
 
     return jsonify({'acorns': user['acorns'], 'plant_acorns': user['plant_acorns']})
+
+
+@user_bp.route('/api/user/info', methods=['GET'])
+def user_info():
+    tg_id = request.args.get('tg_id')
+    if not tg_id:
+        return jsonify({'error': 'tg_id required'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
+    user = cursor.fetchone()
+    conn.close()
+
+    if user is None:
+        return jsonify({'error': 'User not found'}), 404
+
+    return jsonify(_user_to_dict(user))

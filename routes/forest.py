@@ -5,16 +5,13 @@ from db.database import get_db_connection, check_update_max_balance
 
 forest_bp = Blueprint('forest', __name__)
 
-# ── Константы ─────────────────────────────────────────────────────────────────
-RAID_MAX_HOURS   = 10          # максимум в походе
-RAID_REST_HOURS  = 4           # отдых после возвращения
-ACORN_CHANCE     = 0.80        # шанс найти что-то за каждый час (было 0.50)
-# Распределение кол-ва желудей за «удачный» час (~1.25 в среднем при chance=0.80 → итого ~1.0/час):
+RAID_MAX_HOURS   = 10
+RAID_REST_HOURS  = 4
+ACORN_CHANCE     = 0.80
 ACORN_ROLLS = [(1, 0.60), (2, 0.30), (3, 0.10)]
 
 
 def _roll_raid_acorns(hours_away: int) -> int:
-    """Считает сколько желудей нашёл кабан за hours_away часов."""
     total = 0
     for _ in range(hours_away):
         if random.random() < ACORN_CHANCE:
@@ -49,7 +46,6 @@ def _get_raid(cursor, tg_id: str) -> dict | None:
 
 
 def _raid_status(raid: dict | None, now: datetime) -> dict:
-    """Возвращает текущий статус похода в удобном виде."""
     if not raid:
         return {'state': 'idle'}
 
@@ -65,7 +61,7 @@ def _raid_status(raid: dict | None, now: datetime) -> dict:
             'acorns_found': raid.get('acorns_found', 0),
         }
 
-    # Кабан в походе — авто-возврат через RAID_MAX_HOURS
+    # Кабан в походе
     if raid_end and not raid.get('returned') and now < raid_end:
         hours_away = int((now - raid_start).total_seconds() // 3600)
         return {
@@ -76,7 +72,7 @@ def _raid_status(raid: dict | None, now: datetime) -> dict:
             'hours_away': hours_away,
         }
 
-    # Поход завершён но не забран (авто-возврат истёк)
+    # Поход завершён но не забран
     if raid_end and not raid.get('returned') and now >= raid_end:
         return {
             'state': 'raid_done',
@@ -86,7 +82,32 @@ def _raid_status(raid: dict | None, now: datetime) -> dict:
     return {'state': 'idle'}
 
 
-# ── Endpoints ─────────────────────────────────────────────────────────────────
+def _auto_complete_raid(cursor, conn, tg_id: str) -> dict | None:
+    """
+    Авто-завершение если кабан пробыл 10 часов.
+    rest_until считается от raid_end, а не от now.
+    Возвращает dict с acorns_found если только что завершился, иначе None.
+    """
+    raid = _get_raid(cursor, tg_id)
+    if not raid or raid.get('returned'):
+        return None
+    raid_end = datetime.fromisoformat(str(raid['raid_end'])) if raid.get('raid_end') else None
+    if raid_end and datetime.utcnow() >= raid_end:
+        acorns = _roll_raid_acorns(RAID_MAX_HOURS)
+        # rest_until считается от raid_end — честный таймер
+        rest_until = raid_end + timedelta(hours=RAID_REST_HOURS)
+        cursor.execute('''
+            UPDATE users SET acorns = acorns + ?, updated_at = CURRENT_TIMESTAMP
+            WHERE tg_id = ?
+        ''', (acorns, tg_id))
+        cursor.execute('''
+            UPDATE boar_raid SET returned=1, acorns_found=?, rest_until=?
+            WHERE tg_id=?
+        ''', (acorns, rest_until.isoformat(), tg_id))
+        conn.commit()
+        return {'acorns_found': acorns, 'just_returned': True}
+    return None
+
 
 @forest_bp.route('/api/forest/state', methods=['GET'])
 def forest_state():
@@ -98,13 +119,20 @@ def forest_state():
     _ensure_raid_table(conn)
     cursor = conn.cursor()
 
-    _auto_complete_raid(cursor, conn, tg_id)
+    just_returned = _auto_complete_raid(cursor, conn, tg_id)
 
     raid = _get_raid(cursor, tg_id)
     conn.close()
 
     now = datetime.utcnow()
-    return jsonify(_raid_status(raid, now))
+    status = _raid_status(raid, now)
+
+    # Добавляем флаг just_returned для фронта
+    if just_returned:
+        status['just_returned'] = True
+        status['acorns_found'] = just_returned['acorns_found']
+
+    return jsonify(status)
 
 
 @forest_bp.route('/api/forest/raid/start', methods=['POST'])
@@ -155,7 +183,6 @@ def raid_start():
 
 @forest_bp.route('/api/forest/raid/return', methods=['POST'])
 def raid_return():
-    """Игрок вручную возвращает кабана из похода."""
     data  = request.get_json()
     tg_id = str(data.get('tg_id', ''))
     if not tg_id:
@@ -178,9 +205,9 @@ def raid_return():
     hours_away = min(hours_away, RAID_MAX_HOURS)
 
     acorns = _roll_raid_acorns(hours_away)
+    # rest_until от now (ручной возврат — честно от момента возврата)
     rest_until = now + timedelta(hours=RAID_REST_HOURS)
 
-    # Начисляем желуди
     cursor.execute('''
         UPDATE users SET acorns = acorns + ?, updated_at = CURRENT_TIMESTAMP
         WHERE tg_id = ?
@@ -204,23 +231,3 @@ def raid_return():
         'rest_until': rest_until.isoformat(),
         'rest_seconds': RAID_REST_HOURS * 3600,
     })
-
-
-def _auto_complete_raid(cursor, conn, tg_id: str):
-    """Авто-завершение если кабан пробыл 10 часов и никто не забрал."""
-    raid = _get_raid(cursor, tg_id)
-    if not raid or raid.get('returned'):
-        return
-    raid_end = datetime.fromisoformat(str(raid['raid_end'])) if raid.get('raid_end') else None
-    if raid_end and datetime.utcnow() >= raid_end:
-        acorns = _roll_raid_acorns(RAID_MAX_HOURS)
-        rest_until = datetime.utcnow() + timedelta(hours=RAID_REST_HOURS)
-        cursor.execute('''
-            UPDATE users SET acorns = acorns + ?, updated_at = CURRENT_TIMESTAMP
-            WHERE tg_id = ?
-        ''', (acorns, tg_id))
-        cursor.execute('''
-            UPDATE boar_raid SET returned=1, acorns_found=?, rest_until=?
-            WHERE tg_id=?
-        ''', (acorns, rest_until.isoformat(), tg_id))
-        conn.commit()

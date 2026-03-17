@@ -40,6 +40,7 @@ def init_db():
         'max_balance': 'INTEGER DEFAULT 1000',
         'watched_battles': 'INTEGER DEFAULT 0',
         'last_watch_reward_at': 'TIMESTAMP DEFAULT NULL',
+        'last_seen': 'TIMESTAMP DEFAULT NULL',
     }
 
     for col, col_def in new_columns.items():
@@ -76,7 +77,6 @@ def check_update_max_balance(cursor, tg_id, new_balance):
 
 
 def migrate_from_json_manual_call():
-    """Миграция данных из старого database.json в SQLite."""
     json_path = './database.json'
     if not os.path.exists(json_path):
         return {'error': 'database.json not found'}

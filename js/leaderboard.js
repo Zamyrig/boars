@@ -12,6 +12,33 @@ function findUserRank(data) {
   return idx === -1 ? '?' : idx + 1;
 }
 
+function formatLastSeen(lastSeen) {
+  if (!lastSeen) return '<span class="lb-last-seen">был в сети давно</span>';
+  try {
+    const date = new Date(lastSeen + 'Z');
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    let text;
+    if (diffMin < 2)         text = 'только что';
+    else if (diffMin < 60)   text = `${diffMin} мин. назад`;
+    else if (diffHours < 24) text = `${diffHours} ч. назад`;
+    else if (diffDays < 7)   text = `${diffDays} дн. назад`;
+    else {
+      const d = date.getDate().toString().padStart(2, '0');
+      const m = (date.getMonth() + 1).toString().padStart(2, '0');
+      const y = date.getFullYear();
+      text = `${d}.${m}.${y}`;
+    }
+    return `<span class="lb-last-seen">${text}</span>`;
+  } catch {
+    return '<span class="lb-last-seen">был в сети давно</span>';
+  }
+}
+
 export async function loadRank() {
   state.fullLeaderboardLoaded = false;
   state.fullLeaderboardData   = [];
@@ -86,9 +113,12 @@ function renderLeaderboard(data) {
     item.className = 'rank-item';
     if (state.user && u.tg_id === state.user.tg_id) item.classList.add('current-user-highlight');
     item.innerHTML = `
-      <div style="display:flex;align-items:center;gap:12px;">
-        <span style="opacity:0.3;font-weight:900;width:24px;font-size:0.8rem;">${i + 1}</span>
-        <span style="font-weight:700;">${u.display_name || u.username}</span>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span style="opacity:0.3;font-weight:900;width:24px;font-size:0.8rem;">${i + 1}</span>
+          <span style="font-weight:700;">${u.display_name || u.username}</span>
+        </div>
+        <div style="padding-left:36px;">${formatLastSeen(u.last_seen)}</div>
       </div>
       <div class="lb-values">
         <div class="lb-value-row lb-val-gold">${u.balance.toLocaleString()} <img src="${BASE}/assets/boarcoin.png" class="coin-icon" alt=""></div>
