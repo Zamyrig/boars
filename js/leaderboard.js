@@ -91,8 +91,8 @@ function renderLeaderboard(data) {
         <span style="font-weight:700;">${u.display_name || u.username}</span>
       </div>
       <div class="lb-values">
-        <div class="lb-value-row lb-val-gold">${u.balance.toLocaleString()} <img src="assets/boarcoin.png" class="coin-icon" alt=""></div>
-        <div class="lb-value-row lb-val-acorn">${(u.acorns || 0).toLocaleString()} <img src="assets/acorn.png" class="acorn-icon" alt=""></div>
+        <div class="lb-value-row lb-val-gold">${u.balance.toLocaleString()} <img src="${BASE}/assets/boarcoin.png" class="coin-icon" alt=""></div>
+        <div class="lb-value-row lb-val-acorn">${(u.acorns || 0).toLocaleString()} <img src="${BASE}/assets/acorn.png" class="acorn-icon" alt=""></div>
       </div>`;
     item.onclick = () => showUserDetail(u);
     list.appendChild(item);

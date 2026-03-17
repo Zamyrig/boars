@@ -46,10 +46,10 @@ export async function loadShopItems() {
     div.onclick   = () => selectShopItem(item, div);
     const displayPrice = state.currentAction === 'buy' ? item.price : item.sell_price;
     div.innerHTML = `
-      <img class="shop-item-img" src="${item.icon}" alt="${item.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <img class="shop-item-img" src="${BASE}/${item.icon}" alt="${item.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
       <span class="shop-item-emoji" style="display:none">${item.emoji}</span>
       <div class="shop-item-name">${item.name}</div>
-      <div class="shop-item-price">${displayPrice} <img src="assets/boarcoin.png" class="coin-icon" alt=""></div>`;
+      <div class="shop-item-price">${displayPrice} <img src="${BASE}/assets/boarcoin.png" class="coin-icon" alt=""></div>`;
     container.appendChild(div);
   }
 }
@@ -61,7 +61,7 @@ function selectShopItem(item, el) {
 
   document.getElementById('detail-icon-placeholder').style.display = 'none';
   const bigIcon = document.getElementById('detail-icon-big');
-  bigIcon.src   = item.icon;
+  bigIcon.src   = `${BASE}/${item.icon}`;
   bigIcon.style.display = 'block';
   bigIcon.onerror = () => {
     bigIcon.style.display = 'none';
@@ -103,7 +103,7 @@ export function updateShopItemPrices() {
       ? (state.prices[def.id]?.buy  || 0)
       : (state.prices[def.id]?.sell || 0);
     const priceEl = el.querySelector('.shop-item-price');
-    if (priceEl) priceEl.innerHTML = `${price} <img src="assets/boarcoin.png" class="coin-icon" alt="">`;
+    if (priceEl) priceEl.innerHTML = `${price} <img src="${BASE}/assets/boarcoin.png" class="coin-icon" alt="">`;
   });
 }
 
@@ -117,9 +117,9 @@ function updatePriceDisplay() {
   const price = state.currentAction === 'buy' ? state.currentShopItem.price : state.currentShopItem.sell_price;
   const total = price * state.currentShopQuantity;
   document.getElementById('detail-price').innerHTML =
-    `${price} <img src="assets/boarcoin.png" class="coin-icon" alt=""> / шт.`;
+    `${price} <img src="${BASE}/assets/boarcoin.png" class="coin-icon" alt=""> / шт.`;
   totalCostEl.innerHTML =
-    `${price} <img src="assets/boarcoin.png" class="coin-icon" alt=""> × ${state.currentShopQuantity} = <b>${total.toLocaleString()}</b> <img src="assets/boarcoin.png" class="coin-icon" alt="">`;
+    `${price} <img src="${BASE}/assets/boarcoin.png" class="coin-icon" alt=""> × ${state.currentShopQuantity} = <b>${total.toLocaleString()}</b> <img src="${BASE}/assets/boarcoin.png" class="coin-icon" alt="">`;
   totalCostEl.style.display = 'flex';
 }
 

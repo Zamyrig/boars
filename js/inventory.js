@@ -42,7 +42,7 @@ export function renderInventory() {
       slot.classList.add('filled');
 
       const img = document.createElement('img');
-      img.src = def.icon;
+      img.src = `${BASE}/${def.icon}`;
       img.alt = item.id;
       img.onerror = () => {
         img.style.display = 'none';
@@ -77,7 +77,7 @@ export function openItemDetail(itemId, count) {
   const imgEl   = document.getElementById('item-detail-img');
   const iconSrc = def.icon || localDef.icon;
   if (iconSrc) {
-    imgEl.src          = iconSrc;
+    imgEl.src          = `${BASE}/${iconSrc}`;
     imgEl.style.display = 'block';
     imgEl.onerror = () => {
       imgEl.style.display = 'none';

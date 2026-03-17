@@ -155,7 +155,7 @@ function _farmItemIconHtml(itemId) {
   const loc = { acorn: 'assets/acorn.png', plant_acorn: 'assets/acorn_planter_1.png' };
   const emoji = { acorn: '🌰', plant_acorn: '🌱' };
   const src = def.icon || loc[itemId];
-  if (src) return `<img src="${src}" onerror="this.style.display='none';this.nextSibling.style.display='block'" style="width:2rem;height:2rem;object-fit:contain;image-rendering:pixelated;display:block;margin:0 auto 4px;"><span style="display:none;font-size:1.8rem;">${def.emoji || emoji[itemId] || '🌱'}</span>`;
+  if (src) return `<img src="${BASE}/${src}" onerror="this.style.display='none';this.nextSibling.style.display='block'" style="width:2rem;height:2rem;object-fit:contain;image-rendering:pixelated;display:block;margin:0 auto 4px;"><span style="display:none;font-size:1.8rem;">${def.emoji || emoji[itemId] || '🌱'}</span>`;
   return `<span class="farm-pick-icon">${def.emoji || emoji[itemId] || '🌱'}</span>`;
 }
 

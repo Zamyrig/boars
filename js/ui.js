@@ -135,7 +135,7 @@ export function updateWatchButton() {
     rewardLine.className  = '';
   } else {
     btn.classList.remove('on-cooldown');
-    rewardLine.innerHTML = `+ 200 <img src="assets/boarcoin.png" class="coin-icon" alt="">`;
+    rewardLine.innerHTML = `+ 200 <img src="${BASE}/assets/boarcoin.png" class="coin-icon" alt="">`;
     rewardLine.className = 'watch-reward-line';
   }
 }
@@ -158,7 +158,7 @@ export function startWatchCooldownTick() {
 // ── Экран результата ──────────────────────────────────────────
 
 export function coinImg(size = '1.2em') {
-  return `<img src="assets/boarcoin.png" style="width:${size};height:${size};vertical-align:middle;margin-bottom:2px;" alt="">`;
+  return `<img src="${BASE}/assets/boarcoin.png" style="width:${size};height:${size};vertical-align:middle;margin-bottom:2px;" alt="">`;
 }
 
 export function showResult(title, amount, type) {
