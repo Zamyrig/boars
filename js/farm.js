@@ -197,7 +197,8 @@ function _renderFarmPlantModal() {
     ${state.selectedFarmItem ? `<div class="farm-drop-info">${dropRows}</div>` : ''}
     <div class="farm-confirm-row">
       <button class="btn-wood" style="opacity:0.5;" onclick="closeFarmModal()">Отмена</button>
-      <button class="btn-wood" style="background:var(--win);color:#000;border:none;box-shadow:0 4px 0 #2d9a4a;"
+      <button class="btn-wood"
+        style="background:var(--win);color:#000;border:none;box-shadow:0 4px 0 #2d9a4a;"
         ${state.selectedFarmItem && hasPlant ? '' : 'disabled'}
         onclick="doFarmPlantConfirm()">Посадить</button>
     </div>`;
@@ -219,7 +220,15 @@ export function doFarmPlantConfirm() {
   if (!state.farmConfirmMode) {
     state.farmConfirmMode = true;
     const btn = document.querySelector('#farm-modal-body .farm-confirm-row .btn-wood:last-child');
-    if (btn) { btn.textContent = '✓ Подтвердить'; btn.style.background = '#e6b800'; btn.onclick = doFarmPlant; }
+    if (btn) {
+      btn.textContent      = '✓ Подтвердить';
+      // жёлтый — как btn-play
+      btn.style.background = 'var(--gold)';
+      btn.style.color      = '#000';
+      btn.style.boxShadow  = '0 4px 0 #cca300';
+      btn.style.border     = 'none';
+      btn.onclick = doFarmPlant;
+    }
     tg.HapticFeedback.impactOccurred('light');
     return;
   }

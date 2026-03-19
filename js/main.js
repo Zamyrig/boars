@@ -1,7 +1,5 @@
 // ============================================================
 // main.js — точка входа
-// Инициализирует приложение и пробрасывает функции в window,
-// чтобы inline-обработчики в HTML (onclick="nav(...)") работали.
 // ============================================================
 import { state } from './state.js';
 import { apiFetch, loadPrices, loadItemDefs } from './api.js';
@@ -10,7 +8,7 @@ import { renderInventory, openItemDetail, closeItemDetail, quickSellFromDetail, 
 import { loadFarmState, renderFarmSlots, closeFarmModal, selectFarmItem, doFarmPlantConfirm, doFarmUnlock, openFarmPlantModal, openFarmHarvestModal, openFarmGrowingModal, doFarmHarvest } from './farm.js';
 import { loadForestState, startRaid, returnRaid, collectRaid } from './forest.js';
 import { tryStartBattle, watchBattle, preStart } from './battle.js';
-import { resetShopState, loadShopItems, toggleActionMini, onQtyInput, performTransaction } from './shop.js';
+import { resetShopState, loadShopItems, toggleActionMini, onQtyInput, shopQtyStep, performTransaction } from './shop.js';
 import { loadRank, toggleFullLeaderboard, showUserDetail, closeModal } from './leaderboard.js';
 import { updateName, togglePrivateProfile } from './profile.js';
 
@@ -46,9 +44,7 @@ async function auth() {
   }
 }
 
-// ── Экспорт в window (нужен для onclick в HTML) ───────────────
-// Все функции, которые вызываются из атрибутов HTML (onclick, onchange),
-// должны быть доступны глобально.
+// ── Экспорт в window ──────────────────────────────────────────
 
 Object.assign(window, {
   // навигация
@@ -82,6 +78,7 @@ Object.assign(window, {
   // магазин
   toggleActionMini,
   onQtyInput,
+  shopQtyStep,
   performTransaction,
 
   // рейтинг

@@ -129,11 +129,17 @@ export async function quickSellFromDetail() {
   nav('scr-shop');
 
   setTimeout(() => {
-    document.getElementById('shop-toggle-mini').classList.add('sell-mode');
-    document.getElementById('shop-action-label').innerText   = 'ПРОДАТЬ';
-    document.getElementById('shop-action-label').style.color = 'var(--lose)';
+    // Включаем sell-mode через новый тоггл (wrap-based)
+    const wrap = document.getElementById('shop-toggle-wrap');
+    if (wrap) wrap.classList.add('sell-mode');
     updateTradeButton();
     updateShopItemPrices();
+
+    // Позиционируем thumb
+    import('./shop.js').then(m => {
+      if (typeof m._updateThumb === 'function') m._updateThumb();
+    }).catch(() => {});
+
     const itemList = [{id: 'acorn'}, {id: 'plant_acorn'}];
     document.querySelectorAll('#shop-items-container .shop-item').forEach((el, i) => {
       if (itemList[i]?.id === savedId) el.click();

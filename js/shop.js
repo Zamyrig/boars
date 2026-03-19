@@ -12,23 +12,109 @@ const SHOP_ITEMS = [
   { id: 'plant_acorn', name: 'Росток', icon: 'assets/acorn_planter_1.png', emoji: '🌱' },
 ];
 
+// ── Тоггл ─────────────────────────────────────────────────────────────────────
+// Пересчитываем ширину/позицию ползунка по реальным DOM-размерам
+
+export function _updateThumb() {
+  const wrap   = document.getElementById('shop-toggle-wrap');
+  const thumb  = document.getElementById('shop-toggle-thumb');
+  const buyLbl = document.getElementById('shop-buy-label');
+  const selLbl = document.getElementById('shop-sell-label');
+  if (!wrap || !thumb || !buyLbl || !selLbl) return;
+
+  const isSell = state.currentAction === 'sell';
+  const target = isSell ? selLbl : buyLbl;
+
+  // Позиция относительно wrap (с учётом padding: 3px)
+  const wrapRect   = wrap.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+
+  thumb.style.width     = targetRect.width + 'px';
+  thumb.style.transform = `translateX(${targetRect.left - wrapRect.left - 3}px)`;
+}
+
+// ── Инициализация HTML тоггла ─────────────────────────────────────────────────
+function _initToggleDOM() {
+  // Находим шапку магазина и пересоздаём тоггл-враппер
+  const header = document.querySelector('#scr-shop .shop-header');
+  if (!header) return;
+
+  // Убираем старый враппер если есть
+  const oldWrap = header.querySelector('.shop-toggle-wrap');
+  if (oldWrap) oldWrap.remove();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'shop-toggle-wrap';
+  wrap.id = 'shop-toggle-wrap';
+  wrap.onclick = toggleActionMini;
+  wrap.innerHTML = `
+    <div class="shop-toggle-thumb" id="shop-toggle-thumb"></div>
+    <span class="shop-toggle-label buy-label"  id="shop-buy-label">КУПИТЬ</span>
+    <span class="shop-toggle-label sell-label" id="shop-sell-label">ПРОДАТЬ</span>
+  `;
+  header.appendChild(wrap);
+
+  // Позиционируем thumb после рендера
+  requestAnimationFrame(() => requestAnimationFrame(_updateThumb));
+}
+
+// ── Qty stepper ───────────────────────────────────────────────────────────────
+function _initStepperDOM() {
+  const row = document.querySelector('#scr-shop .shop-qty-row');
+  if (!row) return;
+
+  // Убираем старый input
+  row.innerHTML = '';
+
+  const stepper = document.createElement('div');
+  stepper.className = 'qty-stepper';
+  stepper.innerHTML = `
+    <button class="qty-stepper-btn" id="qty-btn-minus" onclick="shopQtyStep(-1)">−</button>
+    <input  class="qty-stepper-val" id="qty-input" type="number"
+            value="1" min="1" inputmode="numeric"
+            oninput="onQtyInput(this.value)">
+    <button class="qty-stepper-btn" id="qty-btn-plus"  onclick="shopQtyStep(1)">+</button>
+  `;
+  row.appendChild(stepper);
+
+  // Делаем shopQtyStep доступным глобально (вызывается из onclick)
+  window.shopQtyStep = shopQtyStep;
+}
+
+// ── resetShopState ─────────────────────────────────────────────────────────────
+
 export function resetShopState() {
   state.currentShopItem     = null;
   state.currentShopQuantity = 1;
   state.currentAction       = 'buy';
 
-  document.getElementById('qty-input').value                    = '1';
-  document.getElementById('detail-icon-placeholder').style.display = 'inline';
-  document.getElementById('detail-icon-big').style.display         = 'none';
-  document.getElementById('detail-name').innerText              = 'Выберите предмет';
-  document.getElementById('detail-price').innerHTML             = 'Цена: —';
-  document.getElementById('total-cost').style.display           = 'none';
+  _initToggleDOM();
+  _initStepperDOM();
+
+  const qtyInput = document.getElementById('qty-input');
+  if (qtyInput) qtyInput.value = '1';
+
+  const iconPh = document.getElementById('detail-icon-placeholder');
+  const iconBig = document.getElementById('detail-icon-big');
+  if (iconPh)  { iconPh.style.display = 'inline'; iconPh.innerText = '📦'; }
+  if (iconBig) iconBig.style.display = 'none';
+
+  const detailName  = document.getElementById('detail-name');
+  const detailPrice = document.getElementById('detail-price');
+  const totalCost   = document.getElementById('total-cost');
+  if (detailName)  detailName.innerText = 'Выберите предмет';
+  if (detailPrice) detailPrice.innerHTML = 'Цена: —';
+  if (totalCost)   totalCost.style.display = 'none';
+
   document.querySelectorAll('#shop-items-container .shop-item').forEach(el => el.classList.remove('selected'));
-  document.getElementById('shop-toggle-mini').classList.remove('sell-mode');
-  document.getElementById('shop-action-label').style.color     = 'var(--win)';
-  document.getElementById('shop-action-label').innerText        = 'КУПИТЬ';
+
+  const wrap = document.getElementById('shop-toggle-wrap');
+  if (wrap) wrap.classList.remove('sell-mode');
+
   updateTradeButton();
 }
+
+// ── loadShopItems ─────────────────────────────────────────────────────────────
 
 export async function loadShopItems() {
   await loadPrices();
@@ -52,36 +138,44 @@ export async function loadShopItems() {
       <div class="shop-item-price">${displayPrice} <img src="${BASE}/assets/boarcoin.png" class="coin-icon" alt=""></div>`;
     container.appendChild(div);
   }
+
+  // после рендера позиционируем thumb
+  requestAnimationFrame(() => requestAnimationFrame(_updateThumb));
 }
 
 function selectShopItem(item, el) {
   state.currentShopItem     = item;
   state.currentShopQuantity = 1;
-  document.getElementById('qty-input').value = 1;
+  const qi = document.getElementById('qty-input');
+  if (qi) qi.value = 1;
 
-  document.getElementById('detail-icon-placeholder').style.display = 'none';
+  const iconPh = document.getElementById('detail-icon-placeholder');
   const bigIcon = document.getElementById('detail-icon-big');
-  bigIcon.src   = `${BASE}/${item.icon}`;
-  bigIcon.style.display = 'block';
-  bigIcon.onerror = () => {
-    bigIcon.style.display = 'none';
-    const ph = document.getElementById('detail-icon-placeholder');
-    ph.style.display = 'inline';
-    ph.innerText = item.emoji;
-  };
+  if (iconPh)  iconPh.style.display = 'none';
+  if (bigIcon) {
+    bigIcon.src = `${BASE}/${item.icon}`;
+    bigIcon.style.display = 'block';
+    bigIcon.onerror = () => {
+      bigIcon.style.display = 'none';
+      if (iconPh) { iconPh.style.display = 'inline'; iconPh.innerText = item.emoji; }
+    };
+  }
   document.getElementById('detail-name').innerText = item.name;
   updatePriceDisplay();
   document.querySelectorAll('#shop-items-container .shop-item').forEach(e => e.classList.remove('selected'));
   el.classList.add('selected');
+  tg.HapticFeedback.selectionChanged();
 }
 
+// ── Тоггл логика ──────────────────────────────────────────────────────────────
+
 export function toggleActionMini() {
-  const toggle = document.getElementById('shop-toggle-mini');
-  toggle.classList.toggle('sell-mode');
-  state.currentAction = toggle.classList.contains('sell-mode') ? 'sell' : 'buy';
-  const label = document.getElementById('shop-action-label');
-  label.innerText   = state.currentAction === 'buy' ? 'КУПИТЬ' : 'ПРОДАТЬ';
-  label.style.color = state.currentAction === 'buy' ? 'var(--win)' : 'var(--lose)';
+  const wrap = document.getElementById('shop-toggle-wrap');
+  if (!wrap) return;
+  wrap.classList.toggle('sell-mode');
+  state.currentAction = wrap.classList.contains('sell-mode') ? 'sell' : 'buy';
+  tg.HapticFeedback.selectionChanged();
+  requestAnimationFrame(() => requestAnimationFrame(_updateThumb));
   updatePriceDisplay();
   updateShopItemPrices();
   updateTradeButton();
@@ -110,17 +204,33 @@ export function updateShopItemPrices() {
 function updatePriceDisplay() {
   const totalCostEl = document.getElementById('total-cost');
   if (!state.currentShopItem) {
-    document.getElementById('detail-price').innerHTML = 'Цена: —';
-    totalCostEl.style.display = 'none';
+    const dp = document.getElementById('detail-price');
+    if (dp) dp.innerHTML = 'Цена: —';
+    if (totalCostEl) totalCostEl.style.display = 'none';
     return;
   }
   const price = state.currentAction === 'buy' ? state.currentShopItem.price : state.currentShopItem.sell_price;
   const total = price * state.currentShopQuantity;
-  document.getElementById('detail-price').innerHTML =
-    `${price} <img src="${BASE}/assets/boarcoin.png" class="coin-icon" alt=""> / шт.`;
-  totalCostEl.innerHTML =
-    `${price} <img src="${BASE}/assets/boarcoin.png" class="coin-icon" alt=""> × ${state.currentShopQuantity} = <b>${total.toLocaleString()}</b> <img src="${BASE}/assets/boarcoin.png" class="coin-icon" alt="">`;
-  totalCostEl.style.display = 'flex';
+  const dp = document.getElementById('detail-price');
+  if (dp) dp.innerHTML = `${price} <img src="${BASE}/assets/boarcoin.png" class="coin-icon" alt=""> / шт.`;
+  if (totalCostEl) {
+    totalCostEl.innerHTML =
+      `${price} <img src="${BASE}/assets/boarcoin.png" class="coin-icon" alt=""> × ${state.currentShopQuantity} = <b>${total.toLocaleString()}</b> <img src="${BASE}/assets/boarcoin.png" class="coin-icon" alt="">`;
+    totalCostEl.style.display = 'flex';
+  }
+}
+
+// ── Qty stepper callbacks ─────────────────────────────────────────────────────
+
+export function shopQtyStep(delta) {
+  let qty = state.currentShopQuantity + delta;
+  if (qty < 1)      qty = 1;
+  if (qty > 999999) qty = 999999;
+  state.currentShopQuantity = qty;
+  const qi = document.getElementById('qty-input');
+  if (qi) qi.value = qty;
+  tg.HapticFeedback.selectionChanged();
+  updatePriceDisplay();
 }
 
 export function onQtyInput(value) {
@@ -131,8 +241,14 @@ export function onQtyInput(value) {
   updatePriceDisplay();
 }
 
+// ── Транзакция ────────────────────────────────────────────────────────────────
+
 export async function performTransaction() {
-  if (!state.currentShopItem) { tg.HapticFeedback.notificationOccurred('error'); showToast('Выберите предмет'); return; }
+  if (!state.currentShopItem) {
+    tg.HapticFeedback.notificationOccurred('error');
+    showToast('Выберите предмет');
+    return;
+  }
   const endpoint = state.currentAction === 'buy' ? '/api/shop/buy' : '/api/shop/sell';
   const response = await apiFetch(endpoint, {
     method: 'POST',
