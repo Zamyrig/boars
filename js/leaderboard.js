@@ -15,23 +15,22 @@ function findUserRank(data) {
 function formatLastSeen(lastSeen) {
   if (!lastSeen) return '<span class="lb-last-seen">был в сети давно</span>';
   try {
-    const date = new Date(lastSeen + 'Z');
-    const now = new Date();
-    const diffMs = now - date;
+    const date    = new Date(lastSeen + 'Z');
+    const now     = new Date();
+    const diffMs  = now - date;
     const diffMin = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+    const diffH   = Math.floor(diffMs / 3600000);
+    const diffD   = Math.floor(diffMs / 86400000);
 
     let text;
-    if (diffMin < 2)         text = 'только что';
-    else if (diffMin < 60)   text = `${diffMin} мин. назад`;
-    else if (diffHours < 24) text = `${diffHours} ч. назад`;
-    else if (diffDays < 7)   text = `${diffDays} дн. назад`;
+    if (diffMin < 2)       text = 'только что';
+    else if (diffMin < 60) text = `${diffMin} мин. назад`;
+    else if (diffH < 24)   text = `${diffH} ч. назад`;
+    else if (diffD < 7)    text = `${diffD} дн. назад`;
     else {
-      const d = date.getDate().toString().padStart(2, '0');
-      const m = (date.getMonth() + 1).toString().padStart(2, '0');
-      const y = date.getFullYear();
-      text = `${d}.${m}.${y}`;
+      const d = date.getDate().toString().padStart(2,'0');
+      const m = (date.getMonth()+1).toString().padStart(2,'0');
+      text = `${d}.${m}.${date.getFullYear()}`;
     }
     return `<span class="lb-last-seen">${text}</span>`;
   } catch {
@@ -122,7 +121,7 @@ function renderLeaderboard(data) {
       </div>
       <div class="lb-values">
         <div class="lb-value-row lb-val-gold">${u.balance.toLocaleString()} <img src="${BASE}/assets/boarcoin.png" class="coin-icon" alt=""></div>
-        <div class="lb-value-row lb-val-acorn">${(u.acorns || 0).toLocaleString()} <img src="${BASE}/assets/acorn.png" class="acorn-icon" alt=""></div>
+        <div class="lb-value-row lb-val-acorn">${(u.acorns||0).toLocaleString()} <img src="${BASE}/assets/acorn.png" class="acorn-icon" alt=""></div>
       </div>`;
     item.onclick = () => showUserDetail(u);
     list.appendChild(item);
@@ -131,14 +130,14 @@ function renderLeaderboard(data) {
 
 export function showUserDetail(u) {
   tg.HapticFeedback.selectionChanged();
-  document.getElementById('modal-user-name').innerText    = u.display_name || u.username;
-  document.getElementById('modal-games').innerText        = u.total_games || 0;
-  document.getElementById('modal-wins').innerText         = u.wins || 0;
-  document.getElementById('modal-lose').innerText         = u.lose || 0;
+  document.getElementById('modal-user-name').innerText   = u.display_name || u.username;
+  document.getElementById('modal-games').innerText       = u.total_games || 0;
+  document.getElementById('modal-wins').innerText        = u.wins || 0;
+  document.getElementById('modal-lose').innerText        = u.lose || 0;
   const wr = u.total_games > 0 ? Math.round((u.wins / u.total_games) * 100) : 0;
-  document.getElementById('modal-winrate').innerText      = wr + '%';
-  document.getElementById('modal-max-balance').innerText  = (u.max_balance || 0).toLocaleString();
-  document.getElementById('modal-watched').innerText      = (u.watched_battles || 0).toLocaleString();
+  document.getElementById('modal-winrate').innerText     = wr + '%';
+  document.getElementById('modal-max-balance').innerText = (u.max_balance || 0).toLocaleString();
+  document.getElementById('modal-watched').innerText     = (u.watched_battles || 0).toLocaleString();
 
   const btn = document.getElementById('modal-write-btn');
   if (u.username) {

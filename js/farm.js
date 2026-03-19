@@ -87,8 +87,6 @@ export function formatFarmTime(sec) {
   return `${s}с`;
 }
 
-// ── Модалка фермы ─────────────────────────────────────────────
-
 function openFarmModal(icon, title, bodyHtml) {
   document.getElementById('farm-modal-icon').innerText       = icon;
   document.getElementById('farm-modal-title-text').innerText = title;
@@ -99,12 +97,10 @@ function openFarmModal(icon, title, bodyHtml) {
 
 export function closeFarmModal() {
   document.getElementById('farm-modal').style.display = 'none';
-  state.farmConfirmMode = false;
+  state.farmConfirmMode  = false;
   state.selectedFarmItem = null;
   state.activeFarmSlot   = null;
 }
-
-// ── Разблокировка слота ───────────────────────────────────────
 
 function openFarmUnlockModal(slotNum) {
   const cfg  = FARM_SLOT_CONFIGS.find(c => c.slot === slotNum);
@@ -148,13 +144,11 @@ export async function doFarmUnlock(slotNum) {
   }
 }
 
-// ── Посадка ───────────────────────────────────────────────────
-
 function _farmItemIconHtml(itemId) {
-  const def = state.itemDefs[itemId] || {};
-  const loc = { acorn: 'assets/acorn.png', plant_acorn: 'assets/acorn_planter_1.png' };
+  const def   = state.itemDefs[itemId] || {};
+  const loc   = { acorn: 'assets/acorn.png', plant_acorn: 'assets/acorn_planter_1.png' };
   const emoji = { acorn: '🌰', plant_acorn: '🌱' };
-  const src = def.icon || loc[itemId];
+  const src   = def.icon || loc[itemId];
   if (src) return `<img src="${BASE}/${src}" onerror="this.style.display='none';this.nextSibling.style.display='block'" style="width:2rem;height:2rem;object-fit:contain;image-rendering:pixelated;display:block;margin:0 auto 4px;"><span style="display:none;font-size:1.8rem;">${def.emoji || emoji[itemId] || '🌱'}</span>`;
   return `<span class="farm-pick-icon">${def.emoji || emoji[itemId] || '🌱'}</span>`;
 }
@@ -221,8 +215,7 @@ export function doFarmPlantConfirm() {
     state.farmConfirmMode = true;
     const btn = document.querySelector('#farm-modal-body .farm-confirm-row .btn-wood:last-child');
     if (btn) {
-      btn.textContent      = '✓ Подтвердить';
-      // жёлтый — как btn-play
+      btn.textContent     = '✓ Подтвердить';
       btn.style.background = 'var(--gold)';
       btn.style.color      = '#000';
       btn.style.boxShadow  = '0 4px 0 #cca300';
@@ -252,8 +245,6 @@ async function doFarmPlant() {
     showToast(resp?.error || 'Ошибка');
   }
 }
-
-// ── Растёт / сбор ─────────────────────────────────────────────
 
 export function openFarmGrowingModal(slotNum, slotData) {
   openFarmModal('🌿', `Слот ${slotNum}`, `

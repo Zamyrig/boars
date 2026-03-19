@@ -36,7 +36,7 @@ export async function loadItemDefs() {
     state.itemDefs = await res.json();
   } catch {
     state.itemDefs = {
-      acorn:       { name: 'Желудь', description: 'Основная валюта леса.',          icon: 'assets/acorn.png',           emoji: '🌰' },
+      acorn:       { name: 'Желудь', description: 'Основная валюта леса.',           icon: 'assets/acorn.png',           emoji: '🌰' },
       plant_acorn: { name: 'Росток', description: 'Посади на ферме и собери урожай.', icon: 'assets/acorn_planter_1.png', emoji: '🌱' },
     };
   }

@@ -4,18 +4,17 @@
 import { state } from './state.js';
 import { apiFetch, loadPrices, loadItemDefs } from './api.js';
 import { nav, navLocation, updateUI, showToast, closeResult, updateWatchButton, startWatchCooldownTick } from './ui.js';
-import { renderInventory, openItemDetail, closeItemDetail, quickSellFromDetail, switchInvTab } from './inventory.js';
+import { renderInventory, renderInventoryPotions, openItemDetail, closeItemDetail, quickSellFromDetail, switchInvTab } from './inventory.js';
 import { loadFarmState, renderFarmSlots, closeFarmModal, selectFarmItem, doFarmPlantConfirm, doFarmUnlock, openFarmPlantModal, openFarmHarvestModal, openFarmGrowingModal, doFarmHarvest } from './farm.js';
 import { loadForestState, startRaid, returnRaid, collectRaid } from './forest.js';
-import { tryStartBattle, watchBattle, preStart } from './battle.js';
+import { tryStartBattle, watchBattle, preStart, rpgAction, rpgPotionSelect } from './battle.js';
 import { resetShopState, loadShopItems, toggleActionMini, onQtyInput, shopQtyStep, performTransaction } from './shop.js';
 import { loadRank, toggleFullLeaderboard, showUserDetail, closeModal } from './leaderboard.js';
 import { updateName, togglePrivateProfile } from './profile.js';
+import { renderMap, tryBuyFarm } from './map.js';
 
 const tg = window.Telegram.WebApp;
 tg.expand();
-
-// ── Авторизация ───────────────────────────────────────────────
 
 async function auth() {
   const tgUser = tg.initDataUnsafe?.user || { id: 'dev_user', username: 'kaban', first_name: 'Хряк' };
@@ -34,6 +33,8 @@ async function auth() {
   if (forestData) state.forestState = forestData;
 
   if (state.user) {
+    if (state.user.potion_hp  === undefined) state.user.potion_hp  = 0;
+    if (state.user.potion_sta === undefined) state.user.potion_sta = 0;
     state.watchCooldownRemaining = state.user.watch_cooldown_remaining || 0;
     updateUI();
     updateWatchButton();
@@ -44,53 +45,58 @@ async function auth() {
   }
 }
 
-// ── Экспорт в window ──────────────────────────────────────────
-
 Object.assign(window, {
-  // навигация
   nav,
   navLocation,
   closeResult,
 
-  // инвентарь
   openItemDetail,
   closeItemDetail,
   quickSellFromDetail,
   switchInvTab,
+  renderInventoryPotions,
 
-  // ферма
   closeFarmModal,
   selectFarmItem,
   doFarmPlantConfirm,
   doFarmUnlock,
   doFarmHarvest,
 
-  // лес
   startRaid,
   returnRaid,
   collectRaid,
 
-  // бой
   tryStartBattle,
   watchBattle,
   preStart,
+  rpgAction,
+  rpgPotionSelect,
 
-  // магазин
   toggleActionMini,
   onQtyInput,
   shopQtyStep,
   performTransaction,
 
-  // рейтинг
   toggleFullLeaderboard,
   showUserDetail,
   closeModal,
 
-  // профиль
   updateName,
   togglePrivateProfile,
+
+  renderMap,
+  tryBuyFarm,
 });
 
-// ── Старт ─────────────────────────────────────────────────────
+// nav с хуками для карты, фермы, леса, поселения
+const _origNav = window.nav;
+window.nav = function(id) {
+  _origNav(id);
+  if (id === 'scr-map')             renderMap();
+  if (id === 'scr-farm-location')   loadFarmState();
+  if (id === 'scr-farm-buy')         {} // static screen
+  if (id === 'scr-forest-location') loadForestState();
+};
+
 document.getElementById('version-label').textContent = 'v' + APP_VERSION;
 auth();

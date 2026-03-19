@@ -41,6 +41,8 @@ def init_db():
         'watched_battles': 'INTEGER DEFAULT 0',
         'last_watch_reward_at': 'TIMESTAMP DEFAULT NULL',
         'last_seen': 'TIMESTAMP DEFAULT NULL',
+        'potion_hp': 'INTEGER DEFAULT 0',
+        'potion_sta': 'INTEGER DEFAULT 0',
     }
 
     for col, col_def in new_columns.items():

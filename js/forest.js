@@ -13,7 +13,6 @@ export async function loadForestState() {
   const data = await apiFetch(`/api/forest/state?tg_id=${state.user.tg_id}`);
   if (!data) return;
 
-  // Показываем тост если кабан только что вернулся из похода пока нас не было
   if (data.just_returned) {
     const acorns = data.acorns_found || 0;
     tg.HapticFeedback.notificationOccurred('success');
@@ -21,7 +20,6 @@ export async function loadForestState() {
       ? `Кабан вернулся пока тебя не было! Нашёл 🌰 ${acorns} желудей за ${RAID_MAX_HOURS} ч.`
       : 'Кабан вернулся пока тебя не было, но ничего не нашёл 😔'
     );
-    // Обновляем баланс желудей
     state.user.acorns = (state.user.acorns || 0) + acorns;
     document.getElementById('acorns-val').innerText = state.user.acorns.toLocaleString();
   }
@@ -97,7 +95,6 @@ export function startForestTimer() {
       if (hoursEl) hoursEl.textContent = Math.floor((RAID_MAX_HOURS * 3600 - state.forestState.seconds_left) / 3600);
       if (state.forestState.seconds_left === 0) {
         clearInterval(state.forestTimerInterval);
-        // Перезагружаем состояние с сервера — там уже будет resting с честным таймером
         loadForestState();
       }
     } else if (state.forestState.state === 'resting') {

@@ -5,16 +5,12 @@ from db.database import get_db_connection, check_update_max_balance
 
 battle_bp = Blueprint('battle', __name__)
 
-WATCH_REWARD = 200
+WATCH_REWARD = 200           
 WATCH_COOLDOWN_HOURS = 2
 
 
 @battle_bp.route('/api/battle/watch', methods=['POST'])
 def watch_battle():
-    """
-    Просмотр боя. Всегда разрешен.
-    Награда 200 монет выдается только если прошло 2 часа с последнего вознаграждения.
-    """
     data = request.get_json()
     tg_id = str(data.get('tg_id'))
 
@@ -27,8 +23,7 @@ def watch_battle():
         user = cursor.fetchone()
 
         if not user:
-            conn.rollback()
-            conn.close()
+            conn.rollback(); conn.close()
             return jsonify({'error': 'User not found'}), 404
 
         now = datetime.utcnow()
@@ -66,7 +61,6 @@ def watch_battle():
 
         conn.commit()
 
-        # Пересчитываем кулдаун
         watch_cooldown_remaining = 0
         if new_last_watch:
             try:
@@ -96,22 +90,13 @@ def watch_battle():
         })
 
     except Exception as e:
-        conn.rollback()
-        conn.close()
+        conn.rollback(); conn.close()
         print(f"Watch battle error: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
 
 @battle_bp.route('/api/battle/init', methods=['POST'])
 def battle_init():
-    """
-    Инициализация боя:
-    1. Проверяем баланс
-    2. Списываем ставку АТОМАРНО
-    3. Считаем результат (50/50)
-    4. Начисляем x2 если победа
-    5. Возвращаем результат клиенту
-    """
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No data provided'}), 400
@@ -134,13 +119,11 @@ def battle_init():
         user = cursor.fetchone()
 
         if not user:
-            conn.rollback()
-            conn.close()
+            conn.rollback(); conn.close()
             return jsonify({'error': 'User not found'}), 404
 
         if user['balance'] < bet_amount:
-            conn.rollback()
-            conn.close()
+            conn.rollback(); conn.close()
             return jsonify({'error': 'Insufficient balance'}), 400
 
         new_balance = user['balance'] - bet_amount
@@ -192,7 +175,68 @@ def battle_init():
         })
 
     except Exception as e:
-        conn.rollback()
-        conn.close()
+        conn.rollback(); conn.close()
         print(f"Battle init error: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@battle_bp.route('/api/battle/rpg-result', methods=['POST'])
+def rpg_result():
+    """Сохраняет результат RPG боя и начисляет награду."""
+    data = request.get_json()
+    tg_id  = str(data.get('tg_id'))
+    is_win = bool(data.get('is_win', False))
+    reward = int(data.get('reward', 0))
+    enemy  = str(data.get('enemy', 'mine_grunt'))
+
+    if reward < 0 or reward > 10000:
+        return jsonify({'error': 'Invalid reward'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('BEGIN IMMEDIATE')
+        cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
+        user = cursor.fetchone()
+        if not user:
+            conn.rollback(); conn.close()
+            return jsonify({'error': 'User not found'}), 404
+
+        new_balance = user['balance'] + reward
+
+        if is_win:
+            cursor.execute('''
+                UPDATE users SET balance = ?, total_games = total_games + 1,
+                wins = wins + 1, updated_at = CURRENT_TIMESTAMP WHERE tg_id = ?
+            ''', (new_balance, tg_id))
+        else:
+            cursor.execute('''
+                UPDATE users SET total_games = total_games + 1,
+                lose = lose + 1, updated_at = CURRENT_TIMESTAMP WHERE tg_id = ?
+            ''', (tg_id,))
+            new_balance = user['balance']
+
+        check_update_max_balance(cursor, tg_id, new_balance)
+
+        cursor.execute('''
+            INSERT INTO battle_history (tg_id, opponent_display_name, bet_amount, is_win, reward_given)
+            VALUES (?, ?, 0, ?, ?)
+        ''', (tg_id, enemy, int(is_win), int(is_win and reward > 0)))
+
+        conn.commit()
+        cursor.execute('SELECT balance, total_games, wins, lose FROM users WHERE tg_id = ?', (tg_id,))
+        updated = cursor.fetchone()
+        conn.close()
+
+        return jsonify({
+            'success':     True,
+            'new_balance': updated['balance'],
+            'total_games': updated['total_games'],
+            'wins':        updated['wins'],
+            'lose':        updated['lose'],
+        })
+
+    except Exception as e:
+        conn.rollback(); conn.close()
+        print(f"rpg-result error: {e}")
         return jsonify({'error': 'Internal server error'}), 500

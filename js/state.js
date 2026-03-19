@@ -1,6 +1,5 @@
 // ============================================================
 // state.js — общее состояние приложения
-// Единственный источник правды для всех модулей.
 // ============================================================
 
 export const RAID_MAX_HOURS  = 10;
@@ -28,7 +27,47 @@ export const INV_TAB_BG = {
   bag: 'bg-inventory', farm: 'bg-farm', forest: 'bg-forest', mine: 'bg-mine', cave: 'bg-main',
 };
 
+// ── Прогресс (localStorage) ───────────────────────────────────
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem('wtb_progress');
+    const p = raw ? JSON.parse(raw) : {};
+    return {
+      defeated_bosses: p.defeated_bosses || [],
+      farm_owned: p.farm_owned || false,
+    };
+  } catch { return { defeated_bosses: [], farm_owned: false }; }
+}
+
+function saveProgress(p) {
+  try { localStorage.setItem('wtb_progress', JSON.stringify(p)); } catch {}
+}
+
+export const progress = loadProgress();
+
+export function defeatBoss(bossId) {
+  if (!progress.defeated_bosses.includes(bossId)) {
+    progress.defeated_bosses.push(bossId);
+    saveProgress(progress);
+  }
+}
+
+export function isBossDefeated(bossId) {
+  return progress.defeated_bosses.includes(bossId);
+}
+
+export function buyFarm() {
+  progress.farm_owned = true;
+  saveProgress(progress);
+}
+
+export function isFarmOwned() {
+  return progress.farm_owned;
+}
+
 // ── Мутируемое состояние ─────────────────────────────────────
+
 export const state = {
   user: null,
   prices: {},
@@ -41,6 +80,9 @@ export const state = {
   battleResult: null,
   watchCooldownRemaining: 0,
   watchCooldownTimer: null,
+
+  // rpg
+  rpg: null,
 
   // магазин
   currentShopItem: null,
