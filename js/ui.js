@@ -5,17 +5,11 @@ import { state } from './state.js';
 import { renderInventory, switchInvTab } from './inventory.js';
 import { resetShopState, loadShopItems } from './shop.js';
 import { loadRank } from './leaderboard.js';
+import { coinImg, acornImg, seedImg } from './assets.js';
+
+export { coinImg, acornImg, seedImg };
 
 const tg = window.Telegram.WebApp;
-
-// ── Фоны ─────────────────────────────────────────────────────
-// assets/: main_menu.png → bg-main
-//          mine.png      → bg-mine
-//          fight_field.png → bg-fight
-//          inventory.png → bg-inventory
-//          shop.png      → bg-shop
-//          farm.png      → bg-farm
-// Если нет файла под локацию → bg-main как заглушка
 
 const ALL_BGS = ['bg-main','bg-mine','bg-fight','bg-inventory','bg-shop','bg-farm'];
 
@@ -32,8 +26,8 @@ const SCREEN_BG = {
   'scr-shop':           'bg-shop',
   'scr-farm-location':  'bg-farm',
   'scr-farm-buy':       'bg-farm',
-  'scr-field':          'bg-main',       // заглушка, заменить на bg-field когда появится fight_field.png
-  'scr-settlement':     'bg-main',       // заглушка
+  'scr-field':          'bg-main',
+  'scr-settlement':     'bg-main',
 };
 
 const CARD_SCREENS = new Set([
@@ -149,7 +143,7 @@ export function updateWatchButton() {
     rewardLine.className = '';
   } else {
     btn.classList.remove('on-cooldown');
-    rewardLine.innerHTML = `+ 200 <img src="${BASE}/assets/boarcoin.png" class="coin-icon" alt="">`;
+    rewardLine.innerHTML = `+ 200 ${coinImg()}`;
     rewardLine.className = 'watch-reward-line';
   }
 }
@@ -170,10 +164,6 @@ export function startWatchCooldownTick() {
 }
 
 // ── Результат боя ─────────────────────────────────────────────
-
-export function coinImg(size = '1.2em') {
-  return `<img src="${BASE}/assets/boarcoin.png" style="width:${size};height:${size};vertical-align:middle;margin-bottom:2px;" alt="">`;
-}
 
 export function showResult(title, amount, type) {
   const overlay = document.getElementById('result-overlay');

@@ -357,18 +357,37 @@ input:checked + .slider:before { transform: translateX(76px); }
 
 /* Арена — кабаны занимают только верхние 60% экрана */
 #scr-fight .arena {
-  bottom: auto;
-  top: calc(var(--safe-top) + 60px);
-  height: 52%;
+  /* Кабаны занимают среднюю зону, выше панели кнопок */
+  position: absolute;
+  bottom: 38%;   /* над панелью кнопок */
+  top: calc(var(--safe-top) + 50px);
+  width: 100%;
+  height: auto;
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
 }
 
-/* Лог боя */
+/* Лог боя — прямо над панелью кнопок, не перекрывает кабанов */
 #scr-fight #fight-log {
   position: absolute;
-  bottom: calc(42% + var(--safe-bottom));
+  bottom: calc(36% + var(--safe-bottom));
   left: 50%; transform: translateX(-50%);
   white-space: nowrap;
   font-size: 0.82rem;
+  z-index: 45;
+}
+
+/* На широких экранах — кабаны крупнее */
+@media (min-aspect-ratio: 4/3) {
+  #scr-fight .arena {
+    bottom: 35%;
+  }
+  #scr-fight #fight-log {
+    bottom: calc(33% + var(--safe-bottom));
+  }
+  .boar-container { width: 30%; }
+  .boar-unit img  { max-width: 180px; margin: 0 auto; }
 }
 
 /* Панель кнопок — прижата к низу */

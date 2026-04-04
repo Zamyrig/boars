@@ -1,5 +1,5 @@
 // ============================================================
-// forest.js — поход в лес
+// forest.js — поход кабана в лес
 // ============================================================
 import { state, RAID_MAX_HOURS, RAID_REST_HOURS } from './state.js';
 import { apiFetch } from './api.js';
@@ -17,19 +17,17 @@ export async function loadForestState() {
     const acorns = data.acorns_found || 0;
     tg.HapticFeedback.notificationOccurred('success');
     showToast(acorns > 0
-      ? `Кабан вернулся пока тебя не было! Нашёл 🌰 ${acorns} желудей за ${RAID_MAX_HOURS} ч.`
-      : 'Кабан вернулся пока тебя не было, но ничего не нашёл 😔'
+      ? `Кабан вернулся! Нашёл 🌰 ${acorns} желудей за ${RAID_MAX_HOURS} ч.`
+      : 'Кабан вернулся, но ничего не нашёл 😔'
     );
     state.user.acorns = (state.user.acorns || 0) + acorns;
     document.getElementById('acorns-val').innerText = state.user.acorns.toLocaleString();
   }
 
   state.forestState = data;
-  const forestContent = document.getElementById('inv-content-forest');
-  if (forestContent && forestContent.style.display !== 'none') {
-    renderForestUI();
-    startForestTimer();
-  }
+  // Рендерим в forest-state-area (scr-field), не проверяем старый inv-content-forest
+  renderForestUI();
+  startForestTimer();
 }
 
 export function renderForestUI() {
@@ -39,7 +37,7 @@ export function renderForestUI() {
 
   if (s.state === 'idle') {
     area.innerHTML = `
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:20px 10px;">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:20px 10px;">
         <div style="font-size:3.5rem;">🐗</div>
         <div style="font-weight:800;font-size:1rem;">Кабан дома</div>
         <div style="font-size:0.75rem;opacity:0.5;line-height:1.6;">Отправь кабана в поход — он найдёт желуди.<br>Максимум ${RAID_MAX_HOURS} часов, потом вернётся сам.</div>
@@ -48,19 +46,18 @@ export function renderForestUI() {
 
   } else if (s.state === 'raiding') {
     area.innerHTML = `
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:16px 10px;">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:16px 10px;">
         <div style="font-size:3rem;">🐗💨</div>
         <div style="font-weight:800;font-size:1rem;">Кабан в походе</div>
         <div style="font-size:0.75rem;opacity:0.5;">В лесу уже <span id="forest-hours-away">${s.hours_away}</span> ч.</div>
         <div style="font-size:0.72rem;opacity:0.4;margin-top:4px;">Авто-возврат через:</div>
         <div style="font-size:1.8rem;font-weight:900;color:var(--gold);" id="forest-timer">${formatFarmTime(s.seconds_left)}</div>
-        <div style="font-size:0.7rem;opacity:0.35;margin-top:4px;">~1 желудь/час в среднем</div>
       </div>
-      <button class="btn-wood" style="width:100%;font-size:0.85rem;opacity:0.85;" onclick="returnRaid()">🏡 Вернуть на поляну</button>`;
+      <button class="btn-wood" style="width:100%;font-size:0.85rem;" onclick="returnRaid()">🏡 Вернуть домой</button>`;
 
   } else if (s.state === 'raid_done') {
     area.innerHTML = `
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:16px 10px;">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:16px 10px;">
         <div style="font-size:3rem;">🐗✨</div>
         <div style="font-weight:800;font-size:1rem;">Кабан вернулся!</div>
         <div style="font-size:0.8rem;opacity:0.6;">Нашёл <b>${s.acorns_found}</b> 🌰 желудей</div>
@@ -69,12 +66,11 @@ export function renderForestUI() {
 
   } else if (s.state === 'resting') {
     area.innerHTML = `
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:16px 10px;">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:16px 10px;">
         <div style="font-size:3rem;">😴</div>
         <div style="font-weight:800;font-size:1rem;">Кабан отдыхает</div>
-        <div style="font-size:0.75rem;opacity:0.5;">После похода нужно восстановиться</div>
         <div style="font-size:1.8rem;font-weight:900;color:var(--lose);" id="forest-timer">${formatFarmTime(s.rest_seconds_left)}</div>
-        ${s.acorns_found ? `<div style="font-size:0.75rem;opacity:0.55;margin-top:4px;">С похода принёс: 🌰 ${s.acorns_found} желудей</div>` : ''}
+        ${s.acorns_found ? `<div style="font-size:0.75rem;opacity:0.55;">С похода принёс: 🌰 ${s.acorns_found} желудей</div>` : ''}
       </div>
       <button class="btn-wood" style="width:100%;opacity:0.35;cursor:not-allowed;" disabled>😴 Кабан устал</button>`;
   }
@@ -162,7 +158,7 @@ export async function collectRaid() {
     renderForestUI();
     startForestTimer();
     tg.HapticFeedback.notificationOccurred('success');
-    showToast(`Желуди забраны! 🌰 ${resp.acorns_found} Кабан отдыхает 😴`);
+    showToast(`Забрано! 🌰 ${resp.acorns_found} Кабан отдыхает 😴`);
   } else {
     tg.HapticFeedback.notificationOccurred('error');
     showToast(resp?.error || 'Ошибка');

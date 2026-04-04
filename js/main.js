@@ -88,14 +88,13 @@ Object.assign(window, {
   tryBuyFarm,
 });
 
-// nav с хуками для карты, фермы, леса, поселения
+// nav с хуками
 const _origNav = window.nav;
 window.nav = function(id) {
   _origNav(id);
-  if (id === 'scr-map')             renderMap();
-  if (id === 'scr-farm-location')   loadFarmState();
-  if (id === 'scr-farm-buy')         {} // static screen
-  if (id === 'scr-forest-location') loadForestState();
+  if (id === 'scr-map')           renderMap();
+  if (id === 'scr-farm-location') loadFarmState();
+  if (id === 'scr-field')         loadForestState();   // ФИКС: был scr-forest-location
 };
 
 document.getElementById('version-label').textContent = 'v' + APP_VERSION;

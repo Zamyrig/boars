@@ -1,22 +1,22 @@
 // ============================================================
 // battle.js — бой: визуалка кабанов + RPG кнопки
 // ============================================================
-import { state, defeatBoss, isBossDefeated } from './state.js';
+import { state, defeatBoss } from './state.js';
 import { apiFetch } from './api.js';
 import { nav, showToast, showBetDeduction, showResult, updateWatchButton, startWatchCooldownTick, coinImg } from './ui.js';
 import { renderInventoryPotions } from './inventory.js';
 
 const tg = window.Telegram.WebApp;
 
-const BASE_DMG     = 5;
-const ATTACK_STA   = 10;
-const BLOCK_STA        = 10;
-const BLOCK_STA_DRAIN  = 20;
-const BLOCK_RECOIL     = 0.10;
-const WAIT_STA     = 30;
-const POTION_STA   = 5;
-const BLOCK_REDUCE = 0.80;
-const BLOCK_MIN    = 0.10;
+const BASE_DMG        = 5;
+const ATTACK_STA      = 10;
+const BLOCK_STA       = 10;
+const BLOCK_STA_DRAIN = 20;
+const BLOCK_RECOIL    = 0.10;
+const WAIT_STA        = 30;
+const POTION_STA      = 5;
+const BLOCK_REDUCE    = 0.80;
+const BLOCK_MIN       = 0.10;
 
 // ── Конфиги врагов ───────────────────────────────────────────
 const ENEMY_CONFIGS = {
@@ -27,13 +27,14 @@ const ENEMY_CONFIGS = {
     hp: 85, sta: 85, baseDmg: BASE_DMG * 0.85,
     rewardMin: 25, rewardMax: 35,
     isBoss: false,
+    dropPotion: true,  // участвует в системе дропа зелий
   },
   boss_1: {
     name: 'Бригадир',
     img: 'assets/boars/boar_old.png',
     bgId: 'bg-mine',
-    hp: 150, sta: 150, baseDmg: 15,
-    rewardMin: 80, rewardMax: 120,
+    hp: 200, sta: 150, baseDmg: 9,  // снижен с 15 до 9 для баланса
+    rewardMin: 700, rewardMax: 800,
     isBoss: true,
     bossId: 'boss_1',
   },
@@ -72,7 +73,6 @@ export function tryStartBattle(enemyKey = 'mine_grunt') {
   initRpgState(enemyKey);
   _setupFightScreen();
 
-  // Устанавливаем нужный фон
   const allBgs = ['bg-main','bg-fight','bg-inventory','bg-shop','bg-farm','bg-mine','bg-forest'];
   allBgs.forEach(bg => {
     const el = document.getElementById(bg);
@@ -82,7 +82,6 @@ export function tryStartBattle(enemyKey = 'mine_grunt') {
   const bgEl = document.getElementById(cfg.bgId || 'bg-fight');
   if (bgEl) bgEl.style.display = 'block';
 
-  // Переходим на экран боя напрямую без nav() чтобы не затирать фон
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('scr-fight').classList.add('active');
   document.body.classList.remove('dimmed');
@@ -106,12 +105,7 @@ function _setupFightScreen() {
   boar2.src = cfg.img || 'assets/boars/boar.png';
   boar2.onerror = () => { boar2.src = 'assets/boars/boar.png'; };
 
-  const boar1 = document.getElementById('boar1-img');
-  boar1.src = 'assets/boars/boar.png';
-
-  const enemyNameEl = document.getElementById('rpg-enemy-name');
-  if (enemyNameEl) enemyNameEl.textContent = cfg.name;
-
+  document.getElementById('boar1-img').src = 'assets/boars/boar.png';
   document.getElementById('fight-log').innerText = 'Выбери действие!';
   _renderRpgBars();
   _renderPotionCounts();
@@ -212,16 +206,17 @@ function _closePotionMenu() {
 // ── ИИ врага ─────────────────────────────────────────────────
 
 function _enemyAI() {
-  const e = state.rpg.enemy;
+  const e   = state.rpg.enemy;
   const cfg = state.rpg.enemyCfg;
   if (e.sta <= 10) return 'wait';
   const roll = Math.random();
   if (cfg.isBoss) {
-    if (e.hp < e.maxHp * 0.3 && roll < 0.2) return 'wait';
-    if (roll < 0.1) return 'block';
-    if (roll < 0.2) return 'wait';
-    return 'attack';
+    // Бригадир: 60% атака, 30% ждать, 10% блок
+    if (roll < 0.60) return 'attack';
+    if (roll < 0.90) return 'wait';
+    return 'block';
   }
+  // Grunt AI
   if (e.hp < e.maxHp * 0.25 && roll < 0.35) return 'wait';
   if (roll < 0.12) return 'block';
   if (roll < 0.30) return 'wait';
@@ -247,8 +242,11 @@ function _doRpgRound(playerAction) {
     _syncPotionsToUser();
     _spawnDmg(document.getElementById('cont-1'), `+${heal}`, '#4cd964');
   } else if (playerAction === 'potion-sta') {
-    const restore = Math.round(p.maxSta * 0.5);
-    p.sta = Math.min(p.maxSta, p.sta + restore - POTION_STA);
+    // Восстанавливает до 90% maxSta независимо от текущего значения
+    const target  = Math.round(p.maxSta * 0.9);
+    const restore = Math.max(0, target - p.sta);
+    p.sta = Math.min(p.maxSta, p.sta + restore);
+    p.sta = Math.max(0, p.sta - POTION_STA);
     r.potions.sta--;
     _syncPotionsToUser();
     _spawnDmg(document.getElementById('cont-1'), `+${restore}СТА`, '#3b9eff');
@@ -258,72 +256,37 @@ function _doRpgRound(playerAction) {
   let playerBlocked = false, enemyBlocked = false;
   let recoilOnEnemy = 0, recoilOnPlayer = 0;
 
-  // Запоминаем СТА до снятия — для корректного лога блока
   const pStaBeforeBlock = p.sta;
   const eStaBeforeBlock = e.sta;
 
-  // ══ ИГРОК АТАКУЕТ, ВРАГ БЛОКИРУЕТ ══════════════════════════
-  // Игрок: снимаем СТА за атаку
-  // Враг:  если есть СТА — блок работает:
-  //          урон снижен, враг теряет -10 (блок) -20 (удар в щит) = -30 СТА
-  //          игрок получает отдачу от щита
-  //        если СТА нет — блок не работает, урон полный
-  // ════════════════════════════════════════════════════════════
   if (playerAction === 'attack') {
     playerDmg = p.sta <= 0 ? _rand(1,2) : Math.max(1, Math.round(p.baseDmg * (0.9 + Math.random() * 0.5)));
     if (p.sta > 0) p.sta = Math.max(0, p.sta - ATTACK_STA);
-
-    if (enemyAction === 'block') {
-      if (e.sta > 0) {
-        // Блок ВРАГА работает
-        enemyBlocked = true;
-        playerDmg = Math.max(Math.round(p.baseDmg * BLOCK_MIN), Math.round(playerDmg * (1 - BLOCK_REDUCE)));
-        e.sta = Math.max(0, e.sta - BLOCK_STA - BLOCK_STA_DRAIN); // враг: -10 за блок, -20 за удар в щит
-        recoilOnPlayer = Math.round(p.baseDmg * BLOCK_RECOIL);    // отдача бьёт по ИГРОКУ
-        p.hp = Math.max(0, p.hp - recoilOnPlayer);
-      }
-      // СТА нет — блок провален, playerDmg остаётся полным
+    if (enemyAction === 'block' && e.sta > 0) {
+      enemyBlocked = true;
+      playerDmg = Math.max(Math.round(p.baseDmg * BLOCK_MIN), Math.round(playerDmg * (1 - BLOCK_REDUCE)));
+      e.sta = Math.max(0, e.sta - BLOCK_STA - BLOCK_STA_DRAIN);
+      recoilOnPlayer = Math.round(p.baseDmg * BLOCK_RECOIL);
+      p.hp = Math.max(0, p.hp - recoilOnPlayer);
     }
     e.hp = Math.max(0, e.hp - playerDmg);
-
-  // ══ ИГРОК БЛОКИРУЕТ ═════════════════════════════════════════
-  // Игрок: тратит -10 СТА на сам блок (работа рук с щитом)
-  // Если враг потом ударит — враг потеряет -20 СТА (обработано ниже)
-  // ════════════════════════════════════════════════════════════
   } else if (playerAction === 'block') {
     if (p.sta > 0) p.sta = Math.max(0, p.sta - BLOCK_STA);
-
   } else if (playerAction === 'wait') {
     p.sta = Math.min(p.maxSta, p.sta + WAIT_STA);
   }
 
-  // ══ ВРАГ АТАКУЕТ, ИГРОК БЛОКИРУЕТ ═══════════════════════════
-  // Враг:  снимаем СТА за атаку
-  // Игрок: если есть СТА — блок работает:
-  //          урон снижен, ВРАГ теряет -20 СТА (удар в щит)
-  //          ВРАГ получает отдачу от щита
-  //        если СТА нет — блок не работает, урон полный
-  // ════════════════════════════════════════════════════════════
   if (enemyAction === 'attack') {
     enemyDmg = e.sta <= 0 ? _rand(1,2) : Math.max(1, Math.round(e.baseDmg * (0.9 + Math.random() * 0.5)));
     if (e.sta > 0) e.sta = Math.max(0, e.sta - ATTACK_STA);
-
-    if (playerAction === 'block') {
-      if (pStaBeforeBlock > 0) {
-        // Блок ИГРОКА работает (проверяем СТА ДО снятия -10 за блок)
-        playerBlocked = true;
-        enemyDmg = Math.max(Math.round(e.baseDmg * BLOCK_MIN), Math.round(enemyDmg * (1 - BLOCK_REDUCE)));
-        e.sta = Math.max(0, e.sta - BLOCK_STA_DRAIN); // ВРАГ теряет -20 СТА за удар в щит
-        recoilOnEnemy = Math.round(e.baseDmg * BLOCK_RECOIL); // отдача бьёт по ВРАГУ
-        e.hp = Math.max(0, e.hp - recoilOnEnemy);
-      }
-      // СТА нет — блок провален, enemyDmg остаётся полным
+    if (playerAction === 'block' && pStaBeforeBlock > 0) {
+      playerBlocked = true;
+      enemyDmg = Math.max(Math.round(e.baseDmg * BLOCK_MIN), Math.round(enemyDmg * (1 - BLOCK_REDUCE)));
+      e.sta = Math.max(0, e.sta - BLOCK_STA_DRAIN);
+      recoilOnEnemy = Math.round(e.baseDmg * BLOCK_RECOIL);
+      e.hp = Math.max(0, e.hp - recoilOnEnemy);
     }
     p.hp = Math.max(0, p.hp - enemyDmg);
-
-  // ══ ВРАГ БЛОКИРУЕТ (но игрок не атакует) ════════════════════
-  // Враг тратит -10 СТА на блок впустую
-  // ════════════════════════════════════════════════════════════
   } else if (enemyAction === 'wait') {
     e.sta = Math.min(e.maxSta, e.sta + WAIT_STA);
   } else if (enemyAction === 'block' && playerAction !== 'attack') {
@@ -336,8 +299,8 @@ function _doRpgRound(playerAction) {
     if (enemyBlocked) parts.push(`Атака −${playerDmg} (блок! отдача −${recoilOnPlayer})`);
     else              parts.push(`Атака −${playerDmg} врагу`);
   }
-  else if (playerAction === 'block')           parts.push(pStaBeforeBlock > 0 ? 'Ты блокируешь' : 'Блок провалился (нет СТА)');
-  else if (playerAction === 'wait')            parts.push(`Ждёшь (+${WAIT_STA} СТА)`);
+  else if (playerAction === 'block')          parts.push(pStaBeforeBlock > 0 ? 'Ты блокируешь' : 'Блок провалился (нет СТА)');
+  else if (playerAction === 'wait')           parts.push(`Ждёшь (+${WAIT_STA} СТА)`);
   else if (playerAction.startsWith('potion')) parts.push('Зелье выпито');
 
   if (enemyAction === 'attack') {
@@ -351,37 +314,25 @@ function _doRpgRound(playerAction) {
   // ── Попапы ───────────────────────────────────────────────────
   const c1 = document.getElementById('cont-1');
   const c2 = document.getElementById('cont-2');
-
-  // Атака игрока нанесла урон врагу
   if (playerAction === 'attack' && playerDmg > 0) {
     c2.classList.add('hit'); _spawnDmg(c2, `-${playerDmg}`, '#ff3e3e');
     setTimeout(() => c2.classList.remove('hit'), 250);
   }
-  // Атака врага нанесла урон игроку
   if (enemyAction === 'attack' && enemyDmg > 0) {
     c1.classList.add('hit'); _spawnDmg(c1, `-${enemyDmg}`, '#ff3e3e');
     setTimeout(() => c1.classList.remove('hit'), 250);
     tg.HapticFeedback.impactOccurred('medium');
   }
-
-  // Враг заблокировал удар игрока:
-  //   c2 = враг: БЛОК + потеря СТА
-  //   c1 = игрок: отдача щита
   if (enemyBlocked) {
     _spawnDmg(c2, '🛡 БЛОК', '#3b9eff');
     _spawnDmg(c2, `−30 СТА`, '#3b9eff');
     if (recoilOnPlayer > 0) _spawnDmg(c1, `-${recoilOnPlayer} отдача`, '#ff8c00');
   }
-
-  // Игрок заблокировал удар врага:
-  //   c1 = игрок: БЛОК
-  //   c2 = враг:  потеря СТА + отдача щита
   if (playerBlocked) {
     _spawnDmg(c1, '🛡 БЛОК', '#3b9eff');
-    _spawnDmg(c2, `−${BLOCK_STA_DRAIN} СТА`, '#3b9eff'); // ВРАГ теряет СТА — показываем на c2
-    if (recoilOnEnemy > 0) _spawnDmg(c2, `-${recoilOnEnemy} отдача`, '#ff8c00'); // отдача во врага — c2
+    _spawnDmg(c2, `−${BLOCK_STA_DRAIN} СТА`, '#3b9eff');
+    if (recoilOnEnemy > 0) _spawnDmg(c2, `-${recoilOnEnemy} отдача`, '#ff8c00');
   }
-
   if (playerAction === 'wait') _spawnDmg(c1, '+СТА', '#4cd964');
   if (enemyAction  === 'wait') _spawnDmg(c2, '+СТА', '#4cd964');
 
@@ -405,7 +356,6 @@ async function _endRpg(playerWon) {
   tg.HapticFeedback.notificationOccurred(playerWon ? 'success' : 'error');
   const cfg = state.rpg?.enemyCfg || {};
 
-  // Победа над боссом — сохраняем прогресс локально
   if (playerWon && cfg.isBoss && cfg.bossId) {
     defeatBoss(cfg.bossId);
     showToast('🎉 Босс повержен! Новые локации открыты!');
@@ -420,29 +370,50 @@ async function _endRpg(playerWon) {
 
   const reward = playerWon ? _rand(cfg.rewardMin || 25, cfg.rewardMax || 35) : 0;
 
-  // Отправляем результат на сервер
+  // Сохраняем результат боя
   try {
     const resp = await apiFetch('/api/battle/rpg-result', {
       method: 'POST',
       body: JSON.stringify({
-        tg_id:    state.user.tg_id,
-        is_win:   playerWon,
-        reward:   reward,
-        enemy:    cfg.bossId || 'mine_grunt',
+        tg_id:  state.user.tg_id,
+        is_win: playerWon,
+        reward: reward,
+        enemy:  cfg.bossId || 'mine_grunt',
       }),
     });
     if (resp?.new_balance !== undefined) {
-      state.user.balance      = resp.new_balance;
-      state.user.total_games  = resp.total_games;
-      state.user.wins         = resp.wins;
-      state.user.lose         = resp.lose;
+      state.user.balance     = resp.new_balance;
+      state.user.total_games = resp.total_games;
+      state.user.wins        = resp.wins;
+      state.user.lose        = resp.lose;
       document.getElementById('bal-val').innerText = resp.new_balance.toLocaleString();
     }
   } catch (e) {
-    // Если сервер недоступен — обновляем локально чтобы не потерять UX
     if (playerWon) state.user.balance += reward;
     document.getElementById('bal-val').innerText = state.user.balance.toLocaleString();
     console.warn('rpg-result sync failed', e);
+  }
+
+  // Дроп зелья с шахтёра
+  if (playerWon && cfg.dropPotion) {
+    try {
+      const drop = await apiFetch('/api/battle/mine-drop', {
+        method: 'POST',
+        body: JSON.stringify({ tg_id: state.user.tg_id }),
+      });
+      if (drop?.potion_dropped) {
+        state.user.potion_hp  = drop.potion_hp;
+        state.user.potion_sta = drop.potion_sta;
+        if (state.rpg) {
+          state.rpg.potions.hp  = drop.potion_hp;
+          state.rpg.potions.sta = drop.potion_sta;
+        }
+        renderInventoryPotions();
+        showToast('❤️ Выпало зелье лечения!');
+      }
+    } catch (e) {
+      console.warn('mine-drop failed', e);
+    }
   }
 
   if (playerWon) {
@@ -465,7 +436,6 @@ function _syncPotionsToUser() {
   state.user.potion_hp  = r.potions.hp;
   state.user.potion_sta = r.potions.sta;
   renderInventoryPotions();
-  // Сохраняем в БД
   apiFetch('/api/user/update-potions', {
     method: 'POST',
     body: JSON.stringify({
@@ -524,8 +494,8 @@ function _unlockButtons() { document.querySelectorAll('.rpg-card-btn').forEach(b
 
 function _spawnDmg(container, text, color) {
   const p = document.createElement('div');
-  p.className  = 'dmg-popup';
-  p.innerText  = text;
+  p.className = 'dmg-popup';
+  p.innerText = text;
   p.style.left  = (Math.random() * 40 + 30) + '%';
   p.style.color = color || '#ff3e3e';
   container.appendChild(p);

@@ -5,8 +5,15 @@ from db.database import get_db_connection, check_update_max_balance
 
 battle_bp = Blueprint('battle', __name__)
 
-WATCH_REWARD = 200           
+WATCH_REWARD = 200
 WATCH_COOLDOWN_HOURS = 2
+
+# Шанс дропа зелья с шахты по кол-ву уже выпавших
+def _mine_potion_chance(drops_count: int) -> float:
+    if drops_count == 0: return 0.50
+    if drops_count == 1: return 0.20
+    if drops_count == 2: return 0.10
+    return 0.10  # не ниже 10%
 
 
 @battle_bp.route('/api/battle/watch', methods=['POST'])
@@ -182,14 +189,13 @@ def battle_init():
 
 @battle_bp.route('/api/battle/rpg-result', methods=['POST'])
 def rpg_result():
-    """Сохраняет результат RPG боя и начисляет награду."""
     data = request.get_json()
     tg_id  = str(data.get('tg_id'))
     is_win = bool(data.get('is_win', False))
     reward = int(data.get('reward', 0))
     enemy  = str(data.get('enemy', 'mine_grunt'))
 
-    if reward < 0 or reward > 10000:
+    if reward < 0 or reward > 100000:
         return jsonify({'error': 'Invalid reward'}), 400
 
     conn = get_db_connection()
@@ -239,4 +245,57 @@ def rpg_result():
     except Exception as e:
         conn.rollback(); conn.close()
         print(f"rpg-result error: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@battle_bp.route('/api/battle/mine-drop', methods=['POST'])
+def mine_drop():
+    """
+    Роллит дроп зелья после победы над шахтёром.
+    Возвращает potion_dropped: true/false и новый счётчик.
+    Если дроп выпал — сохраняет зелье в БД и инкрементит счётчик.
+    """
+    data  = request.get_json()
+    tg_id = str(data.get('tg_id'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('BEGIN IMMEDIATE')
+        cursor.execute('SELECT potion_hp, mine_potion_drops FROM users WHERE tg_id = ?', (tg_id,))
+        user = cursor.fetchone()
+        if not user:
+            conn.rollback(); conn.close()
+            return jsonify({'error': 'User not found'}), 404
+
+        drops_count = user['mine_potion_drops'] or 0
+        chance = _mine_potion_chance(drops_count)
+        dropped = random.random() < chance
+
+        if dropped:
+            cursor.execute('''
+                UPDATE users SET
+                    potion_hp = potion_hp + 1,
+                    mine_potion_drops = mine_potion_drops + 1,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE tg_id = ?
+            ''', (tg_id,))
+        conn.commit()
+
+        cursor.execute('SELECT potion_hp, potion_sta, mine_potion_drops FROM users WHERE tg_id = ?', (tg_id,))
+        updated = cursor.fetchone()
+        conn.close()
+
+        return jsonify({
+            'success':        True,
+            'potion_dropped': dropped,
+            'next_chance':    _mine_potion_chance(updated['mine_potion_drops']),
+            'potion_hp':      updated['potion_hp'],
+            'potion_sta':     updated['potion_sta'],
+            'mine_potion_drops': updated['mine_potion_drops'],
+        })
+
+    except Exception as e:
+        conn.rollback(); conn.close()
+        print(f"mine-drop error: {e}")
         return jsonify({'error': 'Internal server error'}), 500

@@ -67,7 +67,7 @@ const LOCATIONS = [
     show: () => true,
     locked: () => !isBossDefeated('boss_1'),
     after: 'boss1',
-    action: () => tryStartBattle('mine_grunt'),
+    action: () => { nav('scr-field'); },   // открывает Поляны → раздел «Поход в лес»
   },
   {
     id: 'mansion',
@@ -78,7 +78,7 @@ const LOCATIONS = [
     locked: () => !isBossDefeated('boss_1'),
     after: 'boss1',
     isBoss: () => !isBossDefeated('boss_2'),
-    action: () => tryStartBattle('mine_grunt'),
+    action: () => showToast('Скоро!'),
   },
   {
     id: 'bear_cave',
@@ -88,7 +88,7 @@ const LOCATIONS = [
     show: () => true,
     locked: () => !isBossDefeated('boss_2'),
     after: 'boss2',
-    action: () => tryStartBattle('mine_grunt'),
+    action: () => showToast('Скоро!'),
   },
   {
     id: 'forester',
@@ -99,7 +99,7 @@ const LOCATIONS = [
     locked: () => !isBossDefeated('boss_2'),
     after: 'boss2',
     isBoss: () => !isBossDefeated('boss_3'),
-    action: () => tryStartBattle('mine_grunt'),
+    action: () => showToast('Скоро!'),
   },
 ];
 

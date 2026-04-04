@@ -1,7 +1,7 @@
 // ============================================================
 // inventory.js — инвентарь (только сумка)
 // ============================================================
-import { state, ITEM_DEFS_LOCAL, TOTAL_SLOTS } from './state.js';
+import { state, ITEM_DEFS_LOCAL, TOTAL_SLOTS, isBossDefeated } from './state.js';
 
 const tg = window.Telegram.WebApp;
 
@@ -95,9 +95,9 @@ function _makePotionSlot(grid, emoji, count, id, name) {
 }
 
 function _openPotionDetail(id, count, emoji, name) {
-  const modal  = document.getElementById('item-detail-modal');
+  const modal = document.getElementById('item-detail-modal');
   if (!modal) return;
-  const imgEl  = document.getElementById('item-detail-img');
+  const imgEl = document.getElementById('item-detail-img');
   imgEl.style.display = 'none';
   const wrap   = imgEl.parentElement;
   let emojiEl  = wrap.querySelector('.item-detail-img-emoji');
@@ -112,23 +112,30 @@ function _openPotionDetail(id, count, emoji, name) {
   document.getElementById('item-detail-count').innerHTML = `${count} шт.`;
   document.getElementById('item-detail-desc').innerText  =
     id === 'potion_hp' ? 'Восстанавливает 50% HP в бою.' : 'Восстанавливает 50% стамины в бою.';
-  const sellBtn   = document.getElementById('item-detail-sell-btn');
-  sellBtn.style.display = 'block';
-  sellBtn.innerText     = 'Продать (400 / шт.)';
-  sellBtn.onclick       = async () => {
-    const key = id === 'potion_hp' ? 'potion_hp' : 'potion_sta';
-    if ((state.user[key] || 0) <= 0) { closeItemDetail(); return; }
-    state.user[key]    = (state.user[key] || 0) - 1;
-    state.user.balance += 400;
-    document.getElementById('bal-val').innerText = state.user.balance.toLocaleString();
-    closeItemDetail();
-    renderInventoryPotions();
-    const { apiFetch } = await import('./api.js');
-    apiFetch('/api/user/update-potions', {
-      method: 'POST',
-      body: JSON.stringify({ tg_id: state.user.tg_id, potion_hp: state.user.potion_hp || 0, potion_sta: state.user.potion_sta || 0 }),
-    });
-  };
+
+  const sellBtn = document.getElementById('item-detail-sell-btn');
+  // Продажа зелий доступна только после открытия магазина (boss_1)
+  if (isBossDefeated('boss_1')) {
+    sellBtn.style.display = 'block';
+    sellBtn.innerText     = 'Продать (400 / шт.)';
+    sellBtn.onclick       = async () => {
+      const key = id === 'potion_hp' ? 'potion_hp' : 'potion_sta';
+      if ((state.user[key] || 0) <= 0) { closeItemDetail(); return; }
+      state.user[key]    = (state.user[key] || 0) - 1;
+      state.user.balance += 400;
+      document.getElementById('bal-val').innerText = state.user.balance.toLocaleString();
+      closeItemDetail();
+      renderInventoryPotions();
+      const { apiFetch } = await import('./api.js');
+      apiFetch('/api/user/update-potions', {
+        method: 'POST',
+        body: JSON.stringify({ tg_id: state.user.tg_id, potion_hp: state.user.potion_hp || 0, potion_sta: state.user.potion_sta || 0 }),
+      });
+    };
+  } else {
+    sellBtn.style.display = 'none';
+  }
+
   modal.style.display = 'flex';
   tg.HapticFeedback.impactOccurred('light');
 }
@@ -156,18 +163,20 @@ export function openItemDetail(itemId, count) {
     };
   }
   document.getElementById('item-detail-name').innerText  = def.name || itemId;
-  document.getElementById('item-detail-count').innerHTML =
-    `${fmtExact(count)} шт.`;
+  document.getElementById('item-detail-count').innerHTML = `${fmtExact(count)} шт.`;
   document.getElementById('item-detail-desc').innerText  = def.description || '';
+
   const sellBtn   = document.getElementById('item-detail-sell-btn');
   const sellPrice = state.prices[itemId]?.sell;
-  if (sellPrice) {
+  // Продажа доступна только после открытия магазина (boss_1)
+  if (sellPrice && isBossDefeated('boss_1')) {
     sellBtn.style.display = 'block';
     sellBtn.innerText     = `Продать (${sellPrice} / шт.)`;
     sellBtn.onclick       = quickSellFromDetail;
   } else {
     sellBtn.style.display = 'none';
   }
+
   document.getElementById('item-detail-modal').style.display = 'flex';
   tg.HapticFeedback.impactOccurred('light');
 }
@@ -198,5 +207,4 @@ export async function quickSellFromDetail() {
   }, 120);
 }
 
-// switchInvTab оставляем для совместимости но ничего не делает
 export function switchInvTab(el, tab) {}
