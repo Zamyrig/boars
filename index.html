@@ -1,449 +1,427 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head>
-<base href="/boar-game-dev/">
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0a0a0c">
-<meta name="mobile-web-app-capable" content="yes">
-<title>WILD TUSK BRAWL</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script>
-const APP_VERSION = "26.3.19";
-const BASE = '/boar-game-dev';
-</script>
-<link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-
-<div id="bg-main"      class="game-bg"></div>
-<div id="bg-fight"     class="game-bg"></div>
-<div id="bg-inventory" class="game-bg"></div>
-<div id="bg-shop"      class="game-bg"></div>
-<div id="bg-farm"      class="game-bg"></div>
-<div id="bg-mine"      class="game-bg"></div>
-<div id="bg-forest"    class="game-bg"></div>
-<div class="bg-overlay"></div>
-
-<div id="balance-header">
-  <span id="bal-val">0</span><img src="assets/boarcoin.png" class="coin-icon" alt="">
-  <span class="sep">|</span>
-  <span id="acorns-val">0</span><img src="assets/acorn.png" class="acorn-icon" alt="">
-  <div id="bet-deduction-notify">
-    -<span id="deduction-amount">0</span><img src="assets/boarcoin.png" class="coin-icon" alt="">
-  </div>
-</div>
-
-<div id="notification-toast" class="notification-toast"></div>
-<div id="version-label" style="position:fixed;bottom:8px;left:8px;font-size:0.65rem;opacity:0.3;font-weight:700;z-index:9999;pointer-events:none;"></div>
-
-<div id="rank-trigger"    onclick="nav('scr-rank')"><span>🏆</span></div>
-<div id="profile-trigger" onclick="nav('scr-profile')">
-  <img src="assets/boars/boar_old.png" onerror="this.src='assets/boars/boar.png'">
-</div>
-
-<!-- ── ЗАГРУЗКА ── -->
-<div id="scr-load" class="screen active">
-  <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.1);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s cubic-bezier(0.5,0,0.5,1) infinite;"></div>
-</div>
-
-<!-- ── РЕЗУЛЬТАТ БОЯ ── -->
-<div id="result-overlay">
-  <div id="result-card">
-    <button class="close-x" onclick="closeResult()">&times;</button>
-    <span class="res-icon" id="res-icon">🏆</span>
-    <h2 class="res-title" id="res-title">ПОБЕДА</h2>
-    <div class="res-sum" id="res-sum"></div>
-    <button class="res-btn" onclick="closeResult()">ПРОДОЛЖИТЬ</button>
-  </div>
-</div>
-
-<!-- ── МОДАЛКА ПРЕДМЕТА ── -->
-<div id="item-detail-modal" onclick="if(event.target===this)closeItemDetail()">
-  <div class="item-detail-card">
-    <div class="item-detail-top">
-      <img id="item-detail-img" class="item-detail-img" src="" alt="">
-      <div class="item-detail-info">
-        <div class="item-detail-name" id="item-detail-name">—</div>
-        <div class="item-detail-count" id="item-detail-count">0</div>
+   <head>
+      <base href="/boar-game-dev/">
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      <meta name="theme-color" content="#0a0a0c">
+      <meta name="mobile-web-app-capable" content="yes">
+      <title>WILD TUSK BRAWL</title>
+      <script src="https://telegram.org/js/telegram-web-app.js"></script>
+      <script>
+         const APP_VERSION = "26.3.19";
+         const BASE = '/boar-game-dev';
+      </script>
+      <link rel="stylesheet" href="css/style.css">
+   </head>
+   <body>
+      <div id="bg-main"      class="game-bg"></div>
+      <div id="bg-fight"     class="game-bg"></div>
+      <div id="bg-inventory" class="game-bg"></div>
+      <div id="bg-shop"      class="game-bg"></div>
+      <div id="bg-farm"      class="game-bg"></div>
+      <div id="bg-mine"      class="game-bg"></div>
+      <div id="bg-forest"    class="game-bg"></div>
+      <div class="bg-overlay"></div>
+      <div id="balance-header">
+         <span id="bal-val">0</span><img src="assets/boarcoin.png" class="coin-icon" alt="">
+         <span class="sep">|</span>
+         <span id="acorns-val">0</span><img src="assets/acorn.png" class="acorn-icon" alt="">
+         <div id="bet-deduction-notify">
+            -<span id="deduction-amount">0</span><img src="assets/boarcoin.png" class="coin-icon" alt="">
+         </div>
       </div>
-    </div>
-    <div class="item-detail-desc" id="item-detail-desc">—</div>
-    <div class="item-detail-actions">
-      <button class="btn-wood btn-nav-back" onclick="closeItemDetail()">← Назад</button>
-      <button class="btn-wood btn-trade" id="item-detail-sell-btn" onclick="quickSellFromDetail()">Продать</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── МОДАЛКА ФЕРМЫ ── -->
-<div id="farm-modal" onclick="if(event.target===this)closeFarmModal()">
-  <div class="farm-modal-card">
-    <div class="farm-modal-title">
-      <span id="farm-modal-icon">🌾</span>
-      <span id="farm-modal-title-text">Слот фермы</span>
-      <button class="close-x" onclick="closeFarmModal()">&times;</button>
-    </div>
-    <div class="farm-modal-body-scroll">
-      <div id="farm-modal-body"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ── МОДАЛКА ИГРОКА ── -->
-<div id="user-modal" onclick="if(event.target==this)closeModal()">
-  <div class="card">
-    <button class="close-x" onclick="closeModal()" style="top:12px;right:12px;">&times;</button>
-    <h3 id="modal-user-name" style="margin-top:0;font-size:1.5rem;padding-right:30px;">ИГРОК</h3>
-    <div class="stat-grid" style="margin-top:20px;">
-      <div class="stat-item"><span class="stat-val" id="modal-games">0</span><span class="stat-lbl">БОЕВ</span></div>
-      <div class="stat-item"><span class="stat-val" id="modal-wins" style="color:var(--win);">0</span><span class="stat-lbl">ПОБЕД</span></div>
-      <div class="stat-item"><span class="stat-val" id="modal-lose" style="color:var(--lose);">0</span><span class="stat-lbl">ПОРАЖ.</span></div>
-      <div class="stat-item"><span class="stat-val" id="modal-winrate">0%</span><span class="stat-lbl">WINRATE</span></div>
-    </div>
-    <div class="stat-grid" style="margin-top:15px;">
-      <div class="stat-item"><span class="stat-val" id="modal-max-balance">0</span><span class="stat-lbl">МАКС. БАЛАНС</span></div>
-      <div class="stat-item"><span class="stat-val" id="modal-watched">0</span><span class="stat-lbl">ПРОСМОТРЕНО</span></div>
-    </div>
-    <button class="btn-wood" style="width:100%;background:#0088cc;border:none;box-shadow:0 4px 0 #006699;" id="modal-write-btn">НАПИСАТЬ</button>
-    <button class="btn-wood" style="width:100%;margin-top:14px;opacity:0.6;" onclick="closeModal()">ЗАКРЫТЬ</button>
-  </div>
-</div>
-
-<!-- ── ГЛАВНОЕ МЕНЮ ── -->
-<div id="scr-main" class="screen">
-  <div class="menu-buttons">
-    <button class="btn-wood btn-play" onclick="nav('scr-map')">КАРТА</button>
-    <button class="btn-wood" onclick="nav('scr-inventory')">ИНВЕНТАРЬ</button>
-  </div>
-</div>
-
-<!-- ── КАРТА МИРА ── -->
-<div id="scr-map" class="screen">
-  <div class="map-card">
-    <div class="map-header">
-      <h3>🗺 КАРТА МИРА</h3>
-      <button class="close-x" style="position:static;" onclick="nav('scr-main')">&times;</button>
-    </div>
-    <div class="map-locations-grid" id="map-locations-grid"></div>
-    <button class="btn-wood" style="width:100%;opacity:0.6;margin-top:2px;" onclick="nav('scr-main')">← НАЗАД</button>
-  </div>
-</div>
-
-<!-- ── ИНВЕНТАРЬ (только сумка) ── -->
-<div id="scr-inventory" class="screen">
-  <div class="inv-card" style="flex-direction:column;">
-
-    <!-- Шапка -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 0;flex-shrink:0;">
-      <h3 style="margin:0;font-size:1.15rem;font-weight:800;">СУМКА</h3>
-      <button class="close-x" style="position:static;" onclick="nav('scr-main')">&times;</button>
-    </div>
-
-    <!-- Сетка предметов -->
-    <div style="flex:1;padding:10px 12px;overflow:hidden;display:flex;flex-direction:column;gap:8px;">
-      <div class="inv-items-zone" id="inv-items-grid"></div>
-
-      <!-- Экипировка + Зелья -->
-      <div class="inv-bottom-row">
-        <div class="inv-equip-zone">
-          <div class="inv-equip-label">Экипировка</div>
-          <div class="inv-equip-slots-row">
-            <div class="inv-equip-slot">⚔️</div>
-            <div class="inv-equip-slot">🛡️</div>
-            <div class="inv-equip-slot">💍</div>
-          </div>
-        </div>
-        <div class="inv-potions-zone">
-          <div class="inv-potions-label">Зелья</div>
-          <div class="inv-potions-grid"></div>
-        </div>
+      <div id="notification-toast" class="notification-toast"></div>
+      <div id="version-label" style="position:fixed;bottom:8px;left:8px;font-size:0.65rem;opacity:0.3;font-weight:700;z-index:9999;pointer-events:none;"></div>
+      <div id="rank-trigger"    onclick="nav('scr-rank')"><span>🏆</span></div>
+      <div id="profile-trigger" onclick="nav('scr-profile')">
+         <img src="assets/boars/boar_old.png" onerror="this.src='assets/boars/boar.png'">
       </div>
-    </div>
-
-  </div>
-</div>
-
-
-<!-- ── ПОКУПКА ФЕРМЫ ── -->
-<div id="scr-farm-buy" class="screen">
-  <div class="map-card">
-    <div class="map-header">
-      <h3>🌾 ФЕРМА</h3>
-      <button class="close-x" style="position:static;" onclick="nav('scr-map')">&times;</button>
-    </div>
-    <div style="text-align:center;padding:20px 0 10px;">
-      <div style="font-size:4rem;margin-bottom:12px;">👴🐗</div>
-      <div style="font-weight:800;font-size:1.1rem;margin-bottom:8px;">Старый фермер</div>
-      <div style="font-size:0.8rem;opacity:0.55;line-height:1.6;margin-bottom:20px;">
-        <!-- текст фермера -->
+      <!-- ── ЗАГРУЗКА ── -->
+      <div id="scr-load" class="screen active">
+         <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.1);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s cubic-bezier(0.5,0,0.5,1) infinite;"></div>
       </div>
-      <div style="font-size:1.4rem;font-weight:900;color:var(--gold);margin-bottom:6px;" id="farm-buy-balance-check"></div>
-    </div>
-    <button class="btn-wood btn-play" style="width:100%;" onclick="tryBuyFarm()">
-      💰 Купить за 500 монет
-    </button>
-    <button class="btn-wood" style="width:100%;margin-top:10px;opacity:0.6;" onclick="nav('scr-map')">← НАЗАД</button>
-  </div>
-</div>
-
-<!-- ── ФЕРМА (отдельный экран из карты) ── -->
-<div id="scr-farm-location" class="screen">
-  <div class="inv-card" style="flex-direction:column;">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 0;flex-shrink:0;">
-      <h3 style="margin:0;font-size:1.15rem;font-weight:800;">🌾 ФЕРМА</h3>
-      <button class="close-x" style="position:static;" onclick="nav('scr-map')">&times;</button>
-    </div>
-    <div style="flex:1;padding:10px 12px;overflow:hidden;display:flex;flex-direction:column;gap:10px;">
-      <div class="farm-slots-row" id="farm-slots-row"></div>
-      <div style="flex:1;background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.05);border-radius:16px;padding:12px;font-size:0.75rem;opacity:0.45;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.6;">
-        Нажми на слот чтобы<br>посадить росток или собрать урожай
+      <!-- ── РЕЗУЛЬТАТ БОЯ ── -->
+      <div id="result-overlay">
+         <div id="result-card">
+            <button class="close-x" onclick="closeResult()">&times;</button>
+            <span class="res-icon" id="res-icon">🏆</span>
+            <h2 class="res-title" id="res-title">ПОБЕДА</h2>
+            <div class="res-sum" id="res-sum"></div>
+            <button class="res-btn" onclick="closeResult()">ПРОДОЛЖИТЬ</button>
+         </div>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- ── ЛЕС / ПОЛЯНА (отдельный экран из карты) ── -->
-<div id="scr-field" class="screen">
-  <div class="inv-card" style="flex-direction:column;">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 0;flex-shrink:0;">
-      <h3 style="margin:0;font-size:1.15rem;font-weight:800;">🌿 ПОЛЯНЫ</h3>
-      <button class="close-x" style="position:static;" onclick="nav('scr-map')">&times;</button>
-    </div>
-    <div style="flex:1;padding:10px 12px;overflow:hidden;display:flex;flex-direction:column;gap:10px;overflow-y:auto;">
-
-      <!-- Поход кабана -->
-      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:12px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.5;">🐗 ПОХОД В ЛЕС</div>
-      <div id="forest-state-area" style="display:flex;flex-direction:column;gap:10px;"></div>
-
-      <!-- Поляна сражений -->
-      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:12px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.5;margin-top:4px;">⚔️ ПОЛЯНА СРАЖЕНИЙ</div>
-      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;">
-
-        <button class="btn-watch-fight" id="watch-btn" onclick="watchBattle()" style="margin:0;">
-          <span>СМОТРЕТЬ БОЙ</span>
-          <span class="watch-reward-line" id="watch-reward-line">
+      <!-- ── МОДАЛКА ПРЕДМЕТА ── -->
+      <div id="item-detail-modal" onclick="if(event.target===this)closeItemDetail()">
+         <div class="item-detail-card">
+            <div class="item-detail-top">
+               <img id="item-detail-img" class="item-detail-img" src="" alt="">
+               <div class="item-detail-info">
+                  <div class="item-detail-name" id="item-detail-name">—</div>
+                  <div class="item-detail-count" id="item-detail-count">0</div>
+               </div>
+            </div>
+            <div class="item-detail-desc" id="item-detail-desc">—</div>
+            <div class="item-detail-actions">
+               <button class="btn-wood btn-nav-back" onclick="closeItemDetail()">← Назад</button>
+               <button class="btn-wood btn-trade" id="item-detail-sell-btn" onclick="quickSellFromDetail()">Продать</button>
+            </div>
+         </div>
+      </div>
+      <!-- ── МОДАЛКА ФЕРМЫ ── -->
+      <div id="farm-modal" onclick="if(event.target===this)closeFarmModal()">
+         <div class="farm-modal-card">
+            <div class="farm-modal-title">
+               <span id="farm-modal-icon">🌾</span>
+               <span id="farm-modal-title-text">Слот фермы</span>
+               <button class="close-x" onclick="closeFarmModal()">&times;</button>
+            </div>
+            <div class="farm-modal-body-scroll">
+               <div id="farm-modal-body"></div>
+            </div>
+         </div>
+      </div>
+      <!-- ── МОДАЛКА ИГРОКА ── -->
+      <div id="user-modal" onclick="if(event.target==this)closeModal()">
+         <div class="card">
+            <button class="close-x" onclick="closeModal()" style="top:12px;right:12px;">&times;</button>
+            <h3 id="modal-user-name" style="margin-top:0;font-size:1.5rem;padding-right:30px;">ИГРОК</h3>
+            <div class="stat-grid" style="margin-top:20px;">
+               <div class="stat-item"><span class="stat-val" id="modal-games">0</span><span class="stat-lbl">БОЕВ</span></div>
+               <div class="stat-item"><span class="stat-val" id="modal-wins" style="color:var(--win);">0</span><span class="stat-lbl">ПОБЕД</span></div>
+               <div class="stat-item"><span class="stat-val" id="modal-lose" style="color:var(--lose);">0</span><span class="stat-lbl">ПОРАЖ.</span></div>
+               <div class="stat-item"><span class="stat-val" id="modal-winrate">0%</span><span class="stat-lbl">WINRATE</span></div>
+            </div>
+            <div class="stat-grid" style="margin-top:15px;">
+               <div class="stat-item"><span class="stat-val" id="modal-max-balance">0</span><span class="stat-lbl">МАКС. БАЛАНС</span></div>
+               <div class="stat-item"><span class="stat-val" id="modal-watched">0</span><span class="stat-lbl">ПРОСМОТРЕНО</span></div>
+            </div>
+            <button class="btn-wood" style="width:100%;background:#0088cc;border:none;box-shadow:0 4px 0 #006699;" id="modal-write-btn">НАПИСАТЬ</button>
+            <button class="btn-wood" style="width:100%;margin-top:14px;opacity:0.6;" onclick="closeModal()">ЗАКРЫТЬ</button>
+         </div>
+      </div>
+      <!-- ── ГЛАВНОЕ МЕНЮ ── -->
+      <div id="scr-main" class="screen">
+         <div class="menu-buttons">
+            <button class="btn-wood btn-play" onclick="nav('scr-map')">КАРТА</button>
+            <button class="btn-wood" onclick="nav('scr-inventory')">ИНВЕНТАРЬ</button>
+         </div>
+      </div>
+      <!-- ── КАРТА МИРА ── -->
+      <div id="scr-map" class="screen">
+         <div class="map-card">
+            <div class="map-header">
+               <h3>🗺 КАРТА МИРА</h3>
+               <button class="close-x" style="position:static;" onclick="nav('scr-main')">&times;</button>
+            </div>
+            <div class="map-locations-grid" id="map-locations-grid"></div>
+            <button class="btn-wood" style="width:100%;opacity:0.6;margin-top:2px;" onclick="nav('scr-main')">← НАЗАД</button>
+         </div>
+      </div>
+      <!-- ── ИНВЕНТАРЬ (только сумка) ── -->
+      <div id="scr-inventory" class="screen">
+         <div class="inv-card" style="flex-direction:column;">
+            <!-- Шапка -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 0;flex-shrink:0;">
+               <h3 style="margin:0;font-size:1.15rem;font-weight:800;">СУМКА</h3>
+               <button class="close-x" style="position:static;" onclick="nav('scr-main')">&times;</button>
+            </div>
+            <!-- Сетка предметов -->
+            <div style="flex:1;padding:10px 12px;overflow:hidden;display:flex;flex-direction:column;gap:8px;">
+               <div class="inv-items-zone" id="inv-items-grid"></div>
+               <!-- Экипировка + Зелья -->
+               <div class="inv-bottom-row">
+                  <div class="inv-equip-zone">
+                     <div class="inv-equip-label">Экипировка</div>
+                     <div class="inv-equip-slots-row">
+                        <div class="inv-equip-slot">⚔️</div>
+                        <div class="inv-equip-slot">🛡️</div>
+                        <div class="inv-equip-slot">💍</div>
+                     </div>
+                  </div>
+                  <div class="inv-potions-zone">
+                     <div class="inv-potions-label">Зелья</div>
+                     <div class="inv-potions-grid"></div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+      <!-- ── ПОКУПКА ФЕРМЫ ── -->
+      <div id="scr-farm-buy" class="screen">
+         <div class="map-card">
+            <div class="map-header">
+               <h3>🌾 ФЕРМА</h3>
+               <button class="close-x" style="position:static;" onclick="nav('scr-map')">&times;</button>
+            </div>
+            <div style="text-align:center;padding:20px 0 10px;">
+               <div style="font-size:4rem;margin-bottom:12px;">👴🐗</div>
+               <div style="font-weight:800;font-size:1.1rem;margin-bottom:8px;">Старый фермер</div>
+               <div style="font-size:0.8rem;opacity:0.55;line-height:1.6;margin-bottom:20px;">
+                  <!-- текст фермера -->
+               </div>
+               <div style="font-size:1.4rem;font-weight:900;color:var(--gold);margin-bottom:6px;" id="farm-buy-balance-check"></div>
+            </div>
+            <button class="btn-wood btn-play" style="width:100%;" onclick="tryBuyFarm()">
+            💰 Купить за 500 монет
+            </button>
+            <button class="btn-wood" style="width:100%;margin-top:10px;opacity:0.6;" onclick="nav('scr-map')">← НАЗАД</button>
+         </div>
+      </div>
+      <!-- ── ФЕРМА (отдельный экран из карты) ── -->
+      <div id="scr-farm-location" class="screen">
+         <div class="inv-card" style="flex-direction:column;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 0;flex-shrink:0;">
+               <h3 style="margin:0;font-size:1.15rem;font-weight:800;">🌾 ФЕРМА</h3>
+               <button class="close-x" style="position:static;" onclick="nav('scr-map')">&times;</button>
+            </div>
+            <div style="flex:1;padding:10px 12px;overflow:hidden;display:flex;flex-direction:column;gap:10px;">
+               <div class="farm-slots-row" id="farm-slots-row"></div>
+               <div style="flex:1;background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.05);border-radius:16px;padding:12px;font-size:0.75rem;opacity:0.45;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.6;">
+                  Нажми на слот чтобы<br>посадить росток или собрать урожай
+               </div>
+            </div>
+         </div>
+      </div>
+      <!-- ── ЛЕС / ПОЛЯНА (отдельный экран из карты) ── -->
+      <div id="scr-field" class="screen">
+         <div class="inv-card" style="flex-direction:column;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 0;flex-shrink:0;">
+               <h3 style="margin:0;font-size:1.15rem;font-weight:800;">🌿 ПОЛЯНЫ</h3>
+               <button class="close-x" style="position:static;" onclick="nav('scr-map')">&times;</button>
+            </div>
+            <div style="flex:1;padding:10px 12px;overflow:hidden;display:flex;flex-direction:column;gap:10px;overflow-y:auto;">
+               <!-- Поход кабана -->
+               <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:12px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.5;">🐗 ПОХОД В ЛЕС</div>
+               <div id="forest-state-area" style="display:flex;flex-direction:column;gap:10px;"></div>
+               <!-- Поляна сражений -->
+               <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:12px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.5;margin-top:4px;">⚔️ ПОЛЯНА СРАЖЕНИЙ</div>
+               <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;">
+                  <button class="btn-watch-fight" id="watch-btn" onclick="watchBattle()" style="margin:0;">
+                  <span>СМОТРЕТЬ БОЙ</span>
+                  <span class="watch-reward-line" id="watch-reward-line">
+                  + 200 <img src="assets/boarcoin.png" class="coin-icon" alt="">
+                  </span>
+                  </button>
+               </div>
+            </div>
+         </div>
+      </div>
+      <!-- ── ПОСЕЛЕНИЕ ── -->
+      <div id="scr-settlement" class="screen">
+         <div class="map-card">
+            <div class="map-header">
+               <h3>🏘️ ПОСЕЛЕНИЕ</h3>
+               <button class="close-x" style="position:static;" onclick="nav('scr-map')">&times;</button>
+            </div>
+            <!-- NPC список -->
+            <div style="display:flex;flex-direction:column;gap:10px;">
+               <!-- Торговец -->
+               <div class="map-loc-card unlocked" onclick="nav('scr-shop')" style="flex-direction:row;justify-content:flex-start;gap:14px;padding:14px;">
+                  <span style="font-size:2rem;">🐗</span>
+                  <div style="text-align:left;">
+                     <div class="map-loc-name">Торговец Хрюня</div>
+                     <div class="map-loc-desc">
+                        <!-- описание -->
+                     </div>
+                  </div>
+               </div>
+               <!-- Кузнец — скоро -->
+               <div class="map-loc-card locked" style="flex-direction:row;justify-content:flex-start;gap:14px;padding:14px;opacity:0.45;">
+                  <span style="font-size:2rem;">🔨</span>
+                  <div style="text-align:left;">
+                     <div class="map-loc-name">Кузнец</div>
+                     <div class="map-loc-desc">
+                        <!-- описание -->
+                     </div>
+                  </div>
+                  <div class="map-loc-lock">🔒</div>
+               </div>
+            </div>
+            <button class="btn-wood" style="width:100%;opacity:0.6;margin-top:4px;" onclick="nav('scr-map')">← КАРТА</button>
+         </div>
+      </div>
+      <!-- ── МАГАЗИН ── -->
+      <div id="scr-shop" class="screen">
+         <div class="screen-card">
+            <div class="shop-header">
+               <h3>МАГАЗИН</h3>
+               <div class="shop-toggle-wrap">
+                  <span id="shop-action-label" style="color:var(--win);">КУПИТЬ</span>
+                  <button class="shop-toggle-mini" id="shop-toggle-mini" onclick="toggleActionMini()"></button>
+                  <span style="opacity:0.5;">ПРОДАТЬ</span>
+               </div>
+            </div>
+            <div class="shop-items-scroll" id="shop-items-container"></div>
+            <div class="shop-detail">
+               <div class="shop-detail-top">
+                  <div id="detail-icon-wrap" style="display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:14px;background:rgba(255,255,255,0.05);flex-shrink:0;">
+                     <span class="shop-detail-icon-placeholder" id="detail-icon-placeholder">📦</span>
+                     <img id="detail-icon-big" class="shop-detail-icon" src="" alt="" style="display:none;">
+                  </div>
+                  <div class="shop-detail-info">
+                     <div class="shop-detail-name" id="detail-name">Выберите предмет</div>
+                     <div class="shop-detail-price" id="detail-price">Цена: —</div>
+                  </div>
+               </div>
+               <div class="shop-qty-row">
+                  <input type="number" id="qty-input" value="1" min="1" inputmode="numeric" oninput="onQtyInput(this.value)">
+               </div>
+               <div class="shop-total" id="total-cost"></div>
+               <div class="shop-actions">
+                  <button class="btn-wood btn-nav-back" onclick="nav('scr-settlement')">←</button>
+                  <button class="btn-wood btn-trade" id="shop-trade-btn" onclick="performTransaction()">КУПИТЬ</button>
+               </div>
+            </div>
+         </div>
+      </div>
+      <!-- ── ПРОФИЛЬ ── -->
+      <div id="scr-profile" class="screen">
+         <div class="card">
+            <h3 style="margin-top:0;">ВАШ ХРЯК</h3>
+            <input type="text" id="edit-name" placeholder="Имя хряка">
+            <div class="stat-grid">
+               <div class="stat-item"><span class="stat-val" id="st-games">0</span><span class="stat-lbl">Боев</span></div>
+               <div class="stat-item"><span class="stat-val" id="st-wins" style="color:var(--win);">0</span><span class="stat-lbl">Побед</span></div>
+               <div class="stat-item"><span class="stat-val" id="st-lose" style="color:var(--lose);">0</span><span class="stat-lbl">Пораж.</span></div>
+               <div class="stat-item"><span class="stat-val" id="st-wr">0%</span><span class="stat-lbl">Winrate</span></div>
+            </div>
+            <div class="stat-grid">
+               <div class="stat-item"><span class="stat-val" id="st-max-balance">0</span><span class="stat-lbl">Макс. баланс</span></div>
+               <div class="stat-item"><span class="stat-val" id="st-watched">0</span><span class="stat-lbl">Просмотрено</span></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0;">
+               <span>Запретить мне писать</span>
+               <label class="toggle-switch">
+               <input type="checkbox" id="private-profile-toggle" onchange="togglePrivateProfile()">
+               <span class="slider"></span>
+               </label>
+            </div>
+            <button class="btn-wood" style="width:100%;background:#fff;color:#000;box-shadow:0 4px 0 #ccc;" onclick="updateName()">СОХРАНИТЬ</button>
+            <button class="btn-wood" style="width:100%;margin-top:14px;opacity:0.6;" onclick="nav('scr-main')">НАЗАД</button>
+         </div>
+      </div>
+      <!-- ── РЕЙТИНГ ── -->
+      <div id="scr-rank" class="screen">
+         <div class="card" style="max-height:85vh;display:flex;flex-direction:column;">
+            <h3 style="margin-top:0;text-align:center;">ТОП БОЙЦОВ</h3>
+            <div id="your-rank">Твое место — ?</div>
+            <div id="rank-loading" style="display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;">
+               <div style="width:40px;height:40px;border:3px solid rgba(255,255,255,0.1);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s cubic-bezier(0.5,0,0.5,1) infinite;margin-bottom:10px;"></div>
+               <span>Загрузка...</span>
+            </div>
+            <div id="rank-list" style="overflow-y:auto;flex:1;padding-right:5px;"></div>
+            <button id="toggle-full-leaderboard" class="btn-wood" style="width:100%;margin-top:10px;display:none;" onclick="toggleFullLeaderboard()">Развернуть</button>
+            <button class="btn-wood" style="width:100%;margin-top:10px;" onclick="nav('scr-main')">НАЗАД</button>
+         </div>
+      </div>
+      <!-- ── БОЙ ── -->
+      <div id="scr-fight" class="screen">
+         <div class="arena">
+            <div id="cont-1" class="boar-container">
+               <div class="hp-bar-box">
+                  <div class="hp-txt" id="hp1-txt">100</div>
+                  <div class="hp-bar">
+                     <div id="hp1-f" class="hp-fill"></div>
+                  </div>
+               </div>
+               <div class="boar-unit">
+                  <img id="boar1-img" src="assets/boars/boar.png" onerror="this.src='https://api.dicebear.com/7.x/pixel-art/svg?seed=boar1'">
+               </div>
+            </div>
+            <div id="cont-2" class="boar-container">
+               <div class="hp-bar-box">
+                  <div class="hp-txt" id="hp2-txt">100</div>
+                  <div class="hp-bar">
+                     <div id="hp2-f" class="hp-fill"></div>
+                  </div>
+               </div>
+               <div class="boar-unit">
+                  <img id="boar2-img" src="assets/boars/boar.png" onerror="this.src='https://api.dicebear.com/7.x/pixel-art/svg?seed=boar2'">
+               </div>
+            </div>
+         </div>
+         <div id="fight-log">ПОДГОТОВКА...</div>
+         <div id="rpg-fight-panel">
+            <div class="rpg-sta-row">
+               <div class="rpg-sta-block">
+                  <div class="rpg-sta-label">СТА <span id="rpg-sta1-txt">100</span></div>
+                  <div class="rpg-sta-track">
+                     <div class="rpg-sta-fill" id="rpg-sta1-bar" style="width:100%"></div>
+                  </div>
+               </div>
+               <div class="rpg-round-badge-inline" id="rpg-round-label">РАУНД 1</div>
+               <div class="rpg-sta-block right">
+                  <div class="rpg-sta-label" style="justify-content:flex-end;"><span id="rpg-sta2-txt">85</span> СТА</div>
+                  <div class="rpg-sta-track">
+                     <div class="rpg-sta-fill" id="rpg-sta2-bar" style="width:85%"></div>
+                  </div>
+               </div>
+            </div>
+            <div class="rpg-potion-submenu" id="rpg-potion-submenu">
+               <button class="rpg-potion-btn" id="rpg-btn-potion-hp" onclick="rpgPotionSelect('hp')">
+               <span class="rpg-potion-icon">❤️</span>
+               <span class="rpg-potion-label">Лечение</span>
+               <span class="rpg-potion-count" id="rpg-potion-hp-count">×0</span>
+               </button>
+               <button class="rpg-potion-btn" id="rpg-btn-potion-sta" onclick="rpgPotionSelect('sta')">
+               <span class="rpg-potion-icon">⚡</span>
+               <span class="rpg-potion-label">Стамина</span>
+               <span class="rpg-potion-count" id="rpg-potion-sta-count">×0</span>
+               </button>
+            </div>
+            <div class="rpg-main-actions">
+               <button class="rpg-card-btn rpg-card-attack" id="rpg-btn-attack" onclick="rpgAction('attack')">
+               <span class="rpg-card-icon">⚔️</span>
+               <span class="rpg-card-label">Атака</span>
+               <span class="rpg-card-cost">−10 СТА</span>
+               </button>
+               <button class="rpg-card-btn rpg-card-block" id="rpg-btn-block" onclick="rpgAction('block')">
+               <span class="rpg-card-icon">🛡️</span>
+               <span class="rpg-card-label">Блок</span>
+               <span class="rpg-card-cost">−10 СТА</span>
+               </button>
+               <button class="rpg-card-btn rpg-card-wait" id="rpg-btn-wait" onclick="rpgAction('wait')">
+               <span class="rpg-card-icon">💤</span>
+               <span class="rpg-card-label">Ждать</span>
+               <span class="rpg-card-cost">+30 СТА</span>
+               </button>
+               <button class="rpg-card-btn rpg-card-potion" id="rpg-btn-potion" onclick="rpgAction('potion')">
+               <span class="rpg-card-icon">🧪</span>
+               <span class="rpg-card-label">Зелье</span>
+               <span class="rpg-card-cost">−5 СТА</span>
+               </button>
+            </div>
+         </div>
+      </div>
+      <!-- ── ЭКРАН СТАВКИ (для watchBattle) ── -->
+      <div id="scr-bet" class="screen">
+         <div class="card">
+            <h3 style="margin-top:0;text-align:center;font-size:1.4rem;">ВАША СТАВКА</h3>
+            <input type="number" id="bet-amt" value="100" min="10" inputmode="numeric">
+            <div class="bet-btn-row">
+               <button class="btn-wood" style="background:#3498db;border:none;box-shadow:0 4px 0 #2573a7;" onclick="preStart(1)">ЛЕВЫЙ</button>
+               <button class="btn-wood" style="background:#9b59b6;border:none;box-shadow:0 4px 0 #7d4594;" onclick="preStart(2)">ПРАВЫЙ</button>
+            </div>
+            <button class="btn-wood btn-random" onclick="preStart(0)">🎲 СЛУЧАЙНЫЙ</button>
+            <button class="btn-watch-fight" id="watch-btn" onclick="watchBattle()">
+            <span>ПОСМОТРЕТЬ БОЙ</span>
+            <span class="watch-reward-line" id="watch-reward-line">
             + 200 <img src="assets/boarcoin.png" class="coin-icon" alt="">
-          </span>
-        </button>
+            </span>
+            </button>
+            <button class="btn-wood" style="margin-top:8px;width:100%;opacity:0.6;" onclick="nav('scr-main')">ОТМЕНА</button>
+         </div>
       </div>
-
-    </div>
-  </div>
-</div>
-
-<!-- ── ПОСЕЛЕНИЕ ── -->
-<div id="scr-settlement" class="screen">
-  <div class="map-card">
-    <div class="map-header">
-      <h3>🏘️ ПОСЕЛЕНИЕ</h3>
-      <button class="close-x" style="position:static;" onclick="nav('scr-map')">&times;</button>
-    </div>
-    <!-- NPC список -->
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <!-- Торговец -->
-      <div class="map-loc-card unlocked" onclick="nav('scr-shop')" style="flex-direction:row;justify-content:flex-start;gap:14px;padding:14px;">
-        <span style="font-size:2rem;">🐗</span>
-        <div style="text-align:left;">
-          <div class="map-loc-name">Торговец Хрюня</div>
-          <div class="map-loc-desc"><!-- описание --></div>
-        </div>
+      <!-- ── ЛОКАЦИЯ ЗАГЛУШКА ── -->
+      <div id="scr-location" class="screen">
+         <div class="location-stub">
+            <div id="loc-icon" style="font-size:5rem;margin-bottom:16px;">🌾</div>
+            <h2 id="loc-title">ФЕРМА</h2>
+            <p id="loc-desc">Скоро!</p>
+            <button class="btn-wood" style="width:100%;" onclick="nav('scr-map')">← КАРТА</button>
+         </div>
       </div>
-      <!-- Кузнец — скоро -->
-      <div class="map-loc-card locked" style="flex-direction:row;justify-content:flex-start;gap:14px;padding:14px;opacity:0.45;">
-        <span style="font-size:2rem;">🔨</span>
-        <div style="text-align:left;">
-          <div class="map-loc-name">Кузнец</div>
-          <div class="map-loc-desc"><!-- описание --></div>
-        </div>
-        <div class="map-loc-lock">🔒</div>
-      </div>
-    </div>
-    <button class="btn-wood" style="width:100%;opacity:0.6;margin-top:4px;" onclick="nav('scr-map')">← КАРТА</button>
-  </div>
-</div>
-
-<!-- ── МАГАЗИН ── -->
-<div id="scr-shop" class="screen">
-  <div class="screen-card">
-    <div class="shop-header">
-      <h3>МАГАЗИН</h3>
-      <div class="shop-toggle-wrap">
-        <span id="shop-action-label" style="color:var(--win);">КУПИТЬ</span>
-        <button class="shop-toggle-mini" id="shop-toggle-mini" onclick="toggleActionMini()"></button>
-        <span style="opacity:0.5;">ПРОДАТЬ</span>
-      </div>
-    </div>
-    <div class="shop-items-scroll" id="shop-items-container"></div>
-    <div class="shop-detail">
-      <div class="shop-detail-top">
-        <div id="detail-icon-wrap" style="display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:14px;background:rgba(255,255,255,0.05);flex-shrink:0;">
-          <span class="shop-detail-icon-placeholder" id="detail-icon-placeholder">📦</span>
-          <img id="detail-icon-big" class="shop-detail-icon" src="" alt="" style="display:none;">
-        </div>
-        <div class="shop-detail-info">
-          <div class="shop-detail-name" id="detail-name">Выберите предмет</div>
-          <div class="shop-detail-price" id="detail-price">Цена: —</div>
-        </div>
-      </div>
-      <div class="shop-qty-row">
-        <input type="number" id="qty-input" value="1" min="1" inputmode="numeric" oninput="onQtyInput(this.value)">
-      </div>
-      <div class="shop-total" id="total-cost"></div>
-      <div class="shop-actions">
-        <button class="btn-wood btn-nav-back" onclick="nav('scr-settlement')">←</button>
-        <button class="btn-wood btn-trade" id="shop-trade-btn" onclick="performTransaction()">КУПИТЬ</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ── ПРОФИЛЬ ── -->
-<div id="scr-profile" class="screen">
-  <div class="card">
-    <h3 style="margin-top:0;">ВАШ ХРЯК</h3>
-    <input type="text" id="edit-name" placeholder="Имя хряка">
-    <div class="stat-grid">
-      <div class="stat-item"><span class="stat-val" id="st-games">0</span><span class="stat-lbl">Боев</span></div>
-      <div class="stat-item"><span class="stat-val" id="st-wins" style="color:var(--win);">0</span><span class="stat-lbl">Побед</span></div>
-      <div class="stat-item"><span class="stat-val" id="st-lose" style="color:var(--lose);">0</span><span class="stat-lbl">Пораж.</span></div>
-      <div class="stat-item"><span class="stat-val" id="st-wr">0%</span><span class="stat-lbl">Winrate</span></div>
-    </div>
-    <div class="stat-grid">
-      <div class="stat-item"><span class="stat-val" id="st-max-balance">0</span><span class="stat-lbl">Макс. баланс</span></div>
-      <div class="stat-item"><span class="stat-val" id="st-watched">0</span><span class="stat-lbl">Просмотрено</span></div>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0;">
-      <span>Запретить мне писать</span>
-      <label class="toggle-switch">
-        <input type="checkbox" id="private-profile-toggle" onchange="togglePrivateProfile()">
-        <span class="slider"></span>
-      </label>
-    </div>
-    <button class="btn-wood" style="width:100%;background:#fff;color:#000;box-shadow:0 4px 0 #ccc;" onclick="updateName()">СОХРАНИТЬ</button>
-    <button class="btn-wood" style="width:100%;margin-top:14px;opacity:0.6;" onclick="nav('scr-main')">НАЗАД</button>
-  </div>
-</div>
-
-<!-- ── РЕЙТИНГ ── -->
-<div id="scr-rank" class="screen">
-  <div class="card" style="max-height:85vh;display:flex;flex-direction:column;">
-    <h3 style="margin-top:0;text-align:center;">ТОП БОЙЦОВ</h3>
-    <div id="your-rank">Твое место — ?</div>
-    <div id="rank-loading" style="display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;">
-      <div style="width:40px;height:40px;border:3px solid rgba(255,255,255,0.1);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s cubic-bezier(0.5,0,0.5,1) infinite;margin-bottom:10px;"></div>
-      <span>Загрузка...</span>
-    </div>
-    <div id="rank-list" style="overflow-y:auto;flex:1;padding-right:5px;"></div>
-    <button id="toggle-full-leaderboard" class="btn-wood" style="width:100%;margin-top:10px;display:none;" onclick="toggleFullLeaderboard()">Развернуть</button>
-    <button class="btn-wood" style="width:100%;margin-top:10px;" onclick="nav('scr-main')">НАЗАД</button>
-  </div>
-</div>
-
-<!-- ── БОЙ ── -->
-<div id="scr-fight" class="screen">
-  <div class="arena">
-    <div id="cont-1" class="boar-container">
-      <div class="hp-bar-box">
-        <div class="hp-txt" id="hp1-txt">100</div>
-        <div class="hp-bar"><div id="hp1-f" class="hp-fill"></div></div>
-      </div>
-      <div class="boar-unit">
-        <img id="boar1-img" src="assets/boars/boar.png" onerror="this.src='https://api.dicebear.com/7.x/pixel-art/svg?seed=boar1'">
-      </div>
-    </div>
-    <div id="cont-2" class="boar-container">
-      <div class="hp-bar-box">
-        <div class="hp-txt" id="hp2-txt">100</div>
-        <div class="hp-bar"><div id="hp2-f" class="hp-fill"></div></div>
-      </div>
-      <div class="boar-unit">
-        <img id="boar2-img" src="assets/boars/boar.png" onerror="this.src='https://api.dicebear.com/7.x/pixel-art/svg?seed=boar2'">
-      </div>
-    </div>
-  </div>
-
-  <div id="fight-log">ПОДГОТОВКА...</div>
-
-  <div id="rpg-fight-panel">
-    <div class="rpg-sta-row">
-      <div class="rpg-sta-block">
-        <div class="rpg-sta-label">СТА <span id="rpg-sta1-txt">100</span></div>
-        <div class="rpg-sta-track"><div class="rpg-sta-fill" id="rpg-sta1-bar" style="width:100%"></div></div>
-      </div>
-      <div class="rpg-round-badge-inline" id="rpg-round-label">РАУНД 1</div>
-      <div class="rpg-sta-block right">
-        <div class="rpg-sta-label" style="justify-content:flex-end;"><span id="rpg-sta2-txt">85</span> СТА</div>
-        <div class="rpg-sta-track"><div class="rpg-sta-fill" id="rpg-sta2-bar" style="width:85%"></div></div>
-      </div>
-    </div>
-    <div class="rpg-potion-submenu" id="rpg-potion-submenu">
-      <button class="rpg-potion-btn" id="rpg-btn-potion-hp" onclick="rpgPotionSelect('hp')">
-        <span class="rpg-potion-icon">❤️</span>
-        <span class="rpg-potion-label">Лечение</span>
-        <span class="rpg-potion-count" id="rpg-potion-hp-count">×0</span>
-      </button>
-      <button class="rpg-potion-btn" id="rpg-btn-potion-sta" onclick="rpgPotionSelect('sta')">
-        <span class="rpg-potion-icon">⚡</span>
-        <span class="rpg-potion-label">Стамина</span>
-        <span class="rpg-potion-count" id="rpg-potion-sta-count">×0</span>
-      </button>
-    </div>
-    <div class="rpg-main-actions">
-      <button class="rpg-card-btn rpg-card-attack" id="rpg-btn-attack" onclick="rpgAction('attack')">
-        <span class="rpg-card-icon">⚔️</span>
-        <span class="rpg-card-label">Атака</span>
-        <span class="rpg-card-cost">−10 СТА</span>
-      </button>
-      <button class="rpg-card-btn rpg-card-block" id="rpg-btn-block" onclick="rpgAction('block')">
-        <span class="rpg-card-icon">🛡️</span>
-        <span class="rpg-card-label">Блок</span>
-        <span class="rpg-card-cost">−10 СТА</span>
-      </button>
-      <button class="rpg-card-btn rpg-card-wait" id="rpg-btn-wait" onclick="rpgAction('wait')">
-        <span class="rpg-card-icon">💤</span>
-        <span class="rpg-card-label">Ждать</span>
-        <span class="rpg-card-cost">+30 СТА</span>
-      </button>
-      <button class="rpg-card-btn rpg-card-potion" id="rpg-btn-potion" onclick="rpgAction('potion')">
-        <span class="rpg-card-icon">🧪</span>
-        <span class="rpg-card-label">Зелье</span>
-        <span class="rpg-card-cost">−5 СТА</span>
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ── ЭКРАН СТАВКИ (для watchBattle) ── -->
-<div id="scr-bet" class="screen">
-  <div class="card">
-    <h3 style="margin-top:0;text-align:center;font-size:1.4rem;">ВАША СТАВКА</h3>
-    <input type="number" id="bet-amt" value="100" min="10" inputmode="numeric">
-    <div class="bet-btn-row">
-      <button class="btn-wood" style="background:#3498db;border:none;box-shadow:0 4px 0 #2573a7;" onclick="preStart(1)">ЛЕВЫЙ</button>
-      <button class="btn-wood" style="background:#9b59b6;border:none;box-shadow:0 4px 0 #7d4594;" onclick="preStart(2)">ПРАВЫЙ</button>
-    </div>
-    <button class="btn-wood btn-random" onclick="preStart(0)">🎲 СЛУЧАЙНЫЙ</button>
-    <button class="btn-watch-fight" id="watch-btn" onclick="watchBattle()">
-      <span>ПОСМОТРЕТЬ БОЙ</span>
-      <span class="watch-reward-line" id="watch-reward-line">
-        + 200 <img src="assets/boarcoin.png" class="coin-icon" alt="">
-      </span>
-    </button>
-    <button class="btn-wood" style="margin-top:8px;width:100%;opacity:0.6;" onclick="nav('scr-main')">ОТМЕНА</button>
-  </div>
-</div>
-
-<!-- ── ЛОКАЦИЯ ЗАГЛУШКА ── -->
-<div id="scr-location" class="screen">
-  <div class="location-stub">
-    <div id="loc-icon" style="font-size:5rem;margin-bottom:16px;">🌾</div>
-    <h2 id="loc-title">ФЕРМА</h2>
-    <p id="loc-desc">Скоро!</p>
-    <button class="btn-wood" style="width:100%;" onclick="nav('scr-map')">← КАРТА</button>
-  </div>
-</div>
-
-<script type="module" src="js/main.js"></script>
-</body>
+      <script type="module" src="js/main.js"></script>
+   </body>
 </html>
