@@ -16,6 +16,32 @@ import { renderMap, tryBuyFarm } from './map.js';
 const tg = window.Telegram.WebApp;
 tg.expand();
 
+// ── Переключение вкладок экрана Поляна ───────────────────────
+
+function switchFieldTab(tab) {
+  document.querySelectorAll('.field-tab-content').forEach(el => {
+    el.style.display = 'none';
+  });
+  document.querySelectorAll('.field-tab-btn').forEach(el => {
+    el.classList.remove('active');
+  });
+
+  const content = document.getElementById('field-content-' + tab);
+  if (content) content.style.display = 'flex';
+
+  const btn = document.getElementById('field-tab-' + tab);
+  if (btn) btn.classList.add('active');
+
+  const titles = {
+    arena:  '⚔️ ПОЛЯНА СРАЖЕНИЙ',
+    forest: '🌲 ПОХОД В ЛЕС',
+  };
+  const titleEl = document.getElementById('field-tab-title');
+  if (titleEl) titleEl.textContent = titles[tab] || '';
+}
+
+// ── Авторизация ───────────────────────────────────────────────
+
 async function auth() {
   const tgUser = tg.initDataUnsafe?.user || { id: 'dev_user', username: 'kaban', first_name: 'Хряк' };
 
@@ -86,6 +112,8 @@ Object.assign(window, {
 
   renderMap,
   tryBuyFarm,
+
+  switchFieldTab,
 });
 
 // nav с хуками
@@ -94,7 +122,10 @@ window.nav = function(id) {
   _origNav(id);
   if (id === 'scr-map')           renderMap();
   if (id === 'scr-farm-location') loadFarmState();
-  if (id === 'scr-field')         loadForestState();   // ФИКС: был scr-forest-location
+  if (id === 'scr-field') {
+    switchFieldTab('arena');  // сначала показываем правильную вкладку
+    loadForestState();        // потом грузим данные (рендер уйдёт в forest-state-area)
+  }
 };
 
 document.getElementById('version-label').textContent = 'v' + APP_VERSION;

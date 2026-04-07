@@ -5,7 +5,6 @@ import { state, isBossDefeated, isFarmOwned, buyFarm } from './state.js';
 import { nav, showToast } from './ui.js';
 import { tryStartBattle } from './battle.js';
 import { loadFarmState } from './farm.js';
-import { loadForestState } from './forest.js';
 
 const tg = window.Telegram.WebApp;
 
@@ -67,7 +66,7 @@ const LOCATIONS = [
     show: () => true,
     locked: () => !isBossDefeated('boss_1'),
     after: 'boss1',
-    action: () => { nav('scr-field'); },   // открывает Поляны → раздел «Поход в лес»
+    action: () => tryStartBattle('forest_grunt'),
   },
   {
     id: 'mansion',

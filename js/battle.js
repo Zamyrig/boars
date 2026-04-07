@@ -27,13 +27,25 @@ const ENEMY_CONFIGS = {
     hp: 85, sta: 85, baseDmg: BASE_DMG * 0.85,
     rewardMin: 25, rewardMax: 35,
     isBoss: false,
-    dropPotion: true,  // участвует в системе дропа зелий
+    dropPotion: true,
+  },
+  forest_grunt: {
+    name: 'Лесной кабан',
+    img: null,
+    bgId: 'bg-forest',
+    hp: 120, sta: 110, baseDmg: BASE_DMG * 1.3,
+    rewardMin: 50, rewardMax: 70,
+    isBoss: false,
+    dropPotion: true,
   },
   boss_1: {
     name: 'Бригадир',
     img: 'assets/boars/boar_old.png',
     bgId: 'bg-mine',
-    hp: 200, sta: 150, baseDmg: 9,  // снижен с 15 до 9 для баланса
+    // HP 150, урон 6, атакует 65% раундов.
+    // Игрок без блока за ~25 раундов получит ~6*0.65*25=97 урона.
+    // 1 зелье = +50HP → эффективно 150HP. Т.е. ~1-2 зелья на бой.
+    hp: 150, sta: 150, baseDmg: 6,
     rewardMin: 700, rewardMax: 800,
     isBoss: true,
     bossId: 'boss_1',
@@ -121,21 +133,14 @@ export async function watchBattle() {
   if (state.isBattleLocked) return;
   state.isBattleLocked = true;
   state.isWatchingMode = true;
-  _startOldBattle(0, null);
-  const response = await apiFetch('/api/battle/watch', {
+  state.battleResult   = null;
+
+  const serverPromise = apiFetch('/api/battle/watch', {
     method: 'POST',
     body: JSON.stringify({ tg_id: state.user.tg_id }),
   });
-  if (response?.success) {
-    state.battleResult = { ...response, _isWatch: true };
-    state.watchCooldownRemaining = response.watch_cooldown_remaining || 0;
-    updateWatchButton();
-    clearInterval(state.watchCooldownTimer);
-    state.watchCooldownTimer = null;
-    if (state.watchCooldownRemaining > 0) startWatchCooldownTick();
-  } else {
-    state.battleResult = null;
-  }
+
+  _startOldBattle(0, null, serverPromise);
 }
 
 export async function preStart(side) {
@@ -162,7 +167,7 @@ export async function preStart(side) {
     });
     if (!response || response.error) throw new Error(response?.error || 'Ошибка');
     state.battleResult = { ...response, _betAmount: amt };
-    _startOldBattle(amt, response);
+    _startOldBattle(amt, response, null);
   } catch (error) {
     tg.HapticFeedback.notificationOccurred('error');
     showToast(error.message || 'Ошибка начала боя');
@@ -211,8 +216,8 @@ function _enemyAI() {
   if (e.sta <= 10) return 'wait';
   const roll = Math.random();
   if (cfg.isBoss) {
-    // Бригадир: 60% атака, 30% ждать, 10% блок
-    if (roll < 0.60) return 'attack';
+    // Бригадир: 65% атака, 25% ждать, 10% блок
+    if (roll < 0.65) return 'attack';
     if (roll < 0.90) return 'wait';
     return 'block';
   }
@@ -242,7 +247,6 @@ function _doRpgRound(playerAction) {
     _syncPotionsToUser();
     _spawnDmg(document.getElementById('cont-1'), `+${heal}`, '#4cd964');
   } else if (playerAction === 'potion-sta') {
-    // Восстанавливает до 90% maxSta независимо от текущего значения
     const target  = Math.round(p.maxSta * 0.9);
     const restore = Math.max(0, target - p.sta);
     p.sta = Math.min(p.maxSta, p.sta + restore);
@@ -370,54 +374,58 @@ async function _endRpg(playerWon) {
 
   const reward = playerWon ? _rand(cfg.rewardMin || 25, cfg.rewardMax || 35) : 0;
 
-  // Сохраняем результат боя
-  try {
-    const resp = await apiFetch('/api/battle/rpg-result', {
+  // Запускаем оба запроса параллельно
+  const [, dropResult] = await Promise.all([
+    apiFetch('/api/battle/rpg-result', {
       method: 'POST',
       body: JSON.stringify({
         tg_id:  state.user.tg_id,
         is_win: playerWon,
         reward: reward,
-        enemy:  cfg.bossId || 'mine_grunt',
+        enemy:  cfg.bossId || state.rpg?.enemyKey || 'mine_grunt',
       }),
-    });
-    if (resp?.new_balance !== undefined) {
-      state.user.balance     = resp.new_balance;
-      state.user.total_games = resp.total_games;
-      state.user.wins        = resp.wins;
-      state.user.lose        = resp.lose;
-      document.getElementById('bal-val').innerText = resp.new_balance.toLocaleString();
-    }
-  } catch (e) {
-    if (playerWon) state.user.balance += reward;
-    document.getElementById('bal-val').innerText = state.user.balance.toLocaleString();
-    console.warn('rpg-result sync failed', e);
-  }
-
-  // Дроп зелья с шахтёра
-  if (playerWon && cfg.dropPotion) {
-    try {
-      const drop = await apiFetch('/api/battle/mine-drop', {
-        method: 'POST',
-        body: JSON.stringify({ tg_id: state.user.tg_id }),
-      });
-      if (drop?.potion_dropped) {
-        state.user.potion_hp  = drop.potion_hp;
-        state.user.potion_sta = drop.potion_sta;
-        if (state.rpg) {
-          state.rpg.potions.hp  = drop.potion_hp;
-          state.rpg.potions.sta = drop.potion_sta;
-        }
-        renderInventoryPotions();
-        showToast('❤️ Выпало зелье лечения!');
+    }).then(resp => {
+      if (resp?.new_balance !== undefined) {
+        state.user.balance     = resp.new_balance;
+        state.user.total_games = resp.total_games;
+        state.user.wins        = resp.wins;
+        state.user.lose        = resp.lose;
+        document.getElementById('bal-val').innerText = resp.new_balance.toLocaleString();
       }
-    } catch (e) {
-      console.warn('mine-drop failed', e);
+    }).catch(e => {
+      if (playerWon) state.user.balance += reward;
+      document.getElementById('bal-val').innerText = state.user.balance.toLocaleString();
+      console.warn('rpg-result sync failed', e);
+    }),
+
+    playerWon && cfg.dropPotion
+      ? apiFetch('/api/battle/mine-drop', {
+          method: 'POST',
+          body: JSON.stringify({ tg_id: state.user.tg_id }),
+        }).catch(e => { console.warn('mine-drop failed', e); return null; })
+      : Promise.resolve(null),
+  ]);
+
+  // Обновляем зелья если выпало
+  let potionDropped = false;
+  if (dropResult?.potion_dropped) {
+    potionDropped = true;
+    state.user.potion_hp  = dropResult.potion_hp;
+    state.user.potion_sta = dropResult.potion_sta;
+    if (state.rpg) {
+      state.rpg.potions.hp  = dropResult.potion_hp;
+      state.rpg.potions.sta = dropResult.potion_sta;
     }
+    renderInventoryPotions();
   }
 
+  // Строка награды: монеты + зелье если выпало
   if (playerWon) {
-    sum.innerHTML   = `+${reward} ${coinImg()}`;
+    let sumHtml = `+${reward} ${coinImg()}`;
+    if (potionDropped) {
+      sumHtml += `<span style="margin-left:10px;font-size:1.1rem;vertical-align:middle;">❤️ +1</span>`;
+    }
+    sum.innerHTML   = sumHtml;
     sum.style.color = 'var(--win)';
   } else {
     sum.innerHTML = '';
@@ -504,7 +512,7 @@ function _spawnDmg(container, text, color) {
 
 function _rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
-// ── Старая анимация (watchBattle) ────────────────────────────
+// ── Старая анимация (watchBattle / preStart) ─────────────────
 
 function _generateHits(serverResult) {
   const winningSide = !serverResult || state.isWatchingMode
@@ -524,7 +532,7 @@ function _generateHits(serverResult) {
   return hits;
 }
 
-function _startOldBattle(bet, serverResult) {
+function _startOldBattle(bet, serverResult, serverPromise) {
   nav('scr-fight');
   let h1 = 100, h2 = 100;
   const log = document.getElementById('fight-log');
@@ -534,10 +542,27 @@ function _startOldBattle(bet, serverResult) {
   document.getElementById('hp2-txt').innerText = '100';
   const panel = document.getElementById('rpg-fight-panel');
   if (panel) panel.style.display = 'none';
+
   const hits = _generateHits(serverResult);
-  const playerWins = serverResult?.is_win === true;
+
+  let resolvedWatchResult = null;
+  if (serverPromise) {
+    serverPromise.then(response => {
+      resolvedWatchResult = response;
+      if (response?.success) {
+        state.battleResult = { ...response, _isWatch: true };
+        state.watchCooldownRemaining = response.watch_cooldown_remaining || 0;
+        updateWatchButton();
+        clearInterval(state.watchCooldownTimer);
+        state.watchCooldownTimer = null;
+        if (state.watchCooldownRemaining > 0) startWatchCooldownTick();
+      }
+    }).catch(e => console.warn('watch request failed', e));
+  }
+
   let hitIndex = 0, battleEnded = false;
   setTimeout(() => { if (!battleEnded) log.innerText = 'ИДЕТ БОЙ...'; }, 500);
+
   const interval = setInterval(() => {
     if (hitIndex >= hits.length || battleEnded) { clearInterval(interval); return; }
     const hit  = hits[hitIndex];
@@ -552,13 +577,17 @@ function _startOldBattle(bet, serverResult) {
       battleEnded = true; clearInterval(interval);
       log.innerText = `ПОБЕДИЛ КАБАН ${h1 > 0 ? 'ЛЕВЫЙ' : 'ПРАВЫЙ'}`;
       setTimeout(() => {
-        tg.HapticFeedback.notificationOccurred((playerWins&&!state.isWatchingMode)||state.isWatchingMode?'success':'error');
+        const playerWins = serverResult?.is_win === true;
+        tg.HapticFeedback.notificationOccurred(
+          (playerWins && !state.isWatchingMode) || state.isWatchingMode ? 'success' : 'error'
+        );
         if (state.isWatchingMode) {
-          const rewardGiven = state.battleResult?.reward_given;
-          const reward = state.battleResult?.reward || 0;
-          showResult('БОЙ ОКОНЧЕН', reward, rewardGiven&&reward>0?'watch_reward':'watch_no_reward');
+          const wr = resolvedWatchResult || state.battleResult;
+          const rewardGiven = wr?.reward_given;
+          const reward = wr?.reward || 0;
+          showResult('БОЙ ОКОНЧЕН', reward, rewardGiven && reward > 0 ? 'watch_reward' : 'watch_no_reward');
         } else {
-          showResult(playerWins?'ПОБЕДА':'ПОРАЖЕНИЕ', bet, playerWins?'win':'lose');
+          showResult(playerWins ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ', bet, playerWins ? 'win' : 'lose');
         }
         state.isBattleLocked = false;
         if (panel) panel.style.display = '';
