@@ -73,14 +73,28 @@ function _playBoarAnim(side, animName, loop = true) {
   clearInterval(bs.timer);
   bs.timer = null;
   bs.anim = animName;
+
   const base = `assets/boar_sobchak/${cfg.folder}/${cfg.folder}`;
-  let frame = 1;
   const intervalMs = Math.round(1000 / cfg.fps);
-  img.src = `${base}${frame}.png`;
+  let frame = 1;
+  let cancelled = false;
+
+  // Предзагрузка всех кадров анимации
+  const frames = [];
+  for (let i = 1; i <= cfg.count; i++) {
+    const image = new Image();
+    image.src = `${base}${i}.png`;
+    frames.push(image);
+  }
+
+  img.src = frames[0].src;
+
   bs.timer = setInterval(() => {
+    if (cancelled) return;
     frame++;
     if (frame > cfg.count) {
       if (!loop) {
+        cancelled = true;
         clearInterval(bs.timer);
         bs.timer = null;
         bs.anim = null;
@@ -89,7 +103,7 @@ function _playBoarAnim(side, animName, loop = true) {
       }
       frame = 1;
     }
-    img.src = `${base}${frame}.png`;
+    img.src = frames[frame - 1].src;
   }, intervalMs);
 }
 
