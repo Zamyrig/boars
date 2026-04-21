@@ -10,6 +10,13 @@ const tg = window.Telegram.WebApp;
 
 export async function loadForestState() {
   if (!state.user) return;
+
+  // Если данные уже есть в state (загружены при auth) — рендерим сразу
+  if (state.forestState) {
+    renderForestUI();
+    startForestTimer();
+  }
+
   const data = await apiFetch(`/api/forest/state?tg_id=${state.user.tg_id}`);
   if (!data) return;
 
@@ -25,14 +32,23 @@ export async function loadForestState() {
   }
 
   state.forestState = data;
-  // Рендерим в forest-state-area (scr-field), не проверяем старый inv-content-forest
   renderForestUI();
   startForestTimer();
 }
 
 export function renderForestUI() {
   const area = document.getElementById('forest-state-area');
-  if (!area || !state.forestState) return;
+  if (!area) return;
+
+  // Если state.forestState ещё не загружен — показываем лоадер
+  if (!state.forestState) {
+    area.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:40px 10px;">
+        <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,0.1);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s cubic-bezier(0.5,0,0.5,1) infinite;"></div>
+      </div>`;
+    return;
+  }
+
   const s = state.forestState;
 
   if (s.state === 'idle') {

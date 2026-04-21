@@ -43,7 +43,9 @@ def init_db():
         'last_seen': 'TIMESTAMP DEFAULT NULL',
         'potion_hp': 'INTEGER DEFAULT 0',
         'potion_sta': 'INTEGER DEFAULT 0',
-        'mine_potion_drops': 'INTEGER DEFAULT 0',  # счётчик дропов зелья с шахты
+        'mine_potion_drops': 'INTEGER DEFAULT 0',
+        'defeated_bosses': "TEXT DEFAULT '[]'",
+        'farm_owned': 'INTEGER DEFAULT 0',
     }
 
     for col, col_def in new_columns.items():

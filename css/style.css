@@ -96,8 +96,7 @@ input:disabled { opacity: 0.5; cursor: not-allowed; }
 .hp-fill { height: 100%; background: linear-gradient(90deg, #4cd964, #a0ffaf); transition: width 0.4s cubic-bezier(0.33, 1, 0.68, 1); width: 100%; }
 .hp-txt { color: #fff; font-size: 1.2rem; font-weight: 900; text-align: center; margin-bottom: 8px; text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
 .boar-unit { width: 100%; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.6)); }
-.boar-unit img { width: 100%; height: auto; display: block; }
-#boar1-img { transform: scaleX(-1); }
+.boar-unit img { width: 100%; height: auto; display: block; image-rendering: pixelated; }
 
 #fight-log { position: absolute; bottom: calc(15% + var(--safe-bottom)); background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); padding: 12px 28px; border-radius: 100px; font-weight: 700; font-size: 0.9rem; color: #fff; border: 1px solid rgba(255,255,255,0.15); z-index: 20; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 80%; text-align: center; }
 
@@ -300,8 +299,6 @@ input:checked + .slider:before { transform: translateX(76px); }
 }
 
 /* ============================================================
-
-/* ============================================================
    КАРТА МИРА
    ============================================================ */
 
@@ -357,9 +354,8 @@ input:checked + .slider:before { transform: translateX(76px); }
 
 /* Арена — кабаны занимают только верхние 60% экрана */
 #scr-fight .arena {
-  /* Кабаны занимают среднюю зону, выше панели кнопок */
   position: absolute;
-  bottom: 38%;   /* над панелью кнопок */
+  bottom: 38%;
   top: calc(var(--safe-top) + 50px);
   width: 100%;
   height: auto;
@@ -466,7 +462,6 @@ input:checked + .slider:before { transform: translateX(76px); }
   background: #252528;
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 18px;
-  /* высота фиксированная — не aspect-ratio, чтобы текст был виден */
   min-height: 80px;
   padding: 10px 4px 8px;
   cursor: pointer;

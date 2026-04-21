@@ -42,15 +42,76 @@ const ENEMY_CONFIGS = {
     name: 'Бригадир',
     img: 'assets/boars/boar_old.png',
     bgId: 'bg-mine',
-    // HP 150, урон 6, атакует 65% раундов.
-    // Игрок без блока за ~25 раундов получит ~6*0.65*25=97 урона.
-    // 1 зелье = +50HP → эффективно 150HP. Т.е. ~1-2 зелья на бой.
     hp: 150, sta: 150, baseDmg: 6,
     rewardMin: 700, rewardMax: 800,
     isBoss: true,
     bossId: 'boss_1',
   },
 };
+
+// ── Анимация кабанов ─────────────────────────────────────────
+
+const BOAR_ANIMS = {
+  waiting:     { folder: 'boar_waiting',     count: 7,  fps: 7  },
+  attack:      { folder: 'boar_attack',      count: 10, fps: 10 },
+  take_damage: { folder: 'boar_take_damage', count: 8,  fps: 10 },
+};
+
+const _boarState = {
+  1: { timer: null, anim: null },
+  2: { timer: null, anim: null },
+};
+
+function _playBoarAnim(side, animName, loop = true) {
+  const cfg = BOAR_ANIMS[animName];
+  if (!cfg) return;
+  const img = document.getElementById(`boar${side}-img`);
+  if (!img) return;
+
+  const bs = _boarState[side];
+
+  // Не прерывать уже играющий waiting, но одиночные анимации всегда запускать
+  if (loop && bs.anim === animName && bs.timer !== null) return;
+
+  clearInterval(bs.timer);
+  bs.timer = null;
+  bs.anim = animName;
+
+  const base = `assets/boar_sobchak/${cfg.folder}/${cfg.folder}`;
+  let frame = 1;
+  const intervalMs = Math.round(1000 / cfg.fps);
+
+  img.src = `${base}${frame}.png`;
+
+  bs.timer = setInterval(() => {
+    frame++;
+    if (frame > cfg.count) {
+      if (!loop) {
+        clearInterval(bs.timer);
+        bs.timer = null;
+        bs.anim = null;
+        _playBoarAnim(side, 'waiting', true);
+        return;
+      }
+      frame = 1;
+    }
+    img.src = `${base}${frame}.png`;
+  }, intervalMs);
+}
+
+function _stopBoarAnims() {
+  [1, 2].forEach(side => {
+    clearInterval(_boarState[side].timer);
+    _boarState[side].timer = null;
+    _boarState[side].anim  = null;
+  });
+}
+
+function _initBoarAnims() {
+  _stopBoarAnims();
+  _playBoarAnim(1, 'waiting', true);
+  _playBoarAnim(2, 'waiting', true);
+}
 
 // ── Инициализация ─────────────────────────────────────────────
 
@@ -113,11 +174,11 @@ function _setupFightScreen() {
   document.getElementById('hp2-txt').innerText = cfg.hp;
   document.getElementById('hp2-f').style.width = (cfg.hp / cfg.maxHp * 100) + '%';
 
-  const boar2 = document.getElementById('boar2-img');
-  boar2.src = cfg.img || 'assets/boars/boar.png';
-  boar2.onerror = () => { boar2.src = 'assets/boars/boar.png'; };
+  // Только для боссов с кастомным спрайтом
+  if (cfg.img) {
+    document.getElementById('boar2-img').src = cfg.img;
+  }
 
-  document.getElementById('boar1-img').src = 'assets/boars/boar.png';
   document.getElementById('fight-log').innerText = 'Выбери действие!';
   _renderRpgBars();
   _renderPotionCounts();
@@ -125,6 +186,8 @@ function _setupFightScreen() {
   _unlockButtons();
   const lbl = document.getElementById('rpg-round-label');
   if (lbl) lbl.textContent = 'РАУНД 1';
+
+  _initBoarAnims();
 }
 
 // ── watchBattle ───────────────────────────────────────────────
@@ -216,12 +279,10 @@ function _enemyAI() {
   if (e.sta <= 10) return 'wait';
   const roll = Math.random();
   if (cfg.isBoss) {
-    // Бригадир: 65% атака, 25% ждать, 10% блок
     if (roll < 0.65) return 'attack';
     if (roll < 0.90) return 'wait';
     return 'block';
   }
-  // Grunt AI
   if (e.hp < e.maxHp * 0.25 && roll < 0.35) return 'wait';
   if (roll < 0.12) return 'block';
   if (roll < 0.30) return 'wait';
@@ -315,17 +376,28 @@ function _doRpgRound(playerAction) {
   else if (enemyAction === 'wait')  parts.push(`Враг ждёт (+${WAIT_STA})`);
   document.getElementById('fight-log').innerText = parts.join(' • ');
 
-  // ── Попапы ───────────────────────────────────────────────────
+  // ── Попапы + анимации ─────────────────────────────────────────
   const c1 = document.getElementById('cont-1');
   const c2 = document.getElementById('cont-2');
-  if (playerAction === 'attack' && playerDmg > 0) {
-    c2.classList.add('hit'); _spawnDmg(c2, `-${playerDmg}`, '#ff3e3e');
-    setTimeout(() => c2.classList.remove('hit'), 250);
+
+  if (playerAction === 'attack') {
+    _playBoarAnim(1, 'attack', false);
+    if (playerDmg > 0) {
+      c2.classList.add('hit');
+      _spawnDmg(c2, `-${playerDmg}`, '#ff3e3e');
+      setTimeout(() => c2.classList.remove('hit'), 250);
+      if (!enemyBlocked) _playBoarAnim(2, 'take_damage', false);
+    }
   }
-  if (enemyAction === 'attack' && enemyDmg > 0) {
-    c1.classList.add('hit'); _spawnDmg(c1, `-${enemyDmg}`, '#ff3e3e');
-    setTimeout(() => c1.classList.remove('hit'), 250);
-    tg.HapticFeedback.impactOccurred('medium');
+  if (enemyAction === 'attack') {
+    _playBoarAnim(2, 'attack', false);
+    if (enemyDmg > 0) {
+      c1.classList.add('hit');
+      _spawnDmg(c1, `-${enemyDmg}`, '#ff3e3e');
+      setTimeout(() => c1.classList.remove('hit'), 250);
+      tg.HapticFeedback.impactOccurred('medium');
+      if (!playerBlocked) _playBoarAnim(1, 'take_damage', false);
+    }
   }
   if (enemyBlocked) {
     _spawnDmg(c2, '🛡 БЛОК', '#3b9eff');
@@ -357,6 +429,7 @@ function _doRpgRound(playerAction) {
 // ── Конец боя ─────────────────────────────────────────────────
 
 async function _endRpg(playerWon) {
+  _stopBoarAnims();
   tg.HapticFeedback.notificationOccurred(playerWon ? 'success' : 'error');
   const cfg = state.rpg?.enemyCfg || {};
 
@@ -374,7 +447,6 @@ async function _endRpg(playerWon) {
 
   const reward = playerWon ? _rand(cfg.rewardMin || 25, cfg.rewardMax || 35) : 0;
 
-  // Запускаем оба запроса параллельно
   const [, dropResult] = await Promise.all([
     apiFetch('/api/battle/rpg-result', {
       method: 'POST',
@@ -406,7 +478,6 @@ async function _endRpg(playerWon) {
       : Promise.resolve(null),
   ]);
 
-  // Обновляем зелья если выпало
   let potionDropped = false;
   if (dropResult?.potion_dropped) {
     potionDropped = true;
@@ -419,7 +490,6 @@ async function _endRpg(playerWon) {
     renderInventoryPotions();
   }
 
-  // Строка награды: монеты + зелье если выпало
   if (playerWon) {
     let sumHtml = `+${reward} ${coinImg()}`;
     if (potionDropped) {
@@ -543,6 +613,8 @@ function _startOldBattle(bet, serverResult, serverPromise) {
   const panel = document.getElementById('rpg-fight-panel');
   if (panel) panel.style.display = 'none';
 
+  _initBoarAnims();
+
   const hits = _generateHits(serverResult);
 
   let resolvedWatchResult = null;
@@ -570,11 +642,21 @@ function _startOldBattle(bet, serverResult, serverPromise) {
     cont.classList.add('hit');
     _spawnDmg(cont, `-${hit.dmg}`, '#ff3e3e');
     setTimeout(() => cont.classList.remove('hit'), 250);
+
+    if (hit.target === 1) {
+      _playBoarAnim(1, 'take_damage', false);
+      _playBoarAnim(2, 'attack', false);
+    } else {
+      _playBoarAnim(2, 'take_damage', false);
+      _playBoarAnim(1, 'attack', false);
+    }
+
     if (hit.target === 1) { h1 = Math.max(0, h1-hit.dmg); document.getElementById('hp1-f').style.width=h1+'%'; document.getElementById('hp1-txt').innerText=h1; }
     else                  { h2 = Math.max(0, h2-hit.dmg); document.getElementById('hp2-f').style.width=h2+'%'; document.getElementById('hp2-txt').innerText=h2; }
     tg.HapticFeedback.impactOccurred('medium');
     if (h1 <= 0 || h2 <= 0) {
       battleEnded = true; clearInterval(interval);
+      _stopBoarAnims();
       log.innerText = `ПОБЕДИЛ КАБАН ${h1 > 0 ? 'ЛЕВЫЙ' : 'ПРАВЫЙ'}`;
       setTimeout(() => {
         const playerWins = serverResult?.is_win === true;

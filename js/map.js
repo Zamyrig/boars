@@ -13,7 +13,6 @@ const LOCATIONS = [
     id: 'mine',
     name: 'Шахта',
     emoji: '⛏️',
-    desc: 'Слабые враги. Хорошее начало.',
     show: () => true,
     locked: () => false,
     action: () => tryStartBattle('mine_grunt'),
@@ -22,7 +21,6 @@ const LOCATIONS = [
     id: 'cave',
     name: 'Пещера',
     emoji: '🕳️',
-    desc: 'Здесь прячется Бригадир. Первый босс.',
     show: () => !isBossDefeated('boss_1'),
     locked: () => false,
     isBoss: true,
@@ -32,7 +30,6 @@ const LOCATIONS = [
     id: 'field',
     name: 'Поляна',
     emoji: '🌿',
-    desc: 'Поход кабана и бои со зрителями.',
     show: () => true,
     locked: () => !isBossDefeated('boss_1'),
     after: 'boss1',
@@ -42,7 +39,6 @@ const LOCATIONS = [
     id: 'settlement',
     name: 'Поселение',
     emoji: '🏘️',
-    desc: 'Торговцы и NPC.',
     show: () => true,
     locked: () => !isBossDefeated('boss_1'),
     after: 'boss1',
@@ -52,7 +48,6 @@ const LOCATIONS = [
     id: 'farm',
     name: 'Ферма',
     emoji: '🌾',
-    desc: isFarmOwned() ? 'Выращивай ростки и собирай урожай.' : 'Старый фермер продаёт за 500 монет.',
     show: () => true,
     locked: () => !isBossDefeated('boss_1'),
     after: 'boss1',
@@ -62,7 +57,6 @@ const LOCATIONS = [
     id: 'forest',
     name: 'Лес',
     emoji: '🌲',
-    desc: 'Враги 2 уровня. Опаснее шахты.',
     show: () => true,
     locked: () => !isBossDefeated('boss_1'),
     after: 'boss1',
@@ -72,7 +66,6 @@ const LOCATIONS = [
     id: 'mansion',
     name: 'Особняк',
     emoji: '🏚️',
-    desc: isBossDefeated('boss_2') ? 'Проводи экскурсии.' : 'Логово 2 босса.',
     show: () => true,
     locked: () => !isBossDefeated('boss_1'),
     after: 'boss1',
@@ -83,7 +76,6 @@ const LOCATIONS = [
     id: 'bear_cave',
     name: 'Медвежья берлога',
     emoji: '🐻',
-    desc: 'Враги 3 уровня.',
     show: () => true,
     locked: () => !isBossDefeated('boss_2'),
     after: 'boss2',
@@ -93,7 +85,6 @@ const LOCATIONS = [
     id: 'forester',
     name: 'Домик лесника',
     emoji: '🏠',
-    desc: 'Финальный босс. Открывает мультиплеер.',
     show: () => true,
     locked: () => !isBossDefeated('boss_2'),
     after: 'boss2',
@@ -140,7 +131,6 @@ export function renderMap() {
     if (!loc.show()) continue;
     const isLocked  = loc.locked();
     const isBossLoc = typeof loc.isBoss === 'function' ? loc.isBoss() : !!loc.isBoss;
-    const desc      = typeof loc.desc === 'function' ? loc.desc() : loc.desc;
 
     const card = document.createElement('div');
     card.className = 'map-loc-card'
@@ -150,7 +140,6 @@ export function renderMap() {
     card.innerHTML = `
       <div class="map-loc-emoji">${loc.emoji}</div>
       <div class="map-loc-name">${loc.name}</div>
-      <div class="map-loc-desc">${isLocked ? _afterLabel(loc.after) : desc}</div>
       ${isLocked ? '<div class="map-loc-lock">🔒</div>' : ''}
       ${isBossLoc && !isLocked ? '<div class="map-loc-boss-badge">БОСС</div>' : ''}
     `;

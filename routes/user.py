@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timedelta
 from db.database import get_db_connection
+import json
 
 WATCH_COOLDOWN_HOURS = 2
 WATCH_REWARD = 200
@@ -19,6 +20,14 @@ def _calc_watch_cooldown(last_watch_reward_at):
         return max(0, int(remaining))
     except Exception:
         return 0
+
+
+def _parse_defeated_bosses(raw):
+    try:
+        result = json.loads(raw) if raw else []
+        return result if isinstance(result, list) else []
+    except Exception:
+        return []
 
 
 def _user_to_dict(user, watch_cooldown_remaining=None):
@@ -42,6 +51,8 @@ def _user_to_dict(user, watch_cooldown_remaining=None):
         'last_seen': user['last_seen'],
         'potion_hp': user['potion_hp'] if 'potion_hp' in user.keys() else 0,
         'potion_sta': user['potion_sta'] if 'potion_sta' in user.keys() else 0,
+        'defeated_bosses': _parse_defeated_bosses(user['defeated_bosses'] if 'defeated_bosses' in user.keys() else '[]'),
+        'farm_owned': bool(user['farm_owned'] if 'farm_owned' in user.keys() else 0),
     }
 
 
@@ -67,8 +78,9 @@ def auth():
             INSERT INTO users
             (tg_id, username, display_name, balance, total_games, wins, lose,
              private_profile, acorns, plant_acorns, max_balance, watched_battles,
-             last_watch_reward_at, last_seen, potion_hp, potion_sta)
-            VALUES (?, ?, ?, 1000, 0, 0, 0, 0, 0, 0, 1000, 0, NULL, ?, 0, 0)
+             last_watch_reward_at, last_seen, potion_hp, potion_sta,
+             defeated_bosses, farm_owned)
+            VALUES (?, ?, ?, 1000, 0, 0, 0, 0, 0, 0, 1000, 0, NULL, ?, 0, 0, '[]', 0)
         ''', (tg_id, username or '', display_name, now))
         conn.commit()
         cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
@@ -177,7 +189,6 @@ def user_info():
 
 @user_bp.route('/api/user/update-potions', methods=['POST'])
 def update_potions():
-    """Сохраняет количество зелий игрока в БД."""
     data = request.get_json()
     tg_id      = str(data.get('tg_id'))
     potion_hp  = int(data.get('potion_hp',  0))
@@ -200,3 +211,65 @@ def update_potions():
     conn.commit()
     conn.close()
     return jsonify({'success': True, 'potion_hp': potion_hp, 'potion_sta': potion_sta})
+
+
+# ── ПРОГРЕСС ──────────────────────────────────────────────────
+
+@user_bp.route('/api/progress/boss', methods=['POST'])
+def defeat_boss():
+    data   = request.get_json()
+    tg_id  = str(data.get('tg_id'))
+    boss_id = str(data.get('boss_id'))
+
+    if not tg_id or not boss_id:
+        return jsonify({'error': 'tg_id and boss_id required'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT defeated_bosses FROM users WHERE tg_id = ?', (tg_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'error': 'User not found'}), 404
+
+    try:
+        bosses = json.loads(row['defeated_bosses'] or '[]')
+        if not isinstance(bosses, list):
+            bosses = []
+    except Exception:
+        bosses = []
+
+    if boss_id not in bosses:
+        bosses.append(boss_id)
+        cursor.execute(
+            'UPDATE users SET defeated_bosses = ?, updated_at = CURRENT_TIMESTAMP WHERE tg_id = ?',
+            (json.dumps(bosses), tg_id)
+        )
+        conn.commit()
+
+    conn.close()
+    return jsonify({'success': True, 'defeated_bosses': bosses})
+
+
+@user_bp.route('/api/progress/farm', methods=['POST'])
+def buy_farm_progress():
+    data  = request.get_json()
+    tg_id = str(data.get('tg_id'))
+
+    if not tg_id:
+        return jsonify({'error': 'tg_id required'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT tg_id FROM users WHERE tg_id = ?', (tg_id,))
+    if not cursor.fetchone():
+        conn.close()
+        return jsonify({'error': 'User not found'}), 404
+
+    cursor.execute(
+        'UPDATE users SET farm_owned = 1, updated_at = CURRENT_TIMESTAMP WHERE tg_id = ?',
+        (tg_id,)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'farm_owned': True})
