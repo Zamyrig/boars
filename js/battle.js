@@ -5,7 +5,6 @@ import { state, defeatBoss } from './state.js';
 import { apiFetch } from './api.js';
 import { nav, showToast, showBetDeduction, showResult, updateWatchButton, startWatchCooldownTick, coinImg } from './ui.js';
 import { renderInventoryPotions } from './inventory.js';
-
 const tg = window.Telegram.WebApp;
 
 const BASE_DMG        = 5;
@@ -17,6 +16,9 @@ const WAIT_STA        = 30;
 const POTION_STA      = 5;
 const BLOCK_REDUCE    = 0.80;
 const BLOCK_MIN       = 0.10;
+
+// Длительность анимации атаки в мс (10 кадров × 100мс)
+const ATTACK_ANIM_MS = 1000;
 
 // ── Конфиги врагов ───────────────────────────────────────────
 const ENEMY_CONFIGS = {
@@ -50,7 +52,6 @@ const ENEMY_CONFIGS = {
 };
 
 // ── Анимация кабанов ─────────────────────────────────────────
-
 const BOAR_ANIMS = {
   waiting:     { folder: 'boar_waiting',     count: 7,  fps: 7  },
   attack:      { folder: 'boar_attack',      count: 10, fps: 10 },
@@ -67,22 +68,15 @@ function _playBoarAnim(side, animName, loop = true) {
   if (!cfg) return;
   const img = document.getElementById(`boar${side}-img`);
   if (!img) return;
-
   const bs = _boarState[side];
-
-  // Не прерывать уже играющий waiting, но одиночные анимации всегда запускать
   if (loop && bs.anim === animName && bs.timer !== null) return;
-
   clearInterval(bs.timer);
   bs.timer = null;
   bs.anim = animName;
-
   const base = `assets/boar_sobchak/${cfg.folder}/${cfg.folder}`;
   let frame = 1;
   const intervalMs = Math.round(1000 / cfg.fps);
-
   img.src = `${base}${frame}.png`;
-
   bs.timer = setInterval(() => {
     frame++;
     if (frame > cfg.count) {
@@ -114,7 +108,6 @@ function _initBoarAnims() {
 }
 
 // ── Инициализация ─────────────────────────────────────────────
-
 function initRpgState(enemyKey) {
   const cfg = ENEMY_CONFIGS[enemyKey] || ENEMY_CONFIGS.mine_grunt;
   state.rpg = {
@@ -141,11 +134,9 @@ function initRpgState(enemyKey) {
 }
 
 // ── Точки входа ───────────────────────────────────────────────
-
 export function tryStartBattle(enemyKey = 'mine_grunt') {
   initRpgState(enemyKey);
   _setupFightScreen();
-
   const allBgs = ['bg-main','bg-fight','bg-inventory','bg-shop','bg-farm','bg-mine','bg-forest'];
   allBgs.forEach(bg => {
     const el = document.getElementById(bg);
@@ -154,7 +145,6 @@ export function tryStartBattle(enemyKey = 'mine_grunt') {
   const cfg = ENEMY_CONFIGS[enemyKey] || ENEMY_CONFIGS.mine_grunt;
   const bgEl = document.getElementById(cfg.bgId || 'bg-fight');
   if (bgEl) bgEl.style.display = 'block';
-
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('scr-fight').classList.add('active');
   document.body.classList.remove('dimmed');
@@ -165,7 +155,6 @@ export function tryStartBattle(enemyKey = 'mine_grunt') {
 function _setupFightScreen() {
   const r = state.rpg;
   const cfg = r.enemyCfg;
-
   ['hp1-f','hp2-f'].forEach(id => {
     document.getElementById(id).style.width = '100%';
     document.getElementById(id).style.background = '';
@@ -173,12 +162,9 @@ function _setupFightScreen() {
   document.getElementById('hp1-txt').innerText = '100';
   document.getElementById('hp2-txt').innerText = cfg.hp;
   document.getElementById('hp2-f').style.width = (cfg.hp / cfg.maxHp * 100) + '%';
-
-  // Только для боссов с кастомным спрайтом
   if (cfg.img) {
     document.getElementById('boar2-img').src = cfg.img;
   }
-
   document.getElementById('fight-log').innerText = 'Выбери действие!';
   _renderRpgBars();
   _renderPotionCounts();
@@ -186,23 +172,19 @@ function _setupFightScreen() {
   _unlockButtons();
   const lbl = document.getElementById('rpg-round-label');
   if (lbl) lbl.textContent = 'РАУНД 1';
-
   _initBoarAnims();
 }
 
 // ── watchBattle ───────────────────────────────────────────────
-
 export async function watchBattle() {
   if (state.isBattleLocked) return;
   state.isBattleLocked = true;
   state.isWatchingMode = true;
   state.battleResult   = null;
-
   const serverPromise = apiFetch('/api/battle/watch', {
     method: 'POST',
     body: JSON.stringify({ tg_id: state.user.tg_id }),
   });
-
   _startOldBattle(0, null, serverPromise);
 }
 
@@ -241,7 +223,6 @@ export async function preStart(side) {
 }
 
 // ── RPG кнопки ────────────────────────────────────────────────
-
 export function rpgAction(action) {
   const r = state.rpg;
   if (!r || r.locked) return;
@@ -272,7 +253,6 @@ function _closePotionMenu() {
 }
 
 // ── ИИ врага ─────────────────────────────────────────────────
-
 function _enemyAI() {
   const e   = state.rpg.enemy;
   const cfg = state.rpg.enemyCfg;
@@ -290,7 +270,6 @@ function _enemyAI() {
 }
 
 // ── Расчёт хода ──────────────────────────────────────────────
-
 function _doRpgRound(playerAction) {
   const r = state.rpg;
   r.locked = true;
@@ -300,27 +279,27 @@ function _doRpgRound(playerAction) {
   const enemyAction = _enemyAI();
   const p = r.player, e = r.enemy;
 
+  // ── Зелья игрока (считаем сразу) ─────────────────────────────
+  let playerHeal = 0, playerStaRestore = 0;
   if (playerAction === 'potion-hp') {
-    const heal = Math.round(p.maxHp * 0.5);
-    p.hp  = Math.min(p.maxHp, p.hp + heal);
+    playerHeal = Math.round(p.maxHp * 0.5);
+    p.hp  = Math.min(p.maxHp, p.hp + playerHeal);
     p.sta = Math.max(0, p.sta - POTION_STA);
     r.potions.hp--;
     _syncPotionsToUser();
-    _spawnDmg(document.getElementById('cont-1'), `+${heal}`, '#4cd964');
   } else if (playerAction === 'potion-sta') {
-    const target  = Math.round(p.maxSta * 0.9);
-    const restore = Math.max(0, target - p.sta);
-    p.sta = Math.min(p.maxSta, p.sta + restore);
+    const target = Math.round(p.maxSta * 0.9);
+    playerStaRestore = Math.max(0, target - p.sta);
+    p.sta = Math.min(p.maxSta, p.sta + playerStaRestore);
     p.sta = Math.max(0, p.sta - POTION_STA);
     r.potions.sta--;
     _syncPotionsToUser();
-    _spawnDmg(document.getElementById('cont-1'), `+${restore}СТА`, '#3b9eff');
   }
 
+  // ── Боевые расчёты ────────────────────────────────────────────
   let playerDmg = 0, enemyDmg = 0;
   let playerBlocked = false, enemyBlocked = false;
   let recoilOnEnemy = 0, recoilOnPlayer = 0;
-
   const pStaBeforeBlock = p.sta;
   const eStaBeforeBlock = e.sta;
 
@@ -367,7 +346,6 @@ function _doRpgRound(playerAction) {
   else if (playerAction === 'block')          parts.push(pStaBeforeBlock > 0 ? 'Ты блокируешь' : 'Блок провалился (нет СТА)');
   else if (playerAction === 'wait')           parts.push(`Ждёшь (+${WAIT_STA} СТА)`);
   else if (playerAction.startsWith('potion')) parts.push('Зелье выпито');
-
   if (enemyAction === 'attack') {
     if (playerBlocked) parts.push(`Враг −${enemyDmg} (блок! отдача −${recoilOnEnemy})`);
     else               parts.push(`Враг −${enemyDmg} тебе`);
@@ -376,46 +354,87 @@ function _doRpgRound(playerAction) {
   else if (enemyAction === 'wait')  parts.push(`Враг ждёт (+${WAIT_STA})`);
   document.getElementById('fight-log').innerText = parts.join(' • ');
 
-  // ── Попапы + анимации ─────────────────────────────────────────
-  const c1 = document.getElementById('cont-1');
-  const c2 = document.getElementById('cont-2');
-
-  if (playerAction === 'attack') {
-    _playBoarAnim(1, 'attack', false);
-    if (playerDmg > 0) {
-      c2.classList.add('hit');
-      _spawnDmg(c2, `-${playerDmg}`, '#ff3e3e');
-      setTimeout(() => c2.classList.remove('hit'), 250);
-      if (!enemyBlocked) _playBoarAnim(2, 'take_damage', false);
-    }
-  }
-  if (enemyAction === 'attack') {
-    _playBoarAnim(2, 'attack', false);
-    if (enemyDmg > 0) {
-      c1.classList.add('hit');
-      _spawnDmg(c1, `-${enemyDmg}`, '#ff3e3e');
-      setTimeout(() => c1.classList.remove('hit'), 250);
-      tg.HapticFeedback.impactOccurred('medium');
-      if (!playerBlocked) _playBoarAnim(1, 'take_damage', false);
-    }
-  }
-  if (enemyBlocked) {
-    _spawnDmg(c2, '🛡 БЛОК', '#3b9eff');
-    _spawnDmg(c2, `−30 СТА`, '#3b9eff');
-    if (recoilOnPlayer > 0) _spawnDmg(c1, `-${recoilOnPlayer} отдача`, '#ff8c00');
-  }
-  if (playerBlocked) {
-    _spawnDmg(c1, '🛡 БЛОК', '#3b9eff');
-    _spawnDmg(c2, `−${BLOCK_STA_DRAIN} СТА`, '#3b9eff');
-    if (recoilOnEnemy > 0) _spawnDmg(c2, `-${recoilOnEnemy} отдача`, '#ff8c00');
-  }
-  if (playerAction === 'wait') _spawnDmg(c1, '+СТА', '#4cd964');
-  if (enemyAction  === 'wait') _spawnDmg(c2, '+СТА', '#4cd964');
-
   _renderRpgBars();
   _renderPotionCounts();
   r.round++;
 
+  // ── Последовательные анимации ─────────────────────────────────
+  // Строим очередь фаз. Каждая фаза: { fn, delay }
+  // fn — что показать, delay — сколько мс ждать после этой фазы
+  const c1 = document.getElementById('cont-1');
+  const c2 = document.getElementById('cont-2');
+  const phases = [];
+
+  // Фаза А: приоритетные действия врага (блок/зелье/ожидание) — игрок видит перед своей атакой
+  if (enemyAction === 'block') {
+    phases.push({ delay: 500, fn: () => {
+      _spawnDmg(c2, '🛡 БЛОК', '#3b9eff');
+    }});
+  } else if (enemyAction === 'wait') {
+    phases.push({ delay: 400, fn: () => {
+      _spawnDmg(c2, '+СТА 💤', '#4cd964');
+    }});
+  }
+
+  // Фаза Б: действие игрока
+  if (playerAction === 'attack') {
+    phases.push({ delay: ATTACK_ANIM_MS + 150, fn: () => {
+      _playBoarAnim(1, 'attack', false);
+      // урон прилетает в середине анимации атаки
+      setTimeout(() => {
+        _spawnDmg(c2, `-${playerDmg}`, '#ff3e3e');
+        if (enemyBlocked) {
+          _spawnDmg(c2, '🛡', '#3b9eff');
+          if (recoilOnPlayer > 0) _spawnDmg(c1, `-${recoilOnPlayer} откат`, '#ff8c00');
+        } else {
+          _playBoarAnim(2, 'take_damage', false);
+        }
+        tg.HapticFeedback.impactOccurred('medium');
+      }, 400);
+    }});
+  } else if (playerAction === 'block') {
+    phases.push({ delay: 500, fn: () => {
+      _spawnDmg(c1, '🛡 БЛОК', '#3b9eff');
+    }});
+  } else if (playerAction === 'wait') {
+    phases.push({ delay: 400, fn: () => {
+      _spawnDmg(c1, '+СТА 💤', '#4cd964');
+    }});
+  } else if (playerAction === 'potion-hp') {
+    phases.push({ delay: 500, fn: () => {
+      _spawnDmg(c1, `+${playerHeal} ❤️`, '#4cd964');
+    }});
+  } else if (playerAction === 'potion-sta') {
+    phases.push({ delay: 500, fn: () => {
+      _spawnDmg(c1, `+${playerStaRestore} ⚡`, '#3b9eff');
+    }});
+  }
+
+  // Фаза В: действие врага (атака)
+  if (enemyAction === 'attack') {
+    phases.push({ delay: ATTACK_ANIM_MS + 150, fn: () => {
+      _playBoarAnim(2, 'attack', false);
+      setTimeout(() => {
+        _spawnDmg(c1, `-${enemyDmg}`, '#ff3e3e');
+        if (playerBlocked) {
+          _spawnDmg(c1, '🛡', '#3b9eff');
+          if (recoilOnEnemy > 0) _spawnDmg(c2, `-${recoilOnEnemy} откат`, '#ff8c00');
+        } else {
+          _playBoarAnim(1, 'take_damage', false);
+        }
+        tg.HapticFeedback.impactOccurred('medium');
+      }, 400);
+    }});
+  }
+
+  // ── Запуск очереди ────────────────────────────────────────────
+  let t = 0;
+  phases.forEach(phase => {
+    setTimeout(phase.fn, t);
+    t += phase.delay;
+  });
+
+  // После всех фаз — разблокировать или завершить бой
   setTimeout(() => {
     if (p.hp <= 0) { _endRpg(false); return; }
     if (e.hp <= 0) { _endRpg(true);  return; }
@@ -423,30 +442,25 @@ function _doRpgRound(playerAction) {
     _unlockButtons();
     const lbl = document.getElementById('rpg-round-label');
     if (lbl) lbl.textContent = `РАУНД ${r.round}`;
-  }, 700);
+  }, t + 200);
 }
 
 // ── Конец боя ─────────────────────────────────────────────────
-
 async function _endRpg(playerWon) {
   _stopBoarAnims();
   tg.HapticFeedback.notificationOccurred(playerWon ? 'success' : 'error');
   const cfg = state.rpg?.enemyCfg || {};
-
   if (playerWon && cfg.isBoss && cfg.bossId) {
     defeatBoss(cfg.bossId);
     showToast('🎉 Босс повержен! Новые локации открыты!');
   }
-
   const icon  = document.getElementById('res-icon');
   const title = document.getElementById('res-title');
   const sum   = document.getElementById('res-sum');
   icon.innerText    = playerWon ? (cfg.isBoss ? '👑' : '🏆') : '💀';
   title.innerText   = playerWon ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ';
   title.style.color = playerWon ? 'var(--win)' : 'var(--lose)';
-
   const reward = playerWon ? _rand(cfg.rewardMin || 25, cfg.rewardMax || 35) : 0;
-
   const [, dropResult] = await Promise.all([
     apiFetch('/api/battle/rpg-result', {
       method: 'POST',
@@ -469,7 +483,6 @@ async function _endRpg(playerWon) {
       document.getElementById('bal-val').innerText = state.user.balance.toLocaleString();
       console.warn('rpg-result sync failed', e);
     }),
-
     playerWon && cfg.dropPotion
       ? apiFetch('/api/battle/mine-drop', {
           method: 'POST',
@@ -477,7 +490,6 @@ async function _endRpg(playerWon) {
         }).catch(e => { console.warn('mine-drop failed', e); return null; })
       : Promise.resolve(null),
   ]);
-
   let potionDropped = false;
   if (dropResult?.potion_dropped) {
     potionDropped = true;
@@ -489,7 +501,6 @@ async function _endRpg(playerWon) {
     }
     renderInventoryPotions();
   }
-
   if (playerWon) {
     let sumHtml = `+${reward} ${coinImg()}`;
     if (potionDropped) {
@@ -500,14 +511,12 @@ async function _endRpg(playerWon) {
   } else {
     sum.innerHTML = '';
   }
-
   const overlay = document.getElementById('result-overlay');
   overlay.style.display = 'flex';
   setTimeout(() => document.getElementById('result-card').classList.add('active'), 50);
 }
 
 // ── Синхронизация зелий ───────────────────────────────────────
-
 function _syncPotionsToUser() {
   const r = state.rpg;
   if (!r || !state.user) return;
@@ -525,7 +534,6 @@ function _syncPotionsToUser() {
 }
 
 // ── Рендер ───────────────────────────────────────────────────
-
 function _renderRpgBars() {
   const r = state.rpg;
   if (!r) return;
@@ -583,7 +591,6 @@ function _spawnDmg(container, text, color) {
 function _rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
 // ── Старая анимация (watchBattle / preStart) ─────────────────
-
 function _generateHits(serverResult) {
   const winningSide = !serverResult || state.isWatchingMode
     ? (Math.random() < 0.5 ? 1 : 2)
@@ -612,11 +619,8 @@ function _startOldBattle(bet, serverResult, serverPromise) {
   document.getElementById('hp2-txt').innerText = '100';
   const panel = document.getElementById('rpg-fight-panel');
   if (panel) panel.style.display = 'none';
-
   _initBoarAnims();
-
   const hits = _generateHits(serverResult);
-
   let resolvedWatchResult = null;
   if (serverPromise) {
     serverPromise.then(response => {
@@ -631,18 +635,13 @@ function _startOldBattle(bet, serverResult, serverPromise) {
       }
     }).catch(e => console.warn('watch request failed', e));
   }
-
   let hitIndex = 0, battleEnded = false;
   setTimeout(() => { if (!battleEnded) log.innerText = 'ИДЕТ БОЙ...'; }, 500);
-
   const interval = setInterval(() => {
     if (hitIndex >= hits.length || battleEnded) { clearInterval(interval); return; }
     const hit  = hits[hitIndex];
     const cont = document.getElementById(`cont-${hit.target}`);
-    cont.classList.add('hit');
     _spawnDmg(cont, `-${hit.dmg}`, '#ff3e3e');
-    setTimeout(() => cont.classList.remove('hit'), 250);
-
     if (hit.target === 1) {
       _playBoarAnim(1, 'take_damage', false);
       _playBoarAnim(2, 'attack', false);
@@ -650,7 +649,6 @@ function _startOldBattle(bet, serverResult, serverPromise) {
       _playBoarAnim(2, 'take_damage', false);
       _playBoarAnim(1, 'attack', false);
     }
-
     if (hit.target === 1) { h1 = Math.max(0, h1-hit.dmg); document.getElementById('hp1-f').style.width=h1+'%'; document.getElementById('hp1-txt').innerText=h1; }
     else                  { h2 = Math.max(0, h2-hit.dmg); document.getElementById('hp2-f').style.width=h2+'%'; document.getElementById('hp2-txt').innerText=h2; }
     tg.HapticFeedback.impactOccurred('medium');
@@ -676,5 +674,5 @@ function _startOldBattle(bet, serverResult, serverPromise) {
       }, 1000);
     }
     hitIndex++;
-  }, 700);
+  }, 1200);
 }
