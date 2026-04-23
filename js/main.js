@@ -12,6 +12,7 @@ import { resetShopState, loadShopItems, toggleActionMini, onQtyInput, shopQtySte
 import { loadRank, toggleFullLeaderboard, showUserDetail, closeModal } from './leaderboard.js';
 import { updateName, togglePrivateProfile } from './profile.js';
 import { renderMap, tryBuyFarm } from './map.js';
+import { openSkinsScreen } from './skins.js';
 
 const tg = window.Telegram.WebApp;
 tg.expand();
@@ -39,7 +40,6 @@ function switchFieldTab(tab) {
   const titleEl = document.getElementById('field-tab-title');
   if (titleEl) titleEl.textContent = titles[tab] || '';
 
-  // При переключении на вкладку похода — рендерим актуальное состояние
   if (tab === 'forest') {
     import('./forest.js').then(({ renderForestUI, loadForestState }) => {
       if (state.forestState) {
@@ -72,6 +72,7 @@ async function auth() {
   if (state.user) {
     if (state.user.potion_hp  === undefined) state.user.potion_hp  = 0;
     if (state.user.potion_sta === undefined) state.user.potion_sta = 0;
+    if (!state.user.skin_id) state.user.skin_id = 'boar_sobchak';
     state.watchCooldownRemaining = state.user.watch_cooldown_remaining || 0;
     updateUI();
     updateWatchButton();
@@ -125,17 +126,19 @@ Object.assign(window, {
   tryBuyFarm,
 
   switchFieldTab,
+
+  openSkinsScreen,
 });
 
 // nav с хуками
 const _origNav = window.nav;
 window.nav = function(id) {
   _origNav(id);
-  if (id === 'scr-map')           renderMap();
-  if (id === 'scr-farm-location') loadFarmState();
+  if (id === 'scr-map')            renderMap();
+  if (id === 'scr-farm-location')  loadFarmState();
   if (id === 'scr-field') {
-    switchFieldTab('arena');  // сначала показываем правильную вкладку
-    loadForestState();        // потом грузим данные (рендер уйдёт в forest-state-area)
+    switchFieldTab('arena');
+    loadForestState();
   }
 };
 

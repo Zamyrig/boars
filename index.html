@@ -9,7 +9,7 @@
 <title>WILD TUSK BRAWL</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
-const APP_VERSION = "26.4.21";
+const APP_VERSION = "26.4.23";
 const BASE = '/boar-game-dev';
 </script>
 <link rel="stylesheet" href="css/style.css">
@@ -225,7 +225,7 @@ const BASE = '/boar-game-dev';
     </div>
 
     <!-- Вкладки — прибиты к низу карточки -->
-      <div style="display:flex;gap:8px;padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom, 0px));flex-shrink:0;border-top:1px solid rgba(255,255,255,0.06);margin-top:4px;align-items:stretch;height:52px;box-sizing:content-box;">
+    <div style="display:flex;gap:8px;padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom, 0px));flex-shrink:0;border-top:1px solid rgba(255,255,255,0.06);margin-top:4px;align-items:stretch;height:52px;box-sizing:content-box;">
       <button class="field-tab-btn active" id="field-tab-arena"  onclick="switchFieldTab('arena')">⚔️ Поляна</button>
       <button class="field-tab-btn"        id="field-tab-forest" onclick="switchFieldTab('forest')">🌲 Поход</button>
     </div>
@@ -297,7 +297,10 @@ const BASE = '/boar-game-dev';
 <!-- ── ПРОФИЛЬ ── -->
 <div id="scr-profile" class="screen">
   <div class="card">
-    <h3 style="margin-top:0;">ВАШ ХРЯК</h3>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 style="margin:0;">ВАШ ХРЯК</h3>
+      <button class="btn-wood" style="padding:8px 16px;font-size:0.75rem;margin:0;background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.12);box-shadow:none;" onclick="openSkinsScreen()">🎨 СКИНЫ</button>
+    </div>
     <input type="text" id="edit-name" placeholder="Имя хряка">
     <div class="stat-grid">
       <div class="stat-item"><span class="stat-val" id="st-games">0</span><span class="stat-lbl">Боев</span></div>
@@ -309,6 +312,7 @@ const BASE = '/boar-game-dev';
       <div class="stat-item"><span class="stat-val" id="st-max-balance">0</span><span class="stat-lbl">Макс. баланс</span></div>
       <div class="stat-item"><span class="stat-val" id="st-watched">0</span><span class="stat-lbl">Просмотрено</span></div>
     </div>
+
     <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0;">
       <span>Запретить мне писать</span>
       <label class="toggle-switch">
@@ -318,6 +322,18 @@ const BASE = '/boar-game-dev';
     </div>
     <button class="btn-wood" style="width:100%;background:#fff;color:#000;box-shadow:0 4px 0 #ccc;" onclick="updateName()">СОХРАНИТЬ</button>
     <button class="btn-wood" style="width:100%;margin-top:14px;opacity:0.6;" onclick="nav('scr-main')">НАЗАД</button>
+  </div>
+</div>
+
+<!-- ── СКИНЫ ── -->
+<div id="scr-skins" class="screen">
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h3 style="margin:0;">🎨 СКИНЫ</h3>
+      <button class="close-x" style="position:static;" onclick="nav('scr-profile')">&times;</button>
+    </div>
+    <div id="skins-screen-inner"></div>
+    <button class="btn-wood" style="width:100%;margin-top:16px;opacity:0.6;" onclick="nav('scr-profile')">← НАЗАД</button>
   </div>
 </div>
 
@@ -345,7 +361,8 @@ const BASE = '/boar-game-dev';
         <div class="hp-bar"><div id="hp1-f" class="hp-fill"></div></div>
       </div>
       <div class="boar-unit">
-        <img id="boar1-img" src="assets/boar_sobchak/boar_waiting/boar_waiting1.png" style="transform:scaleX(-1);">
+        <!-- src обновляется из battle.js при старте боя -->
+        <img id="boar1-img" src="assets/boars/boar_sobchak/boar_waiting/boar_waiting1.png" style="transform:scaleX(-1);">
       </div>
     </div>
     <div id="cont-2" class="boar-container">
@@ -354,7 +371,7 @@ const BASE = '/boar-game-dev';
         <div class="hp-bar"><div id="hp2-f" class="hp-fill"></div></div>
       </div>
       <div class="boar-unit">
-        <img id="boar2-img" src="assets/boar_sobchak/boar_waiting/boar_waiting1.png">
+        <img id="boar2-img" src="assets/boars/boar_sobchak/boar_waiting/boar_waiting1.png">
       </div>
     </div>
   </div>

@@ -8,6 +8,7 @@ from routes.shop import shop_bp
 from routes.leaderboard import leaderboard_bp
 from routes.farm import farm_bp
 from routes.forest import forest_bp
+from routes.skins import skins_bp
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 PORT     = int(os.environ.get('PORT', 3000))
@@ -26,6 +27,7 @@ app.register_blueprint(shop_bp)
 app.register_blueprint(leaderboard_bp)
 app.register_blueprint(farm_bp)
 app.register_blueprint(forest_bp)
+app.register_blueprint(skins_bp)
 
 # ── BLUEPRINTS (с префиксом APP_ROOT) ────────────────────────────────────────
 if APP_ROOT:
@@ -36,6 +38,7 @@ if APP_ROOT:
     app.register_blueprint(leaderboard_bp, url_prefix=APP_ROOT, name='leaderboard_bp_prefixed')
     app.register_blueprint(farm_bp,        url_prefix=APP_ROOT, name='farm_bp_prefixed')
     app.register_blueprint(forest_bp,      url_prefix=APP_ROOT, name='forest_bp_prefixed')
+    app.register_blueprint(skins_bp,       url_prefix=APP_ROOT, name='skins_bp_prefixed')
 
 # ── STATIC (без префикса) ─────────────────────────────────────────────────────
 @app.route('/')
