@@ -56,11 +56,13 @@ const BOAR_ANIMS = {
   waiting:     { folder: 'boar_waiting',     count: 7,  fps: 7  },
   attack:      { folder: 'boar_attack',      count: 10, fps: 10 },
   take_damage: { folder: 'boar_take_damage', count: 8,  fps: 10 },
+  death:       { folder: 'boar_death',       count: 9,  fps: 8  },
+  block:       { folder: 'boar_block',       count: 8,  fps: 8  },
 };
 
 const _boarState = {
-  1: { timer: null, anim: null },
-  2: { timer: null, anim: null },
+  1: { timer: null, anim: null, dead: false },
+  2: { timer: null, anim: null, dead: false },
 };
 
 function _playBoarAnim(side, animName, loop = true) {
@@ -69,6 +71,10 @@ function _playBoarAnim(side, animName, loop = true) {
   const img = document.getElementById(`boar${side}-img`);
   if (!img) return;
   const bs = _boarState[side];
+
+  // Мёртвый кабан не анимируется (кроме самой анимации смерти)
+  if (bs.dead && animName !== 'death') return;
+
   if (loop && bs.anim === animName && bs.timer !== null) return;
   clearInterval(bs.timer);
   bs.timer = null;
@@ -97,6 +103,10 @@ function _playBoarAnim(side, animName, loop = true) {
         cancelled = true;
         clearInterval(bs.timer);
         bs.timer = null;
+        if (bs.anim === 'death') {
+          // Остаёмся на последнем кадре, больше ничего не делаем
+          return;
+        }
         bs.anim = null;
         _playBoarAnim(side, 'waiting', true);
         return;
@@ -112,7 +122,17 @@ function _stopBoarAnims() {
     clearInterval(_boarState[side].timer);
     _boarState[side].timer = null;
     _boarState[side].anim  = null;
+    _boarState[side].dead  = false;
   });
+}
+
+function _killBoar(side) {
+  const bs = _boarState[side];
+  bs.dead = true;
+  clearInterval(bs.timer);
+  bs.timer = null;
+  bs.anim = null;
+  _playBoarAnim(side, 'death', false);
 }
 
 function _initBoarAnims() {
@@ -373,16 +393,15 @@ function _doRpgRound(playerAction) {
   r.round++;
 
   // ── Последовательные анимации ─────────────────────────────────
-  // Строим очередь фаз. Каждая фаза: { fn, delay }
-  // fn — что показать, delay — сколько мс ждать после этой фазы
   const c1 = document.getElementById('cont-1');
   const c2 = document.getElementById('cont-2');
   const phases = [];
 
-  // Фаза А: приоритетные действия врага (блок/зелье/ожидание) — игрок видит перед своей атакой
+  // Фаза А: приоритетные действия врага (блок/зелье/ожидание)
   if (enemyAction === 'block') {
     phases.push({ delay: 500, fn: () => {
       _spawnDmg(c2, '🛡 БЛОК', '#3b9eff');
+      _playBoarAnim(2, 'block', false);
     }});
   } else if (enemyAction === 'wait') {
     phases.push({ delay: 400, fn: () => {
@@ -394,12 +413,13 @@ function _doRpgRound(playerAction) {
   if (playerAction === 'attack') {
     phases.push({ delay: ATTACK_ANIM_MS + 150, fn: () => {
       _playBoarAnim(1, 'attack', false);
-      // урон прилетает в середине анимации атаки
       setTimeout(() => {
         _spawnDmg(c2, `-${playerDmg}`, '#ff3e3e');
         if (enemyBlocked) {
           _spawnDmg(c2, '🛡', '#3b9eff');
           if (recoilOnPlayer > 0) _spawnDmg(c1, `-${recoilOnPlayer} откат`, '#ff8c00');
+        } else if (e.hp <= 0) {
+          _killBoar(2);
         } else {
           _playBoarAnim(2, 'take_damage', false);
         }
@@ -409,6 +429,7 @@ function _doRpgRound(playerAction) {
   } else if (playerAction === 'block') {
     phases.push({ delay: 500, fn: () => {
       _spawnDmg(c1, '🛡 БЛОК', '#3b9eff');
+      _playBoarAnim(1, 'block', false);
     }});
   } else if (playerAction === 'wait') {
     phases.push({ delay: 400, fn: () => {
@@ -433,6 +454,8 @@ function _doRpgRound(playerAction) {
         if (playerBlocked) {
           _spawnDmg(c1, '🛡', '#3b9eff');
           if (recoilOnEnemy > 0) _spawnDmg(c2, `-${recoilOnEnemy} откат`, '#ff8c00');
+        } else if (p.hp <= 0) {
+          _killBoar(1);
         } else {
           _playBoarAnim(1, 'take_damage', false);
         }
@@ -449,6 +472,10 @@ function _doRpgRound(playerAction) {
   });
 
   // После всех фаз — разблокировать или завершить бой
+  // Даём анимации смерти доиграть (9 кадров × 125мс ≈ 1125мс) перед показом результата
+  const deathPending = (p.hp <= 0 || e.hp <= 0);
+  const deathExtraMs = deathPending ? 1200 : 0;
+
   setTimeout(() => {
     if (p.hp <= 0) { _endRpg(false); return; }
     if (e.hp <= 0) { _endRpg(true);  return; }
@@ -456,7 +483,7 @@ function _doRpgRound(playerAction) {
     _unlockButtons();
     const lbl = document.getElementById('rpg-round-label');
     if (lbl) lbl.textContent = `РАУНД ${r.round}`;
-  }, t + 200);
+  }, t + 200 + deathExtraMs);
 }
 
 // ── Конец боя ─────────────────────────────────────────────────
@@ -560,6 +587,7 @@ function _renderRpgBars() {
   hp2f.style.width = p2 + '%';
   document.getElementById('hp1-txt').innerText = Math.round(p.hp);
   document.getElementById('hp2-txt').innerText = Math.round(e.hp);
+  // Красный только при < 30%, иначе возвращаем зелёный (пустая строка = CSS-дефолт из .hp-fill)
   hp1f.style.background = p1 < 30 ? 'linear-gradient(90deg,#ff3e3e,#ff8080)' : '';
   hp2f.style.background = p2 < 30 ? 'linear-gradient(90deg,#ff3e3e,#ff8080)' : '';
   const s1 = Math.max(0, (p.sta / p.maxSta) * 100);
@@ -628,7 +656,12 @@ function _startOldBattle(bet, serverResult, serverPromise) {
   let h1 = 100, h2 = 100;
   const log = document.getElementById('fight-log');
   log.innerText = 'ПОДГОТОВКА К БОЮ...';
-  ['hp1-f','hp2-f'].forEach(id => document.getElementById(id).style.width = '100%');
+  // Сбрасываем полоски HP в зелёный и на 100%
+  ['hp1-f', 'hp2-f'].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.width = '100%';
+    el.style.background = '';
+  });
   document.getElementById('hp1-txt').innerText = '100';
   document.getElementById('hp2-txt').innerText = '100';
   const panel = document.getElementById('rpg-fight-panel');
@@ -663,14 +696,28 @@ function _startOldBattle(bet, serverResult, serverPromise) {
       _playBoarAnim(2, 'take_damage', false);
       _playBoarAnim(1, 'attack', false);
     }
-    if (hit.target === 1) { h1 = Math.max(0, h1-hit.dmg); document.getElementById('hp1-f').style.width=h1+'%'; document.getElementById('hp1-txt').innerText=h1; }
-    else                  { h2 = Math.max(0, h2-hit.dmg); document.getElementById('hp2-f').style.width=h2+'%'; document.getElementById('hp2-txt').innerText=h2; }
+    if (hit.target === 1) {
+      h1 = Math.max(0, h1 - hit.dmg);
+      const el1 = document.getElementById('hp1-f');
+      el1.style.width = h1 + '%';
+      el1.style.background = h1 < 30 ? 'linear-gradient(90deg,#ff3e3e,#ff8080)' : '';
+      document.getElementById('hp1-txt').innerText = h1;
+    } else {
+      h2 = Math.max(0, h2 - hit.dmg);
+      const el2 = document.getElementById('hp2-f');
+      el2.style.width = h2 + '%';
+      el2.style.background = h2 < 30 ? 'linear-gradient(90deg,#ff3e3e,#ff8080)' : '';
+      document.getElementById('hp2-txt').innerText = h2;
+    }
     tg.HapticFeedback.impactOccurred('medium');
     if (h1 <= 0 || h2 <= 0) {
       battleEnded = true; clearInterval(interval);
-      _stopBoarAnims();
+      // Анимация смерти на проигравшем кабане
+      if (h1 <= 0) _killBoar(1);
+      else         _killBoar(2);
       log.innerText = `ПОБЕДИЛ КАБАН ${h1 > 0 ? 'ЛЕВЫЙ' : 'ПРАВЫЙ'}`;
       setTimeout(() => {
+        _stopBoarAnims();
         const playerWins = serverResult?.is_win === true;
         tg.HapticFeedback.notificationOccurred(
           (playerWins && !state.isWatchingMode) || state.isWatchingMode ? 'success' : 'error'
@@ -685,7 +732,7 @@ function _startOldBattle(bet, serverResult, serverPromise) {
         }
         state.isBattleLocked = false;
         if (panel) panel.style.display = '';
-      }, 1000);
+      }, 1400);
     }
     hitIndex++;
   }, 1200);
