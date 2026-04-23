@@ -38,6 +38,17 @@ function switchFieldTab(tab) {
   };
   const titleEl = document.getElementById('field-tab-title');
   if (titleEl) titleEl.textContent = titles[tab] || '';
+
+  // При переключении на вкладку похода — рендерим актуальное состояние
+  if (tab === 'forest') {
+    import('./forest.js').then(({ renderForestUI, loadForestState }) => {
+      if (state.forestState) {
+        renderForestUI();
+      } else {
+        loadForestState();
+      }
+    });
+  }
 }
 
 // ── Авторизация ───────────────────────────────────────────────

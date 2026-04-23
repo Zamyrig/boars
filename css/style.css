@@ -515,7 +515,6 @@ input:checked + .slider:before { transform: translateX(76px); }
 }
 
 
-/* ── ВКЛАДКИ ПОЛЯНЫ (scr-field) — дописать в конец style.css ── */
 .field-tab-btn {
   flex: 1;
   background: rgba(255,255,255,0.05);
@@ -528,14 +527,25 @@ input:checked + .slider:before { transform: translateX(76px); }
   letter-spacing: 0.5px;
   padding: 13px 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  min-width: 0;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.field-tab-btn:active { transform: scale(0.95); }
+.field-tab-btn:active { opacity: 0.8; }
 .field-tab-btn.active {
   background: rgba(255,204,0,0.15);
   border-color: var(--gold);
   color: var(--gold);
 }
+
 .field-tab-content { display: flex; flex-direction: column; gap: 10px; }

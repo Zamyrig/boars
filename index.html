@@ -9,7 +9,7 @@
 <title>WILD TUSK BRAWL</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
-const APP_VERSION = "26.3.21";
+const APP_VERSION = "26.4.21";
 const BASE = '/boar-game-dev';
 </script>
 <link rel="stylesheet" href="css/style.css">
@@ -225,7 +225,7 @@ const BASE = '/boar-game-dev';
     </div>
 
     <!-- Вкладки — прибиты к низу карточки -->
-    <div style="display:flex;gap:8px;padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom, 0px));flex-shrink:0;border-top:1px solid rgba(255,255,255,0.06);margin-top:4px;">
+      <div style="display:flex;gap:8px;padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom, 0px));flex-shrink:0;border-top:1px solid rgba(255,255,255,0.06);margin-top:4px;align-items:stretch;height:52px;box-sizing:content-box;">
       <button class="field-tab-btn active" id="field-tab-arena"  onclick="switchFieldTab('arena')">⚔️ Поляна</button>
       <button class="field-tab-btn"        id="field-tab-forest" onclick="switchFieldTab('forest')">🌲 Поход</button>
     </div>
