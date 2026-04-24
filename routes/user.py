@@ -30,10 +30,26 @@ def _parse_defeated_bosses(raw):
         return []
 
 
-def _user_to_dict(user, watch_cooldown_remaining=None):
+def _get_owned_skins(cursor, tg_id):
+    """Возвращает список skin_id, которые открыты у пользователя."""
+    cursor.execute('SELECT skin_id FROM user_skins WHERE tg_id = ?', (tg_id,))
+    rows = cursor.fetchall()
+    skins = [r['skin_id'] for r in rows]
+    # Дефолтный скин всегда доступен
+    if 'boar_sobchak' not in skins:
+        skins.insert(0, 'boar_sobchak')
+    return skins
+
+
+def _user_to_dict(user, cursor=None, watch_cooldown_remaining=None):
     if watch_cooldown_remaining is None:
         watch_cooldown_remaining = _calc_watch_cooldown(user['last_watch_reward_at'])
     keys = user.keys()
+
+    owned_skins = ['boar_sobchak']
+    if cursor:
+        owned_skins = _get_owned_skins(cursor, user['tg_id'])
+
     return {
         'tg_id':                    user['tg_id'],
         'username':                 user['username'],
@@ -55,10 +71,9 @@ def _user_to_dict(user, watch_cooldown_remaining=None):
         'defeated_bosses':          _parse_defeated_bosses(
                                         user['defeated_bosses'] if 'defeated_bosses' in keys else '[]'
                                     ),
-        'farm_owned':               bool(user['farm_owned'] if 'farm_owned' in keys else 0),
-        # ── скин ──────────────────────────────────────────────
         'skin_id':                  user['skin_id'] if 'skin_id' in keys and user['skin_id']
                                         else 'boar_sobchak',
+        'owned_skins':              owned_skins,
     }
 
 
@@ -85,8 +100,8 @@ def auth():
             (tg_id, username, display_name, balance, total_games, wins, lose,
              private_profile, acorns, plant_acorns, max_balance, watched_battles,
              last_watch_reward_at, last_seen, potion_hp, potion_sta,
-             defeated_bosses, farm_owned, skin_id)
-            VALUES (?, ?, ?, 1000, 0, 0, 0, 0, 0, 0, 1000, 0, NULL, ?, 0, 0, '[]', 0, 'boar_sobchak')
+             defeated_bosses, skin_id)
+            VALUES (?, ?, ?, 1000, 0, 0, 0, 0, 0, 0, 1000, 0, NULL, ?, 0, 0, '[]', 'boar_sobchak')
         ''', (tg_id, username or '', display_name, now))
         conn.commit()
         cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
@@ -106,8 +121,9 @@ def auth():
         cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
         user = cursor.fetchone()
 
+    result = _user_to_dict(user, cursor=cursor)
     conn.close()
-    return jsonify(_user_to_dict(user))
+    return jsonify(result)
 
 
 # ── USER ──────────────────────────────────────────────────────
@@ -118,12 +134,13 @@ def get_user(tg_id):
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
     user = cursor.fetchone()
-    conn.close()
     if user is None:
+        conn.close()
         return jsonify({'error': 'User not found'}), 404
-    result = _user_to_dict(user)
+    result = _user_to_dict(user, cursor=cursor)
     result['created_at'] = user['created_at']
     result['updated_at'] = user['updated_at']
+    conn.close()
     return jsonify(result)
 
 
@@ -191,10 +208,12 @@ def user_info():
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM users WHERE tg_id = ?', (tg_id,))
     user = cursor.fetchone()
-    conn.close()
     if user is None:
+        conn.close()
         return jsonify({'error': 'User not found'}), 404
-    return jsonify(_user_to_dict(user))
+    result = _user_to_dict(user, cursor=cursor)
+    conn.close()
+    return jsonify(result)
 
 
 @user_bp.route('/api/user/update-potions', methods=['POST'])
@@ -221,6 +240,93 @@ def update_potions():
     conn.commit()
     conn.close()
     return jsonify({'success': True, 'potion_hp': potion_hp, 'potion_sta': potion_sta})
+
+
+# ── СКИНЫ ─────────────────────────────────────────────────────
+
+@user_bp.route('/api/user/buy-skin', methods=['POST'])
+def buy_skin():
+    """Покупка скина: списывает монеты, пишет в user_skins."""
+    data       = request.get_json()
+    tg_id      = str(data.get('tg_id'))
+    skin_id    = str(data.get('skin_id'))
+    price      = int(data.get('price', 0))
+
+    if not skin_id or price < 0:
+        return jsonify({'error': 'skin_id and price required'}), 400
+
+    conn   = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT balance FROM users WHERE tg_id = ?', (tg_id,))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        return jsonify({'error': 'User not found'}), 404
+
+    # Проверить: уже куплен?
+    cursor.execute(
+        'SELECT skin_id FROM user_skins WHERE tg_id = ? AND skin_id = ?',
+        (tg_id, skin_id)
+    )
+    if cursor.fetchone():
+        conn.close()
+        return jsonify({'error': 'Скин уже куплен'}), 400
+
+    if user['balance'] < price:
+        conn.close()
+        return jsonify({'error': 'Недостаточно монет'}), 400
+
+    new_balance = user['balance'] - price
+    cursor.execute(
+        'UPDATE users SET balance = ?, updated_at = CURRENT_TIMESTAMP WHERE tg_id = ?',
+        (new_balance, tg_id)
+    )
+    cursor.execute(
+        'INSERT INTO user_skins (tg_id, skin_id, price_paid) VALUES (?, ?, ?)',
+        (tg_id, skin_id, price)
+    )
+    conn.commit()
+
+    owned_skins = _get_owned_skins(cursor, tg_id)
+    conn.close()
+    return jsonify({
+        'success': True,
+        'new_balance': new_balance,
+        'owned_skins': owned_skins,
+    })
+
+
+@user_bp.route('/api/user/set-skin', methods=['POST'])
+def set_skin():
+    """Выбор активного скина (должен быть куплен)."""
+    data    = request.get_json()
+    tg_id   = str(data.get('tg_id'))
+    skin_id = str(data.get('skin_id'))
+
+    if not skin_id:
+        return jsonify({'error': 'skin_id required'}), 400
+
+    conn   = get_db_connection()
+    cursor = conn.cursor()
+
+    # Дефолтный скин не требует проверки
+    if skin_id != 'boar_sobchak':
+        cursor.execute(
+            'SELECT skin_id FROM user_skins WHERE tg_id = ? AND skin_id = ?',
+            (tg_id, skin_id)
+        )
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'error': 'Скин не куплен'}), 403
+
+    cursor.execute(
+        'UPDATE users SET skin_id = ?, updated_at = CURRENT_TIMESTAMP WHERE tg_id = ?',
+        (skin_id, tg_id)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'skin_id': skin_id})
 
 
 # ── ПРОГРЕСС ──────────────────────────────────────────────────
@@ -259,27 +365,3 @@ def defeat_boss():
 
     conn.close()
     return jsonify({'success': True, 'defeated_bosses': bosses})
-
-
-@user_bp.route('/api/progress/farm', methods=['POST'])
-def buy_farm_progress():
-    data  = request.get_json()
-    tg_id = str(data.get('tg_id'))
-
-    if not tg_id:
-        return jsonify({'error': 'tg_id required'}), 400
-
-    conn   = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT tg_id FROM users WHERE tg_id = ?', (tg_id,))
-    if not cursor.fetchone():
-        conn.close()
-        return jsonify({'error': 'User not found'}), 404
-
-    cursor.execute(
-        'UPDATE users SET farm_owned = 1, updated_at = CURRENT_TIMESTAMP WHERE tg_id = ?',
-        (tg_id,)
-    )
-    conn.commit()
-    conn.close()
-    return jsonify({'success': True, 'farm_owned': True})

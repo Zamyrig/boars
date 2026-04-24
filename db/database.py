@@ -26,15 +26,27 @@ def init_db():
             wins INTEGER DEFAULT 0,
             lose INTEGER DEFAULT 0,
             private_profile BOOLEAN DEFAULT 0,
+            acorns INTEGER DEFAULT 0,
+            plant_acorns INTEGER DEFAULT 1,
+            max_balance INTEGER DEFAULT 1000,
+            watched_battles INTEGER DEFAULT 0,
+            last_watch_reward_at TIMESTAMP DEFAULT NULL,
+            last_seen TIMESTAMP DEFAULT NULL,
+            potion_hp INTEGER DEFAULT 0,
+            potion_sta INTEGER DEFAULT 0,
+            mine_potion_drops INTEGER DEFAULT 0,
+            defeated_bosses TEXT DEFAULT '[]',
+            skin_id TEXT DEFAULT 'boar_sobchak',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 
+    # ── Миграция: добавить колонки если база старая ───────────
     cursor.execute("PRAGMA table_info(users)")
     columns = [column[1] for column in cursor.fetchall()]
 
-    new_columns = {
+    legacy_columns = {
         'acorns':               'INTEGER DEFAULT 0',
         'plant_acorns':         'INTEGER DEFAULT 1',
         'max_balance':          'INTEGER DEFAULT 1000',
@@ -45,21 +57,20 @@ def init_db():
         'potion_sta':           'INTEGER DEFAULT 0',
         'mine_potion_drops':    'INTEGER DEFAULT 0',
         'defeated_bosses':      "TEXT DEFAULT '[]'",
-        'farm_owned':           'INTEGER DEFAULT 0',
-        'skin_id':              "TEXT DEFAULT 'boar_sobchak'",  # ← скин
+        'skin_id':              "TEXT DEFAULT 'boar_sobchak'",
     }
 
-    for col, col_def in new_columns.items():
+    for col, col_def in legacy_columns.items():
         if col not in columns:
             cursor.execute(f'ALTER TABLE users ADD COLUMN {col} {col_def}')
-            print(f"Столбец '{col}' добавлен.")
+            print(f"Столбец '{col}' добавлен (миграция).")
             if col == 'max_balance':
                 cursor.execute(
                     'UPDATE users SET max_balance = balance '
                     'WHERE max_balance = 1000 AND balance > 1000'
                 )
 
-    # ── Таблица купленных скинов ──────────────────────────────
+    # ── Таблица открытых скинов ───────────────────────────────
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS user_skins (
             tg_id TEXT NOT NULL,
@@ -67,6 +78,20 @@ def init_db():
             unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             price_paid INTEGER DEFAULT 0,
             PRIMARY KEY (tg_id, skin_id)
+        )
+    ''')
+
+    # ── Слоты фермы ───────────────────────────────────────────
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS farm_slots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tg_id TEXT NOT NULL,
+            slot_num INTEGER NOT NULL,
+            unlocked INTEGER DEFAULT 0,
+            planted_item TEXT DEFAULT NULL,
+            planted_at TIMESTAMP DEFAULT NULL,
+            ready_at TIMESTAMP DEFAULT NULL,
+            UNIQUE(tg_id, slot_num)
         )
     ''')
 

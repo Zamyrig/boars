@@ -91,10 +91,10 @@ def _roll_drops(item_id: str) -> dict:
     return {'acorns': acorns, 'coins': coins, 'plant_acorn': bonus_plant}
 
 
-def _get_drop_table_display(item_id: str) -> list:
+def _get_drop_table_display(item_id: str) -> dict:
     table = _load_drops(item_id)
     if not table:
-        return []
+        return {}
 
     result = []
     for acorns, chance, coins_min, coins_max in table['drops']:
@@ -165,14 +165,24 @@ def _slot_to_dict(slot: dict, now: datetime) -> dict:
         except Exception:
             pass
     return {
-        'slot_num': slot['slot_num'],
-        'unlocked': bool(slot['unlocked']),
+        'slot_num':    slot['slot_num'],
+        'unlocked':    bool(slot['unlocked']),
         'planted_item': slot.get('planted_item'),
-        'planted_at': slot.get('planted_at'),
-        'ready_at': ready_at,
+        'planted_at':  slot.get('planted_at'),
+        'ready_at':    ready_at,
         'seconds_left': seconds_left,
-        'is_ready': seconds_left == 0 and slot.get('planted_item') is not None,
+        'is_ready':    seconds_left == 0 and slot.get('planted_item') is not None,
     }
+
+
+def _count_unlocked(cursor, tg_id: str) -> int:
+    """Сколько слотов реально разблокировано у пользователя."""
+    cursor.execute(
+        'SELECT COUNT(*) as cnt FROM farm_slots WHERE tg_id = ? AND unlocked = 1',
+        (tg_id,)
+    )
+    row = cursor.fetchone()
+    return row['cnt'] if row else 0
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -194,23 +204,25 @@ def farm_state():
         return jsonify({'error': 'User not found'}), 404
 
     slots = _get_or_create_farm(cursor, tg_id)
+    unlocked_count = _count_unlocked(cursor, tg_id)
     conn.commit()
     conn.close()
 
     now = datetime.utcnow()
     return jsonify({
-        'slots': [_slot_to_dict(s, now) for s in slots],
-        'slot_configs': FARM_SLOTS,
-        'acorns': user['acorns'],
-        'plant_acorns': user['plant_acorns'],
-        'balance': user['balance'],
+        'slots':          [_slot_to_dict(s, now) for s in slots],
+        'slot_configs':   FARM_SLOTS,
+        'acorns':         user['acorns'],
+        'plant_acorns':   user['plant_acorns'],
+        'balance':        user['balance'],
+        'unlocked_count': unlocked_count,
     })
 
 
 @farm_bp.route('/api/farm/unlock', methods=['POST'])
 def farm_unlock():
-    data = request.get_json()
-    tg_id = str(data.get('tg_id'))
+    data     = request.get_json()
+    tg_id    = str(data.get('tg_id'))
     slot_num = int(data.get('slot_num', 1))
 
     cfg = next((s for s in FARM_SLOTS if s['slot'] == slot_num), None)
@@ -264,13 +276,15 @@ def farm_unlock():
 
         cursor.execute('SELECT acorns, plant_acorns, balance FROM users WHERE tg_id = ?', (tg_id,))
         updated = cursor.fetchone()
+        unlocked_count = _count_unlocked(cursor, tg_id)
         conn.close()
 
         return jsonify({
-            'success': True,
-            'new_acorns': updated['acorns'],
+            'success':        True,
+            'new_acorns':     updated['acorns'],
             'new_plant_acorns': updated['plant_acorns'],
-            'new_balance': updated['balance'],
+            'new_balance':    updated['balance'],
+            'unlocked_count': unlocked_count,
         })
 
     except Exception as e:
@@ -281,10 +295,10 @@ def farm_unlock():
 
 @farm_bp.route('/api/farm/plant', methods=['POST'])
 def farm_plant():
-    data = request.get_json()
-    tg_id = str(data.get('tg_id'))
+    data     = request.get_json()
+    tg_id    = str(data.get('tg_id'))
     slot_num = int(data.get('slot_num'))
-    item_id = str(data.get('item_id'))
+    item_id  = str(data.get('item_id'))
 
     drop_table = _load_drops(item_id)
     if not drop_table:
@@ -323,7 +337,7 @@ def farm_plant():
             WHERE tg_id = ?
         ''', (tg_id,))
 
-        now = datetime.utcnow()
+        now      = datetime.utcnow()
         ready_at = now + timedelta(hours=drop_table['grow_time_hours'])
 
         cursor.execute('''
@@ -339,10 +353,10 @@ def farm_plant():
         conn.close()
 
         return jsonify({
-            'success': True,
-            'planted_item': item_id,
-            'ready_at': ready_at.isoformat(),
-            'seconds_left': int(drop_table['grow_time_hours'] * 3600),
+            'success':          True,
+            'planted_item':     item_id,
+            'ready_at':         ready_at.isoformat(),
+            'seconds_left':     int(drop_table['grow_time_hours'] * 3600),
             'new_plant_acorns': updated['plant_acorns'],
         })
 
@@ -354,8 +368,8 @@ def farm_plant():
 
 @farm_bp.route('/api/farm/harvest', methods=['POST'])
 def farm_harvest():
-    data = request.get_json()
-    tg_id = str(data.get('tg_id'))
+    data     = request.get_json()
+    tg_id    = str(data.get('tg_id'))
     slot_num = int(data.get('slot_num'))
 
     conn = get_db_connection()
@@ -373,14 +387,14 @@ def farm_harvest():
             conn.rollback(); conn.close()
             return jsonify({'error': 'Нечего собирать'}), 400
 
-        now = datetime.utcnow()
+        now         = datetime.utcnow()
         ready_at_dt = datetime.fromisoformat(str(slot['ready_at']))
         if now < ready_at_dt:
             conn.rollback(); conn.close()
             return jsonify({'error': 'Ещё не готово'}), 400
 
         item_id = slot['planted_item']
-        drops = _roll_drops(item_id)
+        drops   = _roll_drops(item_id)
 
         cursor.execute('SELECT balance FROM users WHERE tg_id = ?', (tg_id,))
         user = cursor.fetchone()
@@ -412,12 +426,12 @@ def farm_harvest():
         conn.close()
 
         return jsonify({
-            'success': True,
-            'drops': drops,
-            'new_balance': updated['balance'],
-            'new_acorns': updated['acorns'],
+            'success':          True,
+            'drops':            drops,
+            'new_balance':      updated['balance'],
+            'new_acorns':       updated['acorns'],
             'new_plant_acorns': updated['plant_acorns'],
-            'new_max_balance': updated['max_balance'],
+            'new_max_balance':  updated['max_balance'],
         })
 
     except Exception as e:
@@ -429,7 +443,7 @@ def farm_harvest():
 @farm_bp.route('/api/farm/drops', methods=['GET'])
 def farm_drops():
     item_id = request.args.get('item_id', 'plant_acorn')
-    table = _get_drop_table_display(item_id)
+    table   = _get_drop_table_display(item_id)
     if not table:
         return jsonify({'error': 'Unknown item'}), 404
     return jsonify(table)
